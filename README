@@ -1,0 +1,11 @@
+
+ISE (Iris Server Engine) is a C++ framework for server programming.
+
+Key features:
+1. Cross-platform (Linux & Windows).
+2. Multi-threaded.
+3. Supports TCP and UDP.
+4. Many cross-platform utilities.
+
+ISE is an open source project. Please see:
+http://github.com/haoxingeng/ise
