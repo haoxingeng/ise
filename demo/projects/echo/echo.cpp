@@ -2,7 +2,7 @@
 
 #include "echo.h"
 
-CSseBusiness* CreateSseBusinessObject()
+CIseBusiness* CreateIseBusinessObject()
 {
 	return new CAppBusiness();
 }
@@ -53,7 +53,7 @@ void CAppBusiness::DoStartupState(STARTUP_STATE nState)
 //-----------------------------------------------------------------------------
 // 描述: 初始化SSE配置信息
 //-----------------------------------------------------------------------------
-void CAppBusiness::InitSseOptions(CSseOptions& SseOpt)
+void CAppBusiness::InitSseOptions(CIseOptions& SseOpt)
 {
 	SseOpt.SetLogFileName(GetAppSubPath("log") + "echo-log.txt", true);
 	SseOpt.SetIsDaemon(true);

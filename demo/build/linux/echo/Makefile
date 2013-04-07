@@ -4,10 +4,10 @@ TARGET_NAME = $(PROJECT_NAME)
 TARGET_PATH = .
 TARGET_PATH_NAME = $(TARGET_PATH)/$(TARGET_NAME)
 
-SSE_PATH = ../../../..
-SSE_INC_PATH = $(SSE_PATH)/include
-SSE_LIB_PATH = $(SSE_PATH)/lib/linux
-SSE_LIB_PATH_NAME = $(SSE_LIB_PATH)/libsse.a
+ISE_PATH = ../../../..
+ISE_INC_PATH = $(ISE_PATH)/include
+ISE_LIB_PATH = $(ISE_PATH)/lib/linux
+ISE_LIB_PATH_NAME = $(ISE_LIB_PATH)/libise.a
 
 SRC_PATH = ../../../projects/$(PROJECT_NAME)/
 
@@ -19,22 +19,22 @@ SRCS = $(wildcard $(SRC_PATH)/*.cpp)
 
 OBJS = $(SRCS:.cpp=.o)
 
-STATIC_LIBS = $(SSE_LIB_PATH_NAME)
+STATIC_LIBS = $(ISE_LIB_PATH_NAME)
 
 LIBS = -lpthread
 
-INCS = -I$(SSE_INC_PATH)
+INCS = -I$(ISE_INC_PATH)
 
 all: $(TARGET_PATH_NAME)
 
-$(TARGET_PATH_NAME): $(OBJS) build_libsse
+$(TARGET_PATH_NAME): $(OBJS) build_libise
 	@set -e;
 	$(CC) -o $(TARGET_PATH_NAME) $(OBJS) $(STATIC_LIBS) $(LIBS);
 	@echo "Done: $(TARGET_NAME).";
 
-build_libsse:
+build_libise:
 	@set -e; \
-	make --no-print-directory -C $(SSE_PATH)/build/linux;
+	make --no-print-directory -C $(ISE_PATH)/build/linux;
 
 %.o: %.cpp
 	@set -e; \

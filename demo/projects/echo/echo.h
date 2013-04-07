@@ -3,13 +3,13 @@
 #ifndef _ECHO_H_
 #define _ECHO_H_
 
-#include "sse.h"
+#include "ise.h"
 
-using namespace sse;
+using namespace ise;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class CAppBusiness : public CSseBusiness 
+class CAppBusiness : public CIseBusiness 
 {
 public:
     CAppBusiness() {}
@@ -19,7 +19,7 @@ public:
 	virtual void Finalize();
 
 	virtual void DoStartupState(STARTUP_STATE nState);
-    virtual void InitSseOptions(CSseOptions& SseOpt);
+    virtual void InitSseOptions(CIseOptions& SseOpt);
 
 	virtual void OnTcpConnection(CTcpConnection *pConnection);
 	virtual void OnTcpError(CTcpConnection *pConnection);
