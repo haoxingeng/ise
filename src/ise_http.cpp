@@ -223,6 +223,7 @@ void CHttpEntityHeaderInfo::Init()
 	m_strETag.clear();
 	m_strLastModified.clear();
 	m_strPragma = "no-cache";
+	m_strTransferEncoding.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -271,6 +272,7 @@ void CHttpEntityHeaderInfo::ParseHeaders()
 	m_strExpires = m_RawHeaders.GetValue("Expires");
 	m_strETag = m_RawHeaders.GetValue("ETag");
 	m_strPragma = m_RawHeaders.GetValue("Pragma");
+	m_strTransferEncoding = m_RawHeaders.GetValue("Transfer-Encoding");
 }
 
 //-----------------------------------------------------------------------------
@@ -303,6 +305,8 @@ void CHttpEntityHeaderInfo::BuildHeaders()
 		m_RawHeaders.SetValue("Expires", m_strExpires);
 	if (!m_strPragma.empty())
 		m_RawHeaders.SetValue("Pragma", m_strPragma);
+	if (!m_strTransferEncoding.empty())
+		m_RawHeaders.SetValue("Transfer-Encoding", m_strTransferEncoding);
 
 	if (m_CustomHeaders.GetCount() > 0)
 		m_RawHeaders.AddStrings(m_CustomHeaders);
@@ -793,6 +797,115 @@ CHttpClient::~CHttpClient()
 
 //-----------------------------------------------------------------------------
 
+int CHttpClient::ReadLine(string& strLine, int nTimeOut)
+{
+	int nResult = EC_HTTP_SUCCESS;
+	UINT nStartTicks = GetCurTicks();
+	CMemoryStream Stream;
+	char ch;
+
+	while (true)
+	{
+		int nRemainTimeOut = Max(0, nTimeOut - (int)GetTickDiff(nStartTicks, GetCurTicks()));
+
+		int r = m_TcpClient.RecvBuffer(&ch, sizeof(ch), true, nRemainTimeOut);
+		if (r < 0)
+		{
+			nResult = EC_HTTP_SOCKET_ERROR;
+			break;
+		}
+		else if (r > 0)
+		{
+			Stream.Write(&ch, sizeof(ch));
+
+			char *pBuffer = Stream.GetMemory();
+			int nSize = (int)Stream.GetSize();
+			bool bFinished = false;
+
+			if (nSize >= 2)
+			{
+				char *p = pBuffer + nSize - 2;
+				if (p[0] == '\r' && p[1] == '\n')
+					bFinished = true;
+			}
+
+			if (bFinished)
+				break;
+		}
+
+		if (GetTickDiff(nStartTicks, GetCurTicks()) > (UINT)nTimeOut)
+		{
+			nResult = EC_HTTP_RECV_TIMEOUT;
+			break;
+		}
+	}
+
+	if (nResult == EC_HTTP_SUCCESS)
+	{
+		if (Stream.GetSize() > 0)
+			strLine.assign(Stream.GetMemory(), (int)Stream.GetSize());
+		else
+			strLine.clear();
+	}
+
+	return nResult;
+}
+
+//-----------------------------------------------------------------------------
+
+int CHttpClient::ReadChunkSize(UINT& nChunkSize, int nTimeOut)
+{
+	string strLine;
+	int nResult = ReadLine(strLine, nTimeOut);
+	if (nResult == EC_HTTP_SUCCESS)
+	{
+		string::size_type nPos = strLine.find(';');
+		if (nPos != string::npos)
+			strLine = strLine.substr(0, nPos);
+		nChunkSize = (UINT)strtol(strLine.c_str(), NULL, 16);
+	}
+
+	return nResult;
+}
+
+//-----------------------------------------------------------------------------
+
+int CHttpClient::ReadStream(CStream& Stream, int nBytes, int nTimeOut)
+{
+	const int BLOCK_SIZE = 1024*64;
+
+	int nResult = EC_HTTP_SUCCESS;
+	UINT nStartTicks = GetCurTicks();
+	INT64 nRemainSize = nBytes;
+	CBuffer Buffer(BLOCK_SIZE);
+
+	while (nRemainSize > 0)
+	{
+		int nBlockSize = (int)Min(nRemainSize, (INT64)BLOCK_SIZE);
+		int nRemainTimeOut = Max(0, nTimeOut - (int)GetTickDiff(nStartTicks, GetCurTicks()));
+		int nRecvSize = m_TcpClient.RecvBuffer(Buffer.Data(), nBlockSize, true, nRemainTimeOut);
+
+		if (nRecvSize < 0)
+		{
+			nResult = EC_HTTP_SOCKET_ERROR;
+			break;
+		}
+
+		nRemainSize -= nRecvSize;
+		Stream.WriteBuffer(Buffer.Data(), nRecvSize);
+
+		if (GetTickDiff(nStartTicks, GetCurTicks()) > (UINT)nTimeOut)
+		{
+			nResult = EC_HTTP_RECV_TIMEOUT;
+			break;
+		}
+	}
+
+	return nResult;
+}
+
+//-----------------------------------------------------------------------------
+
 int CHttpClient::ExecuteHttpAction(HTTP_METHOD_TYPE nHttpMethod, const string& strUrl,
 	CStream *pRequestContent, CStream *pResponseContent)
 {
@@ -959,7 +1072,7 @@ int CHttpClient::SendRequestContent()
 
 int CHttpClient::RecvResponseHeader()
 {
-	const int RECV_BYTE_TIMEOUT = 1000*1;
+	const int RECV_TIMEOUT = m_Options.nRecvResHeaderTimeOut;
 
 	int nResult = EC_HTTP_SUCCESS;
 	UINT nStartTicks = GetCurTicks();
@@ -971,7 +1084,9 @@ int CHttpClient::RecvResponseHeader()
 
 		while (true)
 		{
-			int r = m_TcpClient.RecvBuffer(&ch, sizeof(ch), true, RECV_BYTE_TIMEOUT);
+			int nRemainTimeOut = Max(0, RECV_TIMEOUT - (int)GetTickDiff(nStartTicks, GetCurTicks()));
+
+			int r = m_TcpClient.RecvBuffer(&ch, sizeof(ch), true, nRemainTimeOut);
 			if (r < 0)
 			{
 				nResult = EC_HTTP_SOCKET_ERROR;
@@ -991,13 +1106,11 @@ int CHttpClient::RecvResponseHeader()
 				if (bFinished)
 					break;
 			}
-			else
+
+			if (GetTickDiff(nStartTicks, GetCurTicks()) > (UINT)RECV_TIMEOUT)
 			{
-				if (GetTickDiff(nStartTicks, GetCurTicks()) > (UINT)m_Options.nRecvResHeaderTimeOut)
-				{
-					nResult = EC_HTTP_RECV_TIMEOUT;
-					break;
-				}
+				nResult = EC_HTTP_RECV_TIMEOUT;
+				break;
 			}
 		}
 
@@ -1019,31 +1132,59 @@ int CHttpClient::RecvResponseContent()
 	int nResult = EC_HTTP_SUCCESS;
 	if (!m_Response.GetContentStream()) return nResult;
 
-	INT64 nContentLength = m_Response.GetContentLength();
-	if (nContentLength <= 0)
-		nResult = EC_HTTP_CONTENT_LENGTH_ERROR;
-
-	if (nResult == EC_HTTP_SUCCESS)
+	if (LowerCase(m_Response.GetTransferEncoding()).find("chunked") != string::npos)
 	{
-		const int BLOCK_SIZE = 1024*64;
-
-		INT64 nRemainSize = nContentLength;
-		CBuffer Buffer(BLOCK_SIZE);
-
-		while (nRemainSize > 0)
+		while (true)
 		{
-			int nBlockSize = (int)Min(nRemainSize, (INT64)BLOCK_SIZE);
-			int nRecvSize = m_TcpClient.RecvBuffer(Buffer.Data(), nBlockSize,
-				true, m_Options.nRecvResContBlockTimeOut);
-
-			if (nRecvSize < 0)
-			{
-				nResult = EC_HTTP_SOCKET_ERROR;
+			int nTimeOut = m_Options.nRecvResContBlockTimeOut;
+			UINT nChunkSize = 0;
+			nResult = ReadChunkSize(nChunkSize, nTimeOut);
+			if (nResult != EC_HTTP_SUCCESS)
 				break;
-			}
 
-			nRemainSize -= nRecvSize;
-			m_Response.GetContentStream()->WriteBuffer(Buffer.Data(), nRecvSize);
+			if (nChunkSize != 0)
+			{
+				nResult = ReadStream(*m_Response.GetContentStream(), nChunkSize, nTimeOut);
+				if (nResult != EC_HTTP_SUCCESS)
+					break;
+
+				string strCrLf;
+				nResult = ReadLine(strCrLf, nTimeOut);
+				if (nResult != EC_HTTP_SUCCESS)
+					break;
+			}
+			else
+				break;
+		}
+	}
+	else
+	{
+		INT64 nContentLength = m_Response.GetContentLength();
+		if (nContentLength <= 0)
+			nResult = EC_HTTP_CONTENT_LENGTH_ERROR;
+
+		if (nResult == EC_HTTP_SUCCESS)
+		{
+			const int BLOCK_SIZE = 1024*64;
+
+			INT64 nRemainSize = nContentLength;
+			CBuffer Buffer(BLOCK_SIZE);
+
+			while (nRemainSize > 0)
+			{
+				int nBlockSize = (int)Min(nRemainSize, (INT64)BLOCK_SIZE);
+				int nRecvSize = m_TcpClient.RecvBuffer(Buffer.Data(), nBlockSize,
+					true, m_Options.nRecvResContBlockTimeOut);
+
+				if (nRecvSize < 0)
+				{
+					nResult = EC_HTTP_SOCKET_ERROR;
+					break;
+				}
+
+				nRemainSize -= nRecvSize;
+				m_Response.GetContentStream()->WriteBuffer(Buffer.Data(), nRecvSize);
+			}
 		}
 	}
 

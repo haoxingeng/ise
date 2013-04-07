@@ -1275,6 +1275,7 @@ public:
 	void SetFileName(const string& strFileName, bool bNewFileDaily = false);
 
 	void WriteStr(const char *sString);
+	void WriteStr(const string& str) { WriteStr(str.c_str()); }
 	void WriteFmt(const char *sFormatString, ...);
 	void WriteException(const CException& e);
 };

@@ -183,6 +183,7 @@ protected:
 	string m_strETag;
 	string m_strLastModified;
 	string m_strPragma;
+	string m_strTransferEncoding;
 protected:
 	void Init();
 public:
@@ -216,6 +217,7 @@ public:
 	const string& GetETag() const { return m_strETag; }
 	const string& GetLastModified() const { return m_strLastModified; }
 	const string& GetPragma() const { return m_strPragma; }
+	const string& GetTransferEncoding() const { return m_strTransferEncoding; }
 
 	void SetCustomHeaders(const CHttpHeaderStrList& val) { m_CustomHeaders = val; }
 	void SetCacheControl(const string& strValue) { m_strCacheControl = strValue; }
@@ -235,6 +237,7 @@ public:
 	void SetETag(const string& strValue) { m_strETag = strValue; }
 	void SetLastModified(const string& strValue) { m_strLastModified = strValue; }
 	void SetPragma(const string& strValue) { m_strPragma = strValue; }
+	void SetTransferEncoding(const string& strValue) { m_strTransferEncoding = strValue; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -428,6 +431,10 @@ class CHttpClient : public CCustomHttpClient
 {
 public:
 	friend class CAutoFinalizer;
+private:
+	int ReadLine(string& strLine, int nTimeOut);
+	int ReadChunkSize(UINT& nChunkSize, int nTimeOut);
+	int ReadStream(CStream& Stream, int nBytes, int nTimeOut);
 protected:
 	int ExecuteHttpAction(HTTP_METHOD_TYPE nHttpMethod, const string& strUrl,
 		CStream *pRequestContent, CStream *pResponseContent);
