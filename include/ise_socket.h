@@ -57,19 +57,18 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CSocket;
-class CUdpSocket;
-class CUdpClient;
-class CUdpServer;
-class CTcpSocket;
-class CDtpConnection;
-class CBaseTcpConnection;
-class CTcpClient;
-class CTcpServer;
-class CListenerThread;
-class CUdpListenerThread;
-class CUdpListenerThreadPool;
-class CTcpListenerThread;
+class Socket;
+class UdpSocket;
+class UdpClient;
+class UdpServer;
+class TcpSocket;
+class BaseTcpConnection;
+class TcpClient;
+class TcpServer;
+class ListenerThread;
+class UdpListenerThread;
+class UdpListenerThreadPool;
+class TcpListenerThread;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 常量定义
@@ -250,340 +249,340 @@ enum ASYNC_CONNECT_STATE
 
 #pragma pack(1)     // 1字节对齐
 
-// Peer地址信息
-struct CPeerAddress
+// 地址信息
+struct InetAddress
 {
 	UINT nIp;       // IP (主机字节顺序)
-	int nPort;      // 端口
+	int port;      // 端口
 
-	CPeerAddress() : nIp(0), nPort(0) {}
-	CPeerAddress(UINT _nIp, int _nPort)
-		{ nIp = _nIp;  nPort = _nPort; }
-	bool operator == (const CPeerAddress& rhs) const
-		{ return (nIp == rhs.nIp && nPort == rhs.nPort); }
-	bool operator != (const CPeerAddress& rhs) const
+	InetAddress() : nIp(0), port(0) {}
+	InetAddress(UINT _nIp, int _nPort)
+		{ nIp = _nIp;  port = _nPort; }
+	bool operator == (const InetAddress& rhs) const
+		{ return (nIp == rhs.nIp && port == rhs.port); }
+	bool operator != (const InetAddress& rhs) const
 		{ return !((*this) == rhs); }
 };
 
 #pragma pack()
 
 // 回调函数定义
-typedef void (*UDPSVR_ON_RECV_DATA_PROC)(void *pParam, void *pPacketBuffer,
-	int nPacketSize, const CPeerAddress& PeerAddr);
-typedef void (*TCPSVR_ON_CREATE_CONN_PROC)(void *pParam, CTcpServer *pTcpServer,
-	SOCKET nSocketHandle, const CPeerAddress& PeerAddr, CBaseTcpConnection*& pConnection);
-typedef void (*TCPSVR_ON_ACCEPT_CONN_PROC)(void *pParam, CTcpServer *pTcpServer,
-	CBaseTcpConnection *pConnection);
+typedef void (*UDPSVR_ON_RECV_DATA_PROC)(void *param, void *packetBuffer,
+	int packetSize, const InetAddress& peerAddr);
+typedef void (*TCPSVR_ON_CREATE_CONN_PROC)(void *param, TcpServer *tcpServer,
+	SOCKET socketHandle, const InetAddress& peerAddr, BaseTcpConnection*& connection);
+typedef void (*TCPSVR_ON_ACCEPT_CONN_PROC)(void *param, TcpServer *tcpServer,
+	BaseTcpConnection *connection);
 
 ///////////////////////////////////////////////////////////////////////////////
 // 杂项函数
 
 // 网络初始化/结束化
-void NetworkInitialize();
-void NetworkFinalize();
-bool IsNetworkInited();
-void EnsureNetworkInited();
+void networkInitialize();
+void networkFinalize();
+bool isNetworkInited();
+void ensureNetworkInited();
 
 // 解决跨平台问题的函数
-int IseSocketGetLastError();
-string IseSocketGetErrorMsg(int nError);
-string IseSocketGetLastErrMsg();
-void IseCloseSocket(SOCKET nHandle);
+int iseSocketGetLastError();
+string iseSocketGetErrorMsg(int errorCode);
+string iseSocketGetLastErrMsg();
+void iseCloseSocket(SOCKET handle);
 
 // 杂项函数
-string IpToString(UINT nIp);
-UINT StringToIp(const string& strString);
-void GetSocketAddr(SockAddr& SockAddr, UINT nIpHostValue, int nPort);
-int GetFreePort(NET_PROTO_TYPE nProto, int nStartPort, int nCheckTimes);
-void GetLocalIpList(StringArray& IpList);
-string GetLocalIp();
-string LookupHostAddr(const string& strHost);
-void IseThrowSocketLastError();
+string ipToString(UINT ip);
+UINT stringToIp(const string& str);
+void getSocketAddr(SockAddr& sockAddr, UINT ipHostValue, int port);
+int getFreePort(NET_PROTO_TYPE proto, int startPort, int checkTimes);
+void getLocalIpList(StringArray& ipList);
+string getLocalIp();
+string lookupHostAddr(const string& host);
+void iseThrowSocketLastError();
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSocket - 套接字类
+// class Socket - 套接字类
 
-class CSocket
+class Socket
 {
 public:
-	friend class CTcpServer;
+	friend class TcpServer;
 
 protected:
-	bool m_bActive;     // 套接字是否准备就绪
-	SOCKET m_nHandle;   // 套接字句柄
-	int m_nDomain;      // 套接字的协议家族 (PF_UNIX, PF_INET, PF_INET6, PF_IPX, ...)
-	int m_nType;        // 套接字类型，必须指定 (SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET)
-	int m_nProtocol;    // 套接字所用协议，可为0 (IPPROTO_IP, IPPROTO_UDP, IPPROTO_TCP, ...)
-	bool m_bBlockMode;  // 是否为阻塞模式 (缺省为阻塞模式)
+	bool isActive_;     // 套接字是否准备就绪
+	SOCKET handle_;     // 套接字句柄
+	int domain_;        // 套接字的协议家族 (PF_UNIX, PF_INET, PF_INET6, PF_IPX, ...)
+	int type_;          // 套接字类型，必须指定 (SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_RDM, SOCK_SEQPACKET)
+	int protocol_;      // 套接字所用协议，可为0 (IPPROTO_IP, IPPROTO_UDP, IPPROTO_TCP, ...)
+	bool isBlockMode_;  // 是否为阻塞模式 (缺省为阻塞模式)
 
 private:
-	void DoSetBlockMode(SOCKET nHandle, bool bValue);
-	void DoClose();
+	void doSetBlockMode(SOCKET handle, bool value);
+	void doClose();
 
 protected:
-	void SetActive(bool bValue);
-	void SetDomain(int nValue);
-	void SetType(int nValue);
-	void SetProtocol(int nValue);
+	void setActive(bool value);
+	void setDomain(int value);
+	void setType(int value);
+	void setProtocol(int value);
 
-	void Bind(int nPort);
+	void bind(int port);
 public:
-	CSocket();
-	virtual ~CSocket();
+	Socket();
+	virtual ~Socket();
 
-	virtual void Open();
-	virtual void Close();
+	virtual void open();
+	virtual void close();
 
-	bool GetActive() const { return m_bActive; }
-	SOCKET GetHandle() const { return m_nHandle; }
-	bool GetBlockMode() const { return m_bBlockMode; }
-	void SetBlockMode(bool bValue);
-	void SetHandle(SOCKET nValue);
+	bool isActive() const { return isActive_; }
+	SOCKET getHandle() const { return handle_; }
+	bool isBlockMode() const { return isBlockMode_; }
+	void setBlockMode(bool value);
+	void setHandle(SOCKET value);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpSocket - UDP 套接字类
+// class UdpSocket - UDP 套接字类
 
-class CUdpSocket : public CSocket
+class UdpSocket : public Socket
 {
 public:
-	CUdpSocket()
+	UdpSocket()
 	{
-		m_nType = SOCK_DGRAM;
-		m_nProtocol = IPPROTO_UDP;
-		m_bBlockMode = true;
+		type_ = SOCK_DGRAM;
+		protocol_ = IPPROTO_UDP;
+		isBlockMode_ = true;
 	}
 
-	int RecvBuffer(void *pBuffer, int nSize);
-	int RecvBuffer(void *pBuffer, int nSize, CPeerAddress& PeerAddr);
-	int SendBuffer(void *pBuffer, int nSize, const CPeerAddress& PeerAddr, int nSendTimes = 1);
+	int recvBuffer(void *buffer, int size);
+	int recvBuffer(void *buffer, int size, InetAddress& peerAddr);
+	int sendBuffer(void *buffer, int size, const InetAddress& peerAddr, int sendTimes = 1);
 
-	virtual void Open();
+	virtual void open();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpClient - UDP Client 类
+// class UdpClient - UDP Client 类
 
-class CUdpClient : public CUdpSocket
+class UdpClient : public UdpSocket
 {
 public:
-	CUdpClient() { Open(); }
+	UdpClient() { open(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpServer - UDP Server 类
+// class UdpServer - UDP Server 类
 
-class CUdpServer : public CUdpSocket
+class UdpServer : public UdpSocket
 {
 public:
-	friend class CUdpListenerThread;
+	friend class UdpListenerThread;
 private:
-	int m_nLocalPort;
-	CUdpListenerThreadPool *m_pListenerThreadPool;
-	CCallBackDef<UDPSVR_ON_RECV_DATA_PROC> m_OnRecvData;
-	PVOID m_pCustomData;
+	int localPort_;
+	UdpListenerThreadPool *listenerThreadPool_;
+	CallbackDef<UDPSVR_ON_RECV_DATA_PROC> onRecvData_;
+	PVOID customData_;
 private:
-	void DataReceived(void *pPacketBuffer, int nPacketSize, const CPeerAddress& PeerAddr);
+	void dataReceived(void *packetBuffer, int packetSize, const InetAddress& peerAddr);
 protected:
-	virtual void StartListenerThreads();
-	virtual void StopListenerThreads();
+	virtual void startListenerThreads();
+	virtual void stopListenerThreads();
 public:
-	CUdpServer();
-	virtual ~CUdpServer();
+	UdpServer();
+	virtual ~UdpServer();
 
-	virtual void Open();
-	virtual void Close();
+	virtual void open();
+	virtual void close();
 
-	int GetLocalPort() const { return m_nLocalPort; }
-	void SetLocalPort(int nValue);
+	int getLocalPort() const { return localPort_; }
+	void setLocalPort(int value);
 
-	int GetListenerThreadCount() const;
-	void SetListenerThreadCount(int nValue);
+	int getListenerThreadCount() const;
+	void setListenerThreadCount(int value);
 
-	PVOID& CustomData() { return m_pCustomData; }
+	PVOID& customData() { return customData_; }
 
-	void SetOnRecvDataCallBack(UDPSVR_ON_RECV_DATA_PROC pProc, void *pParam = NULL);
+	void setOnRecvDataCallback(UDPSVR_ON_RECV_DATA_PROC proc, void *param = NULL);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpSocket - TCP 套接字类
+// class TcpSocket - TCP 套接字类
 
-class CTcpSocket : public CSocket
+class TcpSocket : public Socket
 {
 public:
-	CTcpSocket()
+	TcpSocket()
 	{
-		m_nType = SOCK_STREAM;
-		m_nProtocol = IPPROTO_TCP;
-		m_bBlockMode = false;
+		type_ = SOCK_STREAM;
+		protocol_ = IPPROTO_TCP;
+		isBlockMode_ = false;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CBaseTcpConnection - TCP Connection 基类
+// class BaseTcpConnection - TCP Connection 基类
 
-class CBaseTcpConnection
+class BaseTcpConnection
 {
 protected:
-	CTcpSocket m_Socket;
-	CPeerAddress m_PeerAddr;
-	PVOID m_pCustomData;
+	TcpSocket socket_;
+	InetAddress peerAddr_;
+	PVOID customData_;
 private:
-	int DoSyncSendBuffer(void *pBuffer, int nSize, int nTimeOutMSecs = -1);
-	int DoSyncRecvBuffer(void *pBuffer, int nSize, int nTimeOutMSecs = -1);
-	int DoAsyncSendBuffer(void *pBuffer, int nSize);
-	int DoAsyncRecvBuffer(void *pBuffer, int nSize);
+	int doSyncSendBuffer(void *buffer, int size, int timeoutMSecs = -1);
+	int doSyncRecvBuffer(void *buffer, int size, int timeoutMSecs = -1);
+	int doAsyncSendBuffer(void *buffer, int size);
+	int doAsyncRecvBuffer(void *buffer, int size);
 protected:
-	int SendBuffer(void *pBuffer, int nSize, bool bSyncMode = false, int nTimeOutMSecs = -1);
-	int RecvBuffer(void *pBuffer, int nSize, bool bSyncMode = false, int nTimeOutMSecs = -1);
+	int sendBuffer(void *buffer, int size, bool syncMode = false, int timeoutMSecs = -1);
+	int recvBuffer(void *buffer, int size, bool syncMode = false, int timeoutMSecs = -1);
 protected:
-	virtual void DoDisconnect();
+	virtual void doDisconnect();
 public:
-	CBaseTcpConnection();
-	CBaseTcpConnection(SOCKET nSocketHandle, const CPeerAddress& PeerAddr);
-	virtual ~CBaseTcpConnection() {}
+	BaseTcpConnection();
+	BaseTcpConnection(SOCKET socketHandle, const InetAddress& peerAddr);
+	virtual ~BaseTcpConnection() {}
 
-	virtual bool IsConnected() const;
-	void Disconnect();
+	virtual bool isConnected() const;
+	void disconnect();
 
-	const CTcpSocket& GetSocket() const { return m_Socket; }
-	const CPeerAddress& GetPeerAddr() const { return m_PeerAddr; }
-	PVOID& CustomData() { return m_pCustomData; }
+	const TcpSocket& getSocket() const { return socket_; }
+	const InetAddress& getPeerAddr() const { return peerAddr_; }
+	PVOID& customData() { return customData_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpClient - TCP Client 类
+// class TcpClient - TCP Client 类
 
-class CTcpClient : public CBaseTcpConnection
+class TcpClient : public BaseTcpConnection
 {
 public:
 	// 阻塞式连接
-	void Connect(const string& strIp, int nPort);
+	void connect(const string& ip, int port);
 	// 异步(非阻塞式)连接 (返回 enum ASYNC_CONNECT_STATE)
-	int AsyncConnect(const string& strIp, int nPort, int nTimeOutMSecs = -1);
+	int asyncConnect(const string& ip, int port, int timeoutMSecs = -1);
 	// 检查异步连接的状态 (返回 enum ASYNC_CONNECT_STATE)
-	int CheckAsyncConnectState(int nTimeOutMSecs = -1);
+	int checkAsyncConnectState(int timeoutMSecs = -1);
 
-	using CBaseTcpConnection::SendBuffer;
-	using CBaseTcpConnection::RecvBuffer;
+	using BaseTcpConnection::sendBuffer;
+	using BaseTcpConnection::recvBuffer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpServer - TCP Server 类
+// class TcpServer - TCP Server 类
 
-class CTcpServer
+class TcpServer
 {
 public:
-	friend class CTcpListenerThread;
+	friend class TcpListenerThread;
 public:
 	enum { LISTEN_QUEUE_SIZE = 30 };   // TCP监听队列长度
 private:
-	CTcpSocket m_Socket;
-	int m_nLocalPort;
-	CTcpListenerThread *m_pListenerThread;
-	CCallBackDef<TCPSVR_ON_CREATE_CONN_PROC> m_OnCreateConn;
-	CCallBackDef<TCPSVR_ON_ACCEPT_CONN_PROC> m_OnAcceptConn;
-	PVOID m_pCustomData;
+	TcpSocket socket_;
+	int localPort_;
+	TcpListenerThread *listenerThread_;
+	CallbackDef<TCPSVR_ON_CREATE_CONN_PROC> onCreateConn_;
+	CallbackDef<TCPSVR_ON_ACCEPT_CONN_PROC> onAcceptConn_;
+	PVOID customData_;
 private:
-	CBaseTcpConnection* CreateConnection(SOCKET nSocketHandle, const CPeerAddress& PeerAddr);
-	void AcceptConnection(CBaseTcpConnection *pConnection);
+	BaseTcpConnection* createConnection(SOCKET socketHandle, const InetAddress& peerAddr);
+	void acceptConnection(BaseTcpConnection *connection);
 protected:
-	virtual void StartListenerThread();
-	virtual void StopListenerThread();
+	virtual void startListenerThread();
+	virtual void stopListenerThread();
 public:
-	CTcpServer();
-	virtual ~CTcpServer();
+	TcpServer();
+	virtual ~TcpServer();
 
-	virtual void Open();
-	virtual void Close();
+	virtual void open();
+	virtual void close();
 
-	bool GetActive() const { return m_Socket.GetActive(); }
-	void SetActive(bool bValue);
+	bool isActive() const { return socket_.isActive(); }
+	void setActive(bool value);
 
-	int GetLocalPort() const { return m_nLocalPort; }
-	void SetLocalPort(int nValue);
+	int getLocalPort() const { return localPort_; }
+	void setLocalPort(int value);
 
-	const CTcpSocket& GetSocket() const { return m_Socket; }
-	PVOID& CustomData() { return m_pCustomData; }
+	const TcpSocket& getSocket() const { return socket_; }
+	PVOID& customData() { return customData_; }
 
-	void SetOnCreateConnCallBack(TCPSVR_ON_CREATE_CONN_PROC pProc, void *pParam = NULL);
-	void SetOnAcceptConnCallBack(TCPSVR_ON_ACCEPT_CONN_PROC pProc, void *pParam = NULL);
+	void setOnCreateConnCallback(TCPSVR_ON_CREATE_CONN_PROC proc, void *param = NULL);
+	void setOnAcceptConnCallback(TCPSVR_ON_ACCEPT_CONN_PROC proc, void *param = NULL);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CListenerThread - 监听线程类
+// class ListenerThread - 监听线程类
 
-class CListenerThread : public CThread
+class ListenerThread : public Thread
 {
 protected:
-	virtual void Execute() {}
+	virtual void execute() {}
 public:
-	CListenerThread()
+	ListenerThread()
 	{
 #ifdef ISE_WIN32
-		SetPriority(THREAD_PRI_HIGHEST);
+		setPriority(THREAD_PRI_HIGHEST);
 #endif
 #ifdef ISE_LINUX
-		SetPolicy(THREAD_POL_RR);
-		SetPriority(THREAD_PRI_HIGH);
+		setPolicy(THREAD_POL_RR);
+		setPriority(THREAD_PRI_HIGH);
 #endif
 	}
-	virtual ~CListenerThread() {}
+	virtual ~ListenerThread() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpListenerThread - UDP服务器监听线程类
+// class UdpListenerThread - UDP服务器监听线程类
 
-class CUdpListenerThread : public CListenerThread
+class UdpListenerThread : public ListenerThread
 {
 private:
-	CUdpListenerThreadPool *m_pThreadPool;  // 所属线程池
-	CUdpServer *m_pUdpServer;               // 所属UDP服务器
-	int m_nIndex;                           // 线程在池中的索引号(0-based)
+	UdpListenerThreadPool *threadPool_;  // 所属线程池
+	UdpServer *udpServer_;               // 所属UDP服务器
+	int index_;                          // 线程在池中的索引号(0-based)
 protected:
-	virtual void Execute();
+	virtual void execute();
 public:
-	explicit CUdpListenerThread(CUdpListenerThreadPool *pThreadPool, int nIndex);
-	virtual ~CUdpListenerThread();
+	explicit UdpListenerThread(UdpListenerThreadPool *threadPool, int index);
+	virtual ~UdpListenerThread();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpListenerThreadPool - UDP服务器监听线程池类
+// class UdpListenerThreadPool - UDP服务器监听线程池类
 
-class CUdpListenerThreadPool
+class UdpListenerThreadPool
 {
 private:
-	CUdpServer *m_pUdpServer;               // 所属UDP服务器
-	CThreadList m_ThreadList;               // 线程列表
-	int m_nMaxThreadCount;                  // 允许最大线程数量
+	UdpServer *udpServer_;                // 所属UDP服务器
+	ThreadList threadList_;               // 线程列表
+	int maxThreadCount_;                  // 允许最大线程数量
 public:
-	explicit CUdpListenerThreadPool(CUdpServer *pUdpServer);
-	virtual ~CUdpListenerThreadPool();
+	explicit UdpListenerThreadPool(UdpServer *udpServer);
+	virtual ~UdpListenerThreadPool();
 
-	void RegisterThread(CUdpListenerThread *pThread);
-	void UnregisterThread(CUdpListenerThread *pThread);
+	void registerThread(UdpListenerThread *thread);
+	void unregisterThread(UdpListenerThread *thread);
 
-	void StartThreads();
-	void StopThreads();
+	void startThreads();
+	void stopThreads();
 
-	int GetMaxThreadCount() const { return m_nMaxThreadCount; }
-	void SetMaxThreadCount(int nValue) { m_nMaxThreadCount = nValue; }
+	int getMaxThreadCount() const { return maxThreadCount_; }
+	void setMaxThreadCount(int value) { maxThreadCount_ = value; }
 
 	// 返回所属UDP服务器
-	CUdpServer& GetUdpServer() { return *m_pUdpServer; }
+	UdpServer& getUdpServer() { return *udpServer_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpListenerThread - TCP服务器监听线程类
+// class TcpListenerThread - TCP服务器监听线程类
 
-class CTcpListenerThread : public CListenerThread
+class TcpListenerThread : public ListenerThread
 {
 private:
-	CTcpServer *m_pTcpServer;
+	TcpServer *tcpServer_;
 protected:
-	virtual void Execute();
+	virtual void execute();
 public:
-	explicit CTcpListenerThread(CTcpServer *pTcpServer);
+	explicit TcpListenerThread(TcpServer *tcpServer);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

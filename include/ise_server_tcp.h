@@ -48,72 +48,72 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CPacketMeasurer;
-class CIoBuffer;
-class CTcpConnection;
-class CTcpEventLoopThread;
-class CBaseTcpEventLoop;
-class CTcpEventLoop;
-class CTcpEventLoopList;
+class PacketMeasurer;
+class IoBuffer;
+class TcpConnection;
+class TcpEventLoopThread;
+class BaseTcpEventLoop;
+class TcpEventLoop;
+class TcpEventLoopList;
 
 #ifdef ISE_WIN32
-class CIocpTaskData;
-class CIocpBufferAllocator;
-class CIocpPendingCounter;
-class CIocpObject;
+class IocpTaskData;
+class IocpBufferAllocator;
+class IocpPendingCounter;
+class IocpObject;
 #endif
 
 #ifdef ISE_LINUX
-class CEpollObject;
+class EpollObject;
 #endif
 
-class CMainTcpServer;
+class MainTcpServer;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CPacketMeasurer - 数据包定界器
+// class PacketMeasurer - 数据包定界器
 
-class CPacketMeasurer
+class PacketMeasurer
 {
 public:
-	virtual ~CPacketMeasurer() {}
-	virtual bool IsCompletePacket(const char *pData, int nBytes, int& nPacketSize) = 0;
+	virtual ~PacketMeasurer() {}
+	virtual bool isCompletePacket(const char *data, int bytes, int& packetSize) = 0;
 };
 
-class CDelimiterPacketMeasurer : public CPacketMeasurer
+class DelimiterPacketMeasurer : public PacketMeasurer
 {
 private:
-	char m_chDelimiter;
+	char delimiter_;
 public:
-	CDelimiterPacketMeasurer(char chDelimiter) : m_chDelimiter(chDelimiter) {}
-	virtual bool IsCompletePacket(const char *pData, int nBytes, int& nPacketSize);
+	DelimiterPacketMeasurer(char delimiter) : delimiter_(delimiter) {}
+	virtual bool isCompletePacket(const char *data, int bytes, int& packetSize);
 };
 
-class CLinePacketMeasurer : public CDelimiterPacketMeasurer
+class LinePacketMeasurer : public DelimiterPacketMeasurer
 {
 private:
-	CLinePacketMeasurer() : CDelimiterPacketMeasurer('\n') {}
+	LinePacketMeasurer() : DelimiterPacketMeasurer('\n') {}
 public:
-	static CLinePacketMeasurer& Instance()
+	static LinePacketMeasurer& instance()
 	{
-		static CLinePacketMeasurer obj;
+		static LinePacketMeasurer obj;
 		return obj;
 	}
 };
 
-class CNullTerminatedPacketMeasurer : public CDelimiterPacketMeasurer
+class NullTerminatedPacketMeasurer : public DelimiterPacketMeasurer
 {
 private:
-	CNullTerminatedPacketMeasurer() : CDelimiterPacketMeasurer('\0') {}
+	NullTerminatedPacketMeasurer() : DelimiterPacketMeasurer('\0') {}
 public:
-	static CNullTerminatedPacketMeasurer& Instance()
+	static NullTerminatedPacketMeasurer& instance()
 	{
-		static CNullTerminatedPacketMeasurer obj;
+		static NullTerminatedPacketMeasurer obj;
 		return obj;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIoBuffer - 输入输出缓存
+// class IoBuffer - 输入输出缓存
 //
 // +-----------------+------------------+------------------+
 // |  useless bytes  |  readable bytes  |  writable bytes  |
@@ -122,100 +122,100 @@ public:
 // |                 |                  |                  |
 // 0     <=    nReaderIndex   <=   nWriterIndex    <=    size
 
-class CIoBuffer
+class IoBuffer
 {
 public:
 	enum { INITIAL_SIZE = 1024 };
 private:
-	vector<char> m_Buffer;
-	int m_nReaderIndex;
-	int m_nWriterIndex;
+	vector<char> buffer_;
+	int readerIndex_;
+	int writerIndex_;
 private:
-	char* GetBufferPtr() const { return (char*)&*m_Buffer.begin(); }
-	char* GetWriterPtr() const { return GetBufferPtr() + m_nWriterIndex; }
-	void MakeSpace(int nMoreBytes);
+	char* getBufferPtr() const { return (char*)&*buffer_.begin(); }
+	char* getWriterPtr() const { return getBufferPtr() + writerIndex_; }
+	void makeSpace(int moreBytes);
 public:
-	CIoBuffer();
-	~CIoBuffer();
+	IoBuffer();
+	~IoBuffer();
 
-	int GetReadableBytes() const { return m_nWriterIndex - m_nReaderIndex; }
-	int GetWritableBytes() const { return (int)m_Buffer.size() - m_nWriterIndex; }
-	int GetUselessBytes() const { return m_nReaderIndex; }
+	int getReadableBytes() const { return writerIndex_ - readerIndex_; }
+	int getWritableBytes() const { return (int)buffer_.size() - writerIndex_; }
+	int getUselessBytes() const { return readerIndex_; }
 
-	void Append(const string& str);
-	void Append(const char *pData, int nBytes);
-	void Append(int nBytes);
+	void append(const string& str);
+	void append(const char *data, int bytes);
+	void append(int bytes);
 
-	void Retrieve(int nBytes);
-	void RetrieveAll(string& str);
-	void RetrieveAll();
+	void retrieve(int bytes);
+	void retrieveAll(string& str);
+	void retrieveAll();
 
-	const char* Peek() const { return GetBufferPtr() + m_nReaderIndex; }
+	const char* peek() const { return getBufferPtr() + readerIndex_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoopThread - 事件循环执行线程
+// class TcpEventLoopThread - 事件循环执行线程
 
-class CTcpEventLoopThread : public CThread
+class TcpEventLoopThread : public Thread
 {
 private:
-	CBaseTcpEventLoop& m_EventLoop;
+	BaseTcpEventLoop& eventLoop_;
 protected:
-	virtual void Execute();
+	virtual void execute();
 public:
-	CTcpEventLoopThread(CBaseTcpEventLoop& EventLoop);
+	TcpEventLoopThread(BaseTcpEventLoop& eventLoop);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CBaseTcpEventLoop - 事件循环基类
+// class BaseTcpEventLoop - 事件循环基类
 
-class CBaseTcpEventLoop
+class BaseTcpEventLoop
 {
 public:
-	friend class CTcpEventLoopThread;
+	friend class TcpEventLoopThread;
 private:
-	CTcpEventLoopThread *m_pThread;
-	CObjectList<CTcpConnection> m_AcceptedConnList;  // 由TcpServer新产生的TCP连接
+	TcpEventLoopThread *thread_;
+	ObjectList<TcpConnection> acceptedConnList_;  // 由TcpServer新产生的TCP连接
 protected:
-	virtual void ExecuteLoop(CThread *pThread) = 0;
-	virtual void WakeupLoop() {}
-	virtual void RegisterConnection(CTcpConnection *pConnection) = 0;
-	virtual void UnregisterConnection(CTcpConnection *pConnection) = 0;
+	virtual void executeLoop(Thread *thread) = 0;
+	virtual void wakeupLoop() {}
+	virtual void registerConnection(TcpConnection *connection) = 0;
+	virtual void unregisterConnection(TcpConnection *connection) = 0;
 protected:
-	void ProcessAcceptedConnList();
+	void processAcceptedConnList();
 public:
-	CBaseTcpEventLoop();
-	virtual ~CBaseTcpEventLoop();
+	BaseTcpEventLoop();
+	virtual ~BaseTcpEventLoop();
 
-	void Start();
-	void Stop(bool bForce, bool bWaitFor);
-	bool IsRunning();
+	void start();
+	void stop(bool force, bool waitFor);
+	bool isRunning();
 
-	void AddConnection(CTcpConnection *pConnection);
-	void RemoveConnection(CTcpConnection *pConnection);
+	void addConnection(TcpConnection *connection);
+	void removeConnection(TcpConnection *connection);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoopList - 事件循环列表
+// class TcpEventLoopList - 事件循环列表
 
-class CTcpEventLoopList
+class TcpEventLoopList
 {
 public:
 	enum { MAX_LOOP_COUNT = 64 };
 private:
-	CObjectList<CBaseTcpEventLoop> m_Items;
+	ObjectList<BaseTcpEventLoop> items_;
 private:
-	void SetCount(int nCount);
+	void setCount(int count);
 public:
-	CTcpEventLoopList(int nLoopCount);
-	virtual ~CTcpEventLoopList();
+	TcpEventLoopList(int nLoopCount);
+	virtual ~TcpEventLoopList();
 
-	void Start();
-	void Stop();
+	void start();
+	void stop();
 
-	int GetCount() { return m_Items.GetCount(); }
-	CBaseTcpEventLoop* GetItem(int nIndex) { return m_Items[nIndex]; }
-	CBaseTcpEventLoop* operator[] (int nIndex) { return GetItem(nIndex); }
+	int getCount() { return items_.getCount(); }
+	BaseTcpEventLoop* getItem(int index) { return items_[index]; }
+	BaseTcpEventLoop* operator[] (int index) { return getItem(index); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -231,222 +231,222 @@ enum IOCP_TASK_TYPE
 	ITT_RECV = 2,
 };
 
-typedef void (*IOCP_CALLBACK_PROC)(const CIocpTaskData& TaskData, PVOID pParam);
-typedef CCallBackDef<IOCP_CALLBACK_PROC> IOCP_CALLBACK_DEF;
+typedef void (*IOCP_CALLBACK_PROC)(const IocpTaskData& taskData, PVOID param);
+typedef CallbackDef<IOCP_CALLBACK_PROC> IOCP_CALLBACK_DEF;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpConnection - Proactor模型下的TCP连接
+// class TcpConnection - Proactor模型下的TCP连接
 
-class CTcpConnection : public CBaseTcpConnection
+class TcpConnection : public BaseTcpConnection
 {
 public:
-	friend class CMainTcpServer;
+	friend class MainTcpServer;
 public:
 	struct SEND_TASK
 	{
-		int nBytes;
-		CCustomParams Params;
+		int bytes;
+		CustomParams params;
 	};
 
 	struct RECV_TASK
 	{
-		CPacketMeasurer *pPacketMeasurer;
-		CCustomParams Params;
+		PacketMeasurer *packetMeasurer;
+		CustomParams params;
 	};
 
 	typedef deque<SEND_TASK> SEND_TASK_QUEUE;
 	typedef deque<RECV_TASK> RECV_TASK_QUEUE;
 
 private:
-	CTcpServer *m_pTcpServer;          // 所属 CTcpServer
-	CTcpEventLoop *m_pEventLoop;       // 所属 CTcpEventLoop
-	CIoBuffer m_SendBuffer;            // 数据发送缓存
-	CIoBuffer m_RecvBuffer;            // 数据接收缓存
-	SEND_TASK_QUEUE m_SendTaskQueue;   // 发送任务队列
-	RECV_TASK_QUEUE m_RecvTaskQueue;   // 接收任务队列
-	bool m_bSending;                   // 是否已向IOCP提交发送任务但尚未收到回调通知
-	bool m_bRecving;                   // 是否已向IOCP提交接收任务但尚未收到回调通知
-	int m_nBytesSent;                  // 自从上次发送任务完成回调以来共发送了多少字节
-	int m_nBytesRecved;                // 自从上次接收任务完成回调以来共接收了多少字节
+	TcpServer *tcpServer_;            // 所属 TcpServer
+	TcpEventLoop *eventLoop_;         // 所属 TcpEventLoop
+	IoBuffer sendBuffer_;             // 数据发送缓存
+	IoBuffer recvBuffer_;             // 数据接收缓存
+	SEND_TASK_QUEUE sendTaskQueue_;   // 发送任务队列
+	RECV_TASK_QUEUE recvTaskQueue_;   // 接收任务队列
+	bool isSending_;                  // 是否已向IOCP提交发送任务但尚未收到回调通知
+	bool isRecving_;                  // 是否已向IOCP提交接收任务但尚未收到回调通知
+	int bytesSent_;                   // 自从上次发送任务完成回调以来共发送了多少字节
+	int bytesRecved_;                 // 自从上次接收任务完成回调以来共接收了多少字节
 private:
-	void TrySend();
-	void TryRecv();
-	void ErrorOccurred();
+	void trySend();
+	void tryRecv();
+	void errorOccurred();
 
-	void SetEventLoop(CTcpEventLoop *pEventLoop);
-	CTcpEventLoop* GetEventLoop() { return m_pEventLoop; }
+	void setEventLoop(TcpEventLoop *eventLoop);
+	TcpEventLoop* getEventLoop() { return eventLoop_; }
 
-	static void OnIocpCallBack(const CIocpTaskData& TaskData, PVOID pParam);
-	void OnSendCallBack(const CIocpTaskData& TaskData);
-	void OnRecvCallBack(const CIocpTaskData& TaskData);
+	static void onIocpCallback(const IocpTaskData& taskData, PVOID param);
+	void onSendCallback(const IocpTaskData& taskData);
+	void onRecvCallback(const IocpTaskData& taskData);
 protected:
-	virtual void DoDisconnect();
+	virtual void doDisconnect();
 public:
-	CTcpConnection(CTcpServer *pTcpServer, SOCKET nSocketHandle, const CPeerAddress& PeerAddr);
-	virtual ~CTcpConnection();
+	TcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const InetAddress& peerAddr);
+	virtual ~TcpConnection();
 
-	void PostSendTask(char *pBuffer, int nSize, const CCustomParams& Params = EMPTY_PARAMS);
-	void PostRecvTask(CPacketMeasurer *pPacketMeasurer, const CCustomParams& Params = EMPTY_PARAMS);
+	void postSendTask(char *buffer, int size, const CustomParams& params = EMPTY_PARAMS);
+	void postRecvTask(PacketMeasurer *packetMeasurer, const CustomParams& params = EMPTY_PARAMS);
 
-	int GetServerIndex() const { return (int)m_pTcpServer->CustomData(); }
-	int GetServerPort() const { return m_pTcpServer->GetLocalPort(); }
+	int getServerIndex() const { return (int)tcpServer_->customData(); }
+	int getServerPort() const { return tcpServer_->getLocalPort(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpTaskData
+// class IocpTaskData
 
-class CIocpTaskData
+class IocpTaskData
 {
 public:
-	friend class CIocpObject;
+	friend class IocpObject;
 private:
-	HANDLE m_hIocpHandle;
-	HANDLE m_hFileHandle;
-	IOCP_TASK_TYPE m_nTaskType;
-	UINT m_nTaskSeqNum;
-	CCallBackDef<IOCP_CALLBACK_PROC> m_CallBack;
-	PVOID m_pCaller;
-	CCustomParams m_Params;
-	PVOID m_pEntireDataBuf;
-	int m_nEntireDataSize;
-	WSABUF m_WSABuffer;
-	int m_nBytesTrans;
-	int m_nErrorCode;
+	HANDLE iocpHandle_;
+	HANDLE fileHandle_;
+	IOCP_TASK_TYPE taskType_;
+	UINT taskSeqNum_;
+	CallbackDef<IOCP_CALLBACK_PROC> callback_;
+	PVOID caller_;
+	CustomParams params_;
+	PVOID entireDataBuf_;
+	int entireDataSize_;
+	WSABUF wsaBuffer_;
+	int bytesTrans_;
+	int errorCode_;
 
 public:
-	CIocpTaskData();
+	IocpTaskData();
 
-	HANDLE GetIocpHandle() const { return m_hIocpHandle; }
-	HANDLE GetFileHandle() const { return m_hFileHandle; }
-	IOCP_TASK_TYPE GetTaskType() const { return m_nTaskType; }
-	UINT GetTaskSeqNum() const { return m_nTaskSeqNum; }
-	const IOCP_CALLBACK_DEF& GetCallBack() const { return m_CallBack; }
-	PVOID GetCaller() const { return m_pCaller; }
-	const CCustomParams& GetParams() const { return m_Params; }
-	char* GetEntireDataBuf() const { return (char*)m_pEntireDataBuf; }
-	int GetEntireDataSize() const { return m_nEntireDataSize; }
-	char* GetDataBuf() const { return (char*)m_WSABuffer.buf; }
-	int GetDataSize() const { return m_WSABuffer.len; }
-	int GetBytesTrans() const { return m_nBytesTrans; }
-	int GetErrorCode() const { return m_nErrorCode; }
+	HANDLE getIocpHandle() const { return iocpHandle_; }
+	HANDLE getFileHandle() const { return fileHandle_; }
+	IOCP_TASK_TYPE getTaskType() const { return taskType_; }
+	UINT getTaskSeqNum() const { return taskSeqNum_; }
+	const IOCP_CALLBACK_DEF& getCallback() const { return callback_; }
+	PVOID getCaller() const { return caller_; }
+	const CustomParams& getParams() const { return params_; }
+	char* getEntireDataBuf() const { return (char*)entireDataBuf_; }
+	int getEntireDataSize() const { return entireDataSize_; }
+	char* getDataBuf() const { return (char*)wsaBuffer_.buf; }
+	int getDataSize() const { return wsaBuffer_.len; }
+	int getBytesTrans() const { return bytesTrans_; }
+	int getErrorCode() const { return errorCode_; }
 };
 
 #pragma pack(1)
 struct CIocpOverlappedData
 {
-	OVERLAPPED Overlapped;
-	CIocpTaskData TaskData;
+	OVERLAPPED overlapped;
+	IocpTaskData taskData;
 };
 #pragma pack()
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpBufferAllocator
+// class IocpBufferAllocator
 
-class CIocpBufferAllocator
+class IocpBufferAllocator
 {
 private:
-	int m_nBufferSize;
-	CList m_Items;
-	int m_nUsedCount;
-	CCriticalSection m_Lock;
+	int bufferSize_;
+	PointerList items_;
+	int usedCount_;
+	CriticalSection lock_;
 private:
-	void Clear();
+	void clear();
 public:
-	CIocpBufferAllocator(int nBufferSize);
-	~CIocpBufferAllocator();
+	IocpBufferAllocator(int bufferSize);
+	~IocpBufferAllocator();
 
-	PVOID AllocBuffer();
-	void ReturnBuffer(PVOID pBuffer);
+	PVOID allocBuffer();
+	void returnBuffer(PVOID buffer);
 
-	int GetUsedCount() const { return m_nUsedCount; }
+	int getUsedCount() const { return usedCount_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpPendingCounter
+// class IocpPendingCounter
 
-class CIocpPendingCounter
+class IocpPendingCounter
 {
 private:
 	struct COUNT_DATA
 	{
-		int nSendCount;
-		int nRecvCount;
+		int sendCount;
+		int recvCount;
 	};
 
-	typedef std::map<PVOID, COUNT_DATA> ITEMS;   // <pCaller, COUNT_DATA>
+	typedef std::map<PVOID, COUNT_DATA> ITEMS;   // <caller, COUNT_DATA>
 
-	ITEMS m_Items;
-	CCriticalSection m_Lock;
+	ITEMS items_;
+	CriticalSection lock_;
 public:
-	CIocpPendingCounter() {}
-	virtual ~CIocpPendingCounter() {}
+	IocpPendingCounter() {}
+	virtual ~IocpPendingCounter() {}
 
-	void Inc(PVOID pCaller, IOCP_TASK_TYPE nTaskType);
-	void Dec(PVOID pCaller, IOCP_TASK_TYPE nTaskType);
-	int Get(PVOID pCaller);
-	int Get(IOCP_TASK_TYPE nTaskType);
+	void inc(PVOID caller, IOCP_TASK_TYPE taskType);
+	void dec(PVOID caller, IOCP_TASK_TYPE taskType);
+	int get(PVOID caller);
+	int get(IOCP_TASK_TYPE taskType);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpObject
+// class IocpObject
 
-class CIocpObject
+class IocpObject
 {
 public:
-	friend class CAutoFinalizer;
+	friend class AutoFinalizer;
 
 private:
-	static CIocpBufferAllocator m_BufferAlloc;
-	static CSeqNumberAlloc m_TaskSeqAlloc;
-	static CIocpPendingCounter m_PendingCounter;
+	static IocpBufferAllocator bufferAlloc_;
+	static SeqNumberAlloc taskSeqAlloc_;
+	static IocpPendingCounter pendingCounter_;
 
-	HANDLE m_hIocpHandle;
+	HANDLE iocpHandle_;
 
 private:
-	void Initialize();
-	void Finalize();
-	void ThrowGeneralError();
-	CIocpOverlappedData* CreateOverlappedData(IOCP_TASK_TYPE nTaskType,
-		HANDLE hFileHandle, PVOID pBuffer, int nSize, int nOffset,
-		const IOCP_CALLBACK_DEF& CallBackDef, PVOID pCaller,
-		const CCustomParams& Params);
-	void DestroyOverlappedData(CIocpOverlappedData *pOvDataPtr);
-	void PostError(int nErrorCode, CIocpOverlappedData *pOvDataPtr);
-	void InvokeCallBack(const CIocpTaskData& TaskData);
+	void initialize();
+	void finalize();
+	void throwGeneralError();
+	CIocpOverlappedData* createOverlappedData(IOCP_TASK_TYPE taskType,
+		HANDLE fileHandle, PVOID buffer, int size, int offset,
+		const IOCP_CALLBACK_DEF& callbackDef, PVOID caller,
+		const CustomParams& params);
+	void destroyOverlappedData(CIocpOverlappedData *ovDataPtr);
+	void postError(int errorCode, CIocpOverlappedData *ovDataPtr);
+	void invokeCallback(const IocpTaskData& taskData);
 
 public:
-	CIocpObject();
-	virtual ~CIocpObject();
+	IocpObject();
+	virtual ~IocpObject();
 
-	bool AssociateHandle(SOCKET hSocketHandle);
-	bool IsComplete(PVOID pCaller);
+	bool associateHandle(SOCKET socketHandle);
+	bool isComplete(PVOID caller);
 
-	void Work();
-	void Wakeup();
+	void work();
+	void wakeup();
 
-	void Send(SOCKET hSocketHandle, PVOID pBuffer, int nSize, int nOffset,
-		const IOCP_CALLBACK_DEF& CallBackDef, PVOID pCaller, const CCustomParams& Params);
-	void Recv(SOCKET hSocketHandle, PVOID pBuffer, int nSize, int nOffset,
-		const IOCP_CALLBACK_DEF& CallBackDef, PVOID pCaller, const CCustomParams& Params);
+	void send(SOCKET socketHandle, PVOID buffer, int size, int offset,
+		const IOCP_CALLBACK_DEF& callbackDef, PVOID caller, const CustomParams& params);
+	void recv(SOCKET socketHandle, PVOID buffer, int size, int offset,
+		const IOCP_CALLBACK_DEF& callbackDef, PVOID caller, const CustomParams& params);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoop - 事件循环
+// class TcpEventLoop - 事件循环
 
-class CTcpEventLoop : public CBaseTcpEventLoop
+class TcpEventLoop : public BaseTcpEventLoop
 {
 private:
-	CIocpObject *m_pIocpObject;
+	IocpObject *iocpObject_;
 protected:
-	virtual void ExecuteLoop(CThread *pThread);
-	virtual void WakeupLoop();
-	virtual void RegisterConnection(CTcpConnection *pConnection);
-	virtual void UnregisterConnection(CTcpConnection *pConnection);
+	virtual void executeLoop(Thread *thread);
+	virtual void wakeupLoop();
+	virtual void registerConnection(TcpConnection *connection);
+	virtual void unregisterConnection(TcpConnection *connection);
 public:
-	CTcpEventLoop();
-	virtual ~CTcpEventLoop();
+	TcpEventLoop();
+	virtual ~TcpEventLoop();
 
-	CIocpObject* GetIocpObject() { return m_pIocpObject; }
+	IocpObject* getIocpObject() { return iocpObject_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -459,66 +459,66 @@ public:
 #ifdef ISE_LINUX
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpConnection - Proactor模型下的TCP连接
+// class TcpConnection - Proactor模型下的TCP连接
 
-class CTcpConnection : public CBaseTcpConnection
+class TcpConnection : public BaseTcpConnection
 {
 public:
-	friend class CMainTcpServer;
-	friend class CTcpEventLoop;
+	friend class MainTcpServer;
+	friend class TcpEventLoop;
 public:
 	struct SEND_TASK
 	{
-		int nBytes;
-		CCustomParams Params;
+		int bytes;
+		CustomParams params;
 	};
 
 	struct RECV_TASK
 	{
-		CPacketMeasurer *pPacketMeasurer;
-		CCustomParams Params;
+		PacketMeasurer *packetMeasurer;
+		CustomParams params;
 	};
 
 	typedef deque<SEND_TASK> SEND_TASK_QUEUE;
 	typedef deque<RECV_TASK> RECV_TASK_QUEUE;
 
 private:
-	CTcpServer *m_pTcpServer;          // 所属 CTcpServer
-	CTcpEventLoop *m_pEventLoop;       // 所属 CTcpEventLoop
-	CIoBuffer m_SendBuffer;            // 数据发送缓存
-	CIoBuffer m_RecvBuffer;            // 数据接收缓存
-	SEND_TASK_QUEUE m_SendTaskQueue;   // 发送任务队列
-	RECV_TASK_QUEUE m_RecvTaskQueue;   // 接收任务队列
-	int m_nBytesSent;                  // 自从上次发送任务完成回调以来共发送了多少字节
-	bool m_bEnableSend;                // 是否监视可发送事件
-	bool m_bEnableRecv;                // 是否监视可接收事件
+	TcpServer *tcpServer_;           // 所属 TcpServer
+	TcpEventLoop *eventLoop_;        // 所属 TcpEventLoop
+	IoBuffer sendBuffer_;            // 数据发送缓存
+	IoBuffer recvBuffer_;            // 数据接收缓存
+	SEND_TASK_QUEUE sendTaskQueue_;  // 发送任务队列
+	RECV_TASK_QUEUE recvTaskQueue_;  // 接收任务队列
+	int bytesSent_;                  // 自从上次发送任务完成回调以来共发送了多少字节
+	bool enableSend_;                // 是否监视可发送事件
+	bool enableRecv_;                // 是否监视可接收事件
 private:
-	void SetSendEnabled(bool bEnabled);
-	void SetRecvEnabled(bool bEnabled);
+	void setSendEnabled(bool enabled);
+	void setRecvEnabled(bool enabled);
 
-	void TrySend();
-	void TryRecv();
-	void ErrorOccurred();
+	void trySend();
+	void tryRecv();
+	void errorOccurred();
 
-	void SetEventLoop(CTcpEventLoop *pEventLoop);
-	CTcpEventLoop* GetEventLoop() { return m_pEventLoop; }
+	void setEventLoop(TcpEventLoop *eventLoop);
+	TcpEventLoop* getEventLoop() { return eventLoop_; }
 protected:
-	virtual void DoDisconnect();
+	virtual void doDisconnect();
 public:
-	CTcpConnection(CTcpServer *pTcpServer, SOCKET nSocketHandle, const CPeerAddress& PeerAddr);
-	virtual ~CTcpConnection();
+	TcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const InetAddress& peerAddr);
+	virtual ~TcpConnection();
 
-	void PostSendTask(char *pBuffer, int nSize, const CCustomParams& Params = EMPTY_PARAMS);
-	void PostRecvTask(CPacketMeasurer *pPacketMeasurer, const CCustomParams& Params = EMPTY_PARAMS);
+	void postSendTask(char *buffer, int size, const CustomParams& params = EMPTY_PARAMS);
+	void postRecvTask(PacketMeasurer *packetMeasurer, const CustomParams& params = EMPTY_PARAMS);
 
-	int GetServerIndex() const { return (long)(m_pTcpServer->CustomData()); }
-	int GetServerPort() const { return m_pTcpServer->GetLocalPort(); }
+	int getServerIndex() const { return (long)(tcpServer_->customData()); }
+	int getServerPort() const { return tcpServer_->getLocalPort(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CEpollObject - Linux EPoll 功能封装
+// class EpollObject - Linux EPoll 功能封装
 
-class CEpollObject
+class EpollObject
 {
 public:
 	enum { INITIAL_EVENT_SIZE = 32 };
@@ -534,57 +534,57 @@ public:
 	typedef vector<struct epoll_event> EVENT_LIST;
 	typedef int EVENT_PIPE[2];
 
-	typedef void (*NOTIFY_EVENT_PROC)(void *pParam, CTcpConnection *pConnection, EVENT_TYPE nEventType);
+	typedef void (*NOTIFY_EVENT_PROC)(void *param, TcpConnection *connection, EVENT_TYPE eventType);
 
 private:
-	int m_nEpollFd;                    // EPoll 的文件描述符
-	EVENT_LIST m_Events;               // 存放 epoll_wait() 返回的事件
-	EVENT_PIPE m_PipeFds;              // 用于唤醒 epoll_wait() 的管道
-	CCallBackDef<NOTIFY_EVENT_PROC> m_OnNotifyEvent;
+	int epollFd_;                     // EPoll 的文件描述符
+	EVENT_LIST events_;               // 存放 epoll_wait() 返回的事件
+	EVENT_PIPE pipeFds_;              // 用于唤醒 epoll_wait() 的管道
+	CallbackDef<NOTIFY_EVENT_PROC> onNotifyEvent_;
 private:
-	void CreateEpoll();
-	void DestroyEpoll();
-	void CreatePipe();
-	void DestroyPipe();
+	void createEpoll();
+	void destroyEpoll();
+	void createPipe();
+	void destroyPipe();
 
-	void EpollControl(int nOperation, void *pParam, int nHandle, bool bEnableSend, bool bEnableRecv);
+	void epollControl(int operation, void *param, int handle, bool enableSend, bool enableRecv);
 
-	void ProcessPipeEvent();
-	void ProcessEvents(int nEventCount);
+	void processPipeEvent();
+	void processEvents(int eventCount);
 public:
-	CEpollObject();
-	~CEpollObject();
+	EpollObject();
+	~EpollObject();
 
-	void Poll();
-	void Wakeup();
+	void poll();
+	void wakeup();
 
-	void AddConnection(CTcpConnection *pConnection, bool bEnableSend, bool bEnableRecv);
-	void UpdateConnection(CTcpConnection *pConnection, bool bEnableSend, bool bEnableRecv);
-	void RemoveConnection(CTcpConnection *pConnection);
+	void addConnection(TcpConnection *connection, bool enableSend, bool enableRecv);
+	void updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv);
+	void removeConnection(TcpConnection *connection);
 
-	void SetOnNotifyEventCallBack(NOTIFY_EVENT_PROC pProc, void *pParam = NULL);
+	void setOnNotifyEventCallback(NOTIFY_EVENT_PROC proc, void *param = NULL);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoop - 事件循环
+// class TcpEventLoop - 事件循环
 
-class CTcpEventLoop : public CBaseTcpEventLoop
+class TcpEventLoop : public BaseTcpEventLoop
 {
 private:
-	CEpollObject *m_pEpollObject;
+	EpollObject *epollObject_;
 private:
-	static void OnEpollNotifyEvent(void *pParam, CTcpConnection *pConnection,
-		CEpollObject::EVENT_TYPE nEventType);
+	static void onEpollNotifyEvent(void *param, TcpConnection *connection,
+		EpollObject::EVENT_TYPE eventType);
 protected:
-	virtual void ExecuteLoop(CThread *pThread);
-	virtual void WakeupLoop();
-	virtual void RegisterConnection(CTcpConnection *pConnection);
-	virtual void UnregisterConnection(CTcpConnection *pConnection);
+	virtual void executeLoop(Thread *thread);
+	virtual void wakeupLoop();
+	virtual void registerConnection(TcpConnection *connection);
+	virtual void unregisterConnection(TcpConnection *connection);
 public:
-	CTcpEventLoop();
-	virtual ~CTcpEventLoop();
+	TcpEventLoop();
+	virtual ~TcpEventLoop();
 
-	void UpdateConnection(CTcpConnection *pConnection, bool bEnableSend, bool bEnableRecv);
+	void updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -592,33 +592,33 @@ public:
 #endif  /* ifdef ISE_LINUX */
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMainTcpServer - TCP主服务器类
+// class MainTcpServer - TCP主服务器类
 
-class CMainTcpServer
+class MainTcpServer
 {
 private:
-	typedef vector<CTcpServer*> TCP_SERVER_LIST;
+	typedef vector<TcpServer*> TCP_SERVER_LIST;
 private:
-	bool m_bActive;
-	TCP_SERVER_LIST m_TcpServerList;
-	CTcpEventLoopList m_EventLoopList;
+	bool isActive_;
+	TCP_SERVER_LIST tcpServerList_;
+	TcpEventLoopList eventLoopList_;
 
 private:
-	void CreateTcpServerList();
-	void DestroyTcpServerList();
-	void DoOpen();
-	void DoClose();
+	void createTcpServerList();
+	void destroyTcpServerList();
+	void doOpen();
+	void doClose();
 private:
-	static void OnCreateConnection(void *pParam, CTcpServer *pTcpServer,
-		SOCKET nSocketHandle, const CPeerAddress& PeerAddr, CBaseTcpConnection*& pConnection);
-	static void OnAcceptConnection(void *pParam, CTcpServer *pTcpServer,
-		CBaseTcpConnection *pConnection);
+	static void onCreateConnection(void *param, TcpServer *tcpServer,
+		SOCKET socketHandle, const InetAddress& peerAddr, BaseTcpConnection*& connection);
+	static void onAcceptConnection(void *param, TcpServer *tcpServer,
+		BaseTcpConnection *connection);
 public:
-	explicit CMainTcpServer();
-	virtual ~CMainTcpServer();
+	explicit MainTcpServer();
+	virtual ~MainTcpServer();
 
-	void Open();
-	void Close();
+	void open();
+	void close();
 };
 
 ///////////////////////////////////////////////////////////////////////////////

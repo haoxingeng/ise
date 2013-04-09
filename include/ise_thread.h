@@ -62,7 +62,7 @@ namespace ise
 */
 ///////////////////////////////////////////////////////////////////////////////
 
-class CThread;
+class Thread;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
@@ -107,237 +107,237 @@ typedef pthread_t THREAD_ID;
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThreadImpl - 平台线程实现基类
+// class ThreadImpl - 平台线程实现基类
 
-class CThreadImpl
+class ThreadImpl
 {
 public:
-	friend class CThread;
+	friend class Thread;
 protected:
-	CThread& m_Thread;              // 相关联的 CThread 对象
-	THREAD_ID m_nThreadId;          // 线程ID
-	bool m_bExecuting;              // 线程是否正在执行线程函数
-	bool m_bRunCalled;              // Run() 函数是否已被调用过
-	int m_nTermTime;                // 调用 Terminate() 时的时间戳
-	bool m_bFreeOnTerminate;        // 线程退出时是否同时释放类对象
-	bool m_bTerminated;             // 是否应退出的标志
-	bool m_bSleepInterrupted;       // 睡眠是否被中断
-	int m_nReturnValue;             // 线程返回值 (可在 Execute 函数中修改此值，函数 WaitFor 返回此值)
+	Thread& thread_;              // 相关联的 Thread 对象
+	THREAD_ID threadId_;          // 线程ID
+	bool isExecuting_;            // 线程是否正在执行线程函数
+	bool isRunCalled_;            // run() 函数是否已被调用过
+	int termTime_;                // 调用 terminate() 时的时间戳
+	bool isFreeOnTerminate_;      // 线程退出时是否同时释放类对象
+	bool terminated_;             // 是否应退出的标志
+	bool isSleepInterrupted_;     // 睡眠是否被中断
+	int returnValue_;             // 线程返回值 (可在 execute 函数中修改此值，函数 waitFor 返回此值)
 
 protected:
-	void Execute();
-	void BeforeTerminate();
-	void BeforeKill();
+	void execute();
+	void beforeTerminate();
+	void beforeKill();
 
-	void CheckNotRunning();
+	void checkNotRunning();
 public:
-	CThreadImpl(CThread *pThread);
-	virtual ~CThreadImpl() {}
+	ThreadImpl(Thread *thread);
+	virtual ~ThreadImpl() {}
 
-	virtual void Run() = 0;
-	virtual void Terminate();
-	virtual void Kill() = 0;
-	virtual int WaitFor() = 0;
+	virtual void run() = 0;
+	virtual void terminate();
+	virtual void kill() = 0;
+	virtual int waitFor() = 0;
 
-	void Sleep(double fSeconds);
-	void InterruptSleep() { m_bSleepInterrupted = true; }
-	bool IsRunning() { return m_bExecuting; }
+	void sleep(double seconds);
+	void interruptSleep() { isSleepInterrupted_ = true; }
+	bool isRunning() { return isExecuting_; }
 
 	// 属性 (getter)
-	CThread* GetThread() { return (CThread*)&m_Thread; }
-	THREAD_ID GetThreadId() const { return m_nThreadId; }
-	int GetTerminated() const { return m_bTerminated; }
-	int GetReturnValue() const { return m_nReturnValue; }
-	bool GetFreeOnTerminate() const { return m_bFreeOnTerminate; }
-	int GetTermElapsedSecs() const;
+	Thread* getThread() { return (Thread*)&thread_; }
+	THREAD_ID getThreadId() const { return threadId_; }
+	int isTerminated() const { return terminated_; }
+	int getReturnValue() const { return returnValue_; }
+	bool isFreeOnTerminate() const { return isFreeOnTerminate_; }
+	int getTermElapsedSecs() const;
 	// 属性 (setter)
-	void SetThreadId(THREAD_ID nValue) { m_nThreadId = nValue; }
-	void SetExecuting(bool bValue) { m_bExecuting = bValue; }
-	void SetTerminated(bool bValue);
-	void SetReturnValue(int nValue) { m_nReturnValue = nValue; }
-	void SetFreeOnTerminate(bool bValue) { m_bFreeOnTerminate = bValue; }
+	void setThreadId(THREAD_ID value) { threadId_ = value; }
+	void setExecuting(bool value) { isExecuting_ = value; }
+	void setTerminated(bool value);
+	void setReturnValue(int value) { returnValue_ = value; }
+	void setFreeOnTerminate(bool value) { isFreeOnTerminate_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CWin32ThreadImpl - Win32平台线程实现类
+// class Win32ThreadImpl - Win32平台线程实现类
 
 #ifdef ISE_WIN32
-class CWin32ThreadImpl : public CThreadImpl
+class Win32ThreadImpl : public ThreadImpl
 {
 public:
-	friend UINT __stdcall ThreadExecProc(void *pParam);
+	friend UINT __stdcall threadExecProc(void *param);
 
 protected:
-	HANDLE m_nHandle;               // 线程句柄
-	int m_nPriority;                // 线程优先级
+	HANDLE handle_;               // 线程句柄
+	int priority_;                // 线程优先级
 
 private:
-	void CheckThreadError(bool bSuccess);
+	void checkThreadError(bool success);
 
 public:
-	CWin32ThreadImpl(CThread *pThread);
-	virtual ~CWin32ThreadImpl();
+	Win32ThreadImpl(Thread *thread);
+	virtual ~Win32ThreadImpl();
 
-	virtual void Run();
-	virtual void Terminate();
-	virtual void Kill();
-	virtual int WaitFor();
+	virtual void run();
+	virtual void terminate();
+	virtual void kill();
+	virtual int waitFor();
 
-	int GetPriority() const { return m_nPriority; }
-	void SetPriority(int nValue);
+	int getPriority() const { return priority_; }
+	void setPriority(int value);
 };
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CLinuxThreadImpl - Linux平台线程实现类
+// class LinuxThreadImpl - Linux平台线程实现类
 
 #ifdef ISE_LINUX
-class CLinuxThreadImpl : public CThreadImpl
+class LinuxThreadImpl : public ThreadImpl
 {
 public:
-	friend void ThreadFinalProc(void *pParam);
-	friend void* ThreadExecProc(void *pParam);
+	friend void threadFinalProc(void *param);
+	friend void* threadExecProc(void *param);
 
 protected:
-	int m_nPolicy;                  // 线程调度策略 (THREAD_POLICY_XXX)
-	int m_nPriority;                // 线程优先级 (0..99)
-	CSemaphore *m_pExecSem;         // 用于启动线程函数时暂时阻塞
+	int policy_;                  // 线程调度策略 (THREAD_POLICY_XXX)
+	int priority_;                // 线程优先级 (0..99)
+	Semaphore *execSem_;          // 用于启动线程函数时暂时阻塞
 
 private:
-	void CheckThreadError(int nErrorCode);
+	void checkThreadError(int errorCode);
 
 public:
-	CLinuxThreadImpl(CThread *pThread);
-	virtual ~CLinuxThreadImpl();
+	LinuxThreadImpl(Thread *thread);
+	virtual ~LinuxThreadImpl();
 
-	virtual void Run();
-	virtual void Terminate();
-	virtual void Kill();
-	virtual int WaitFor();
+	virtual void run();
+	virtual void terminate();
+	virtual void kill();
+	virtual int waitFor();
 
-	int GetPolicy() const { return m_nPolicy; }
-	int GetPriority() const { return m_nPriority; }
-	void SetPolicy(int nValue);
-	void SetPriority(int nValue);
+	int getPolicy() const { return policy_; }
+	int getPriority() const { return priority_; }
+	void setPolicy(int value);
+	void setPriority(int value);
 };
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThread - 线程类
+// class Thread - 线程类
 
-typedef void (*THREAD_EXEC_PROC)(void *pParam);
+typedef void (*THREAD_EXEC_PROC)(void *param);
 
-class CThread
+class Thread
 {
 public:
-	friend class CThreadImpl;
+	friend class ThreadImpl;
 
 private:
 #ifdef ISE_WIN32
-	CWin32ThreadImpl m_ThreadImpl;
+	Win32ThreadImpl threadImpl_;
 #endif
 #ifdef ISE_LINUX
-	CLinuxThreadImpl m_ThreadImpl;
+	LinuxThreadImpl threadImpl_;
 #endif
 
-	THREAD_EXEC_PROC m_pExecProc;
-	void *m_pThreadParam;
+	THREAD_EXEC_PROC execProc_;
+	void *threadParam_;
 
 protected:
 	// 线程的执行函数，子类必须重写。
-	virtual void Execute() { if (m_pExecProc != NULL) (*m_pExecProc)(m_pThreadParam); }
+	virtual void execute() { if (execProc_ != NULL) (*execProc_)(threadParam_); }
 
-	// 执行 Terminate() 前的附加操作。
-	// 注: 由于 Terminate() 属于自愿退出机制，为了能让线程能尽快退出，除了
-	// m_bTerminated 标志被设为 true 之外，有时还应当补充一些附加的操作以
+	// 执行 terminate() 前的附加操作。
+	// 注: 由于 terminate() 属于自愿退出机制，为了能让线程能尽快退出，除了
+	// terminated_ 标志被设为 true 之外，有时还应当补充一些附加的操作以
 	// 便能让线程尽快从阻塞操作中解脱出来。
-	virtual void BeforeTerminate() {}
+	virtual void beforeTerminate() {}
 
-	// 执行 Kill() 前的附加操作。
+	// 执行 kill() 前的附加操作。
 	// 注: 线程被杀死后，用户所管理的某些重要资源可能未能得到释放，比如锁资源
-	// (还未来得及解锁便被杀了)，所以重要资源的释放工作必须在 BeforeKill 中进行。
-	virtual void BeforeKill() {}
+	// (还未来得及解锁便被杀了)，所以重要资源的释放工作必须在 beforeKill 中进行。
+	virtual void beforeKill() {}
 public:
-	CThread() : m_ThreadImpl(this), m_pExecProc(NULL), m_pThreadParam(NULL) {}
-	virtual ~CThread() {}
+	Thread() : threadImpl_(this), execProc_(NULL), threadParam_(NULL) {}
+	virtual ~Thread() {}
 
 	// 创建一个线程并马上执行
-	static void Create(THREAD_EXEC_PROC pExecProc, void *pParam = NULL);
+	static void create(THREAD_EXEC_PROC execProc, void *param = NULL);
 
 	// 创建并执行线程。
 	// 注: 此成员方法在对象声明周期中只可调用一次。
-	void Run() { m_ThreadImpl.Run(); }
+	void run() { threadImpl_.run(); }
 
 	// 通知线程退出 (自愿退出机制)
-	// 注: 若线程由于某些阻塞式操作迟迟不退出，可调用 Kill() 强行退出。
-	void Terminate() { m_ThreadImpl.Terminate(); }
+	// 注: 若线程由于某些阻塞式操作迟迟不退出，可调用 kill() 强行退出。
+	void terminate() { threadImpl_.terminate(); }
 
 	// 强行杀死线程 (强行退出机制)
-	void Kill() { m_ThreadImpl.Kill(); }
+	void kill() { threadImpl_.kill(); }
 
 	// 等待线程退出
-	int WaitFor() { return m_ThreadImpl.WaitFor(); }
+	int waitFor() { return threadImpl_.waitFor(); }
 
-	// 进入睡眠状态 (睡眠过程中会检测 m_bTerminated 的状态)
+	// 进入睡眠状态 (睡眠过程中会检测 terminated_ 的状态)
 	// 注: 此函数必须由线程自己调用方可生效。
-	void Sleep(double fSeconds) { m_ThreadImpl.Sleep(fSeconds); }
+	void sleep(double seconds) { threadImpl_.sleep(seconds); }
 	// 打断睡眠
-	void InterruptSleep() { m_ThreadImpl.InterruptSleep(); }
+	void interruptSleep() { threadImpl_.interruptSleep(); }
 
 	// 判断线程是否正在运行
-	bool IsRunning() { return m_ThreadImpl.IsRunning(); }
+	bool isRunning() { return threadImpl_.isRunning(); }
 
 	// 属性 (getter)
-	THREAD_ID GetThreadId() const { return m_ThreadImpl.GetThreadId(); }
-	int GetTerminated() const { return m_ThreadImpl.GetTerminated(); }
-	int GetReturnValue() const { return m_ThreadImpl.GetReturnValue(); }
-	bool GetFreeOnTerminate() const { return m_ThreadImpl.GetFreeOnTerminate(); }
-	int GetTermElapsedSecs() const { return m_ThreadImpl.GetTermElapsedSecs(); }
+	THREAD_ID getThreadId() const { return threadImpl_.getThreadId(); }
+	int isTerminated() const { return threadImpl_.isTerminated(); }
+	int getReturnValue() const { return threadImpl_.getReturnValue(); }
+	bool isFreeOnTerminate() const { return threadImpl_.isFreeOnTerminate(); }
+	int getTermElapsedSecs() const { return threadImpl_.getTermElapsedSecs(); }
 #ifdef ISE_WIN32
-	int GetPriority() const { return m_ThreadImpl.GetPriority(); }
+	int getPriority() const { return threadImpl_.getPriority(); }
 #endif
 #ifdef ISE_LINUX
-	int GetPolicy() const { return m_ThreadImpl.GetPolicy(); }
-	int GetPriority() const { return m_ThreadImpl.GetPriority(); }
+	int getPolicy() const { return threadImpl_.getPolicy(); }
+	int getPriority() const { return threadImpl_.getPriority(); }
 #endif
 	// 属性 (setter)
-	void SetTerminated(bool bValue) { m_ThreadImpl.SetTerminated(bValue); }
-	void SetReturnValue(int nValue) { m_ThreadImpl.SetReturnValue(nValue); }
-	void SetFreeOnTerminate(bool bValue) { m_ThreadImpl.SetFreeOnTerminate(bValue); }
+	void setTerminated(bool value) { threadImpl_.setTerminated(value); }
+	void setReturnValue(int value) { threadImpl_.setReturnValue(value); }
+	void setFreeOnTerminate(bool value) { threadImpl_.setFreeOnTerminate(value); }
 #ifdef ISE_WIN32
-	void SetPriority(int nValue) { m_ThreadImpl.SetPriority(nValue); }
+	void setPriority(int value) { threadImpl_.setPriority(value); }
 #endif
 #ifdef ISE_LINUX
-	void SetPolicy(int nValue) { m_ThreadImpl.SetPolicy(nValue); }
-	void SetPriority(int nValue) { m_ThreadImpl.SetPriority(nValue); }
+	void setPolicy(int value) { threadImpl_.setPolicy(value); }
+	void setPriority(int value) { threadImpl_.setPriority(value); }
 #endif
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThreadList - 线程列表类
+// class ThreadList - 线程列表类
 
-class CThreadList
+class ThreadList
 {
 protected:
-	CObjectList<CThread> m_Items;
-	mutable CCriticalSection m_Lock;
+	ObjectList<Thread> items_;
+	mutable CriticalSection lock_;
 public:
-	CThreadList();
-	virtual ~CThreadList();
+	ThreadList();
+	virtual ~ThreadList();
 
-	void Add(CThread *pThread);
-	void Remove(CThread *pThread);
-	bool Exists(CThread *pThread);
-	void Clear();
+	void add(Thread *thread);
+	void remove(Thread *thread);
+	bool exists(Thread *thread);
+	void clear();
 
-	void TerminateAllThreads();
-	void WaitForAllThreads(int nMaxWaitForSecs = 5, int *pKilledCount = NULL);
+	void terminateAllThreads();
+	void waitForAllThreads(int maxWaitForSecs = 5, int *killedCountPtr = NULL);
 
-	int GetCount() const { return m_Items.GetCount(); }
-	CThread* GetItem(int nIndex) const { return m_Items[nIndex]; }
-	CThread* operator[] (int nIndex) const { return GetItem(nIndex); }
+	int getCount() const { return items_.getCount(); }
+	Thread* getItem(int index) const { return items_[index]; }
+	Thread* operator[] (int index) const { return getItem(index); }
 
-	CCriticalSection& GetLock() const { return m_Lock; }
+	CriticalSection& getLock() const { return lock_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

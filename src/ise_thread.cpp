@@ -34,175 +34,175 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThreadImpl
+// class ThreadImpl
 
-CThreadImpl::CThreadImpl(CThread *pThread) :
-	m_Thread(*pThread),
-	m_nThreadId(0),
-	m_bExecuting(false),
-	m_bRunCalled(false),
-	m_nTermTime(0),
-	m_bFreeOnTerminate(false),
-	m_bTerminated(false),
-	m_bSleepInterrupted(false),
-	m_nReturnValue(0)
+ThreadImpl::ThreadImpl(Thread *thread) :
+	thread_(*thread),
+	threadId_(0),
+	isExecuting_(false),
+	isRunCalled_(false),
+	termTime_(0),
+	isFreeOnTerminate_(false),
+	terminated_(false),
+	isSleepInterrupted_(false),
+	returnValue_(0)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-void CThreadImpl::Execute()
+void ThreadImpl::execute()
 {
-	m_Thread.Execute();
+	thread_.execute();
 }
 
 //-----------------------------------------------------------------------------
 
-void CThreadImpl::BeforeTerminate()
+void ThreadImpl::beforeTerminate()
 {
-	m_Thread.BeforeTerminate();
+	thread_.beforeTerminate();
 }
 
 //-----------------------------------------------------------------------------
 
-void CThreadImpl::BeforeKill()
+void ThreadImpl::beforeKill()
 {
-	m_Thread.BeforeKill();
+	thread_.beforeKill();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 如果线程已运行，则抛出异常
 //-----------------------------------------------------------------------------
-void CThreadImpl::CheckNotRunning()
+void ThreadImpl::checkNotRunning()
 {
-	if (m_bRunCalled)
-		IseThrowThreadException(SEM_THREAD_RUN_ONCE);
+	if (isRunCalled_)
+		iseThrowThreadException(SEM_THREAD_RUN_ONCE);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知线程退出
 //-----------------------------------------------------------------------------
-void CThreadImpl::Terminate()
+void ThreadImpl::terminate()
 {
-	if (!m_bTerminated)
+	if (!terminated_)
 	{
-		BeforeTerminate();
-		m_nTermTime = (int)time(NULL);
-		m_bTerminated = true;
+		beforeTerminate();
+		termTime_ = (int)time(NULL);
+		terminated_ = true;
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得从调用 Terminate 到当前共经过多少时间(秒)
+// 描述: 取得从调用 terminate 到当前共经过多少时间(秒)
 //-----------------------------------------------------------------------------
-int CThreadImpl::GetTermElapsedSecs() const
+int ThreadImpl::getTermElapsedSecs() const
 {
-	int nResult = 0;
+	int result = 0;
 
 	// 如果已经通知退出，但线程还活着
-	if (m_bTerminated && m_nThreadId != 0)
+	if (terminated_ && threadId_ != 0)
 	{
-		nResult = (int)(time(NULL) - m_nTermTime);
+		result = (int)(time(NULL) - termTime_);
 	}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置是否 Terminate
+// 描述: 设置是否 terminate
 //-----------------------------------------------------------------------------
-void CThreadImpl::SetTerminated(bool bValue)
+void ThreadImpl::setTerminated(bool value)
 {
-	if (bValue != m_bTerminated)
+	if (value != terminated_)
 	{
-		if (bValue)
-			Terminate();
+		if (value)
+			terminate();
 		else
 		{
-			m_bTerminated = false;
-			m_nTermTime = 0;
+			terminated_ = false;
+			termTime_ = 0;
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 进入睡眠状态 (睡眠过程中会检测 m_bTerminated 的状态)
+// 描述: 进入睡眠状态 (睡眠过程中会检测 terminated_ 的状态)
 // 参数:
-//   fSeconds - 睡眠的秒数，可为小数，可精确到毫秒
+//   seconds - 睡眠的秒数，可为小数，可精确到毫秒
 // 注意:
 //   由于将睡眠时间分成了若干份，每次睡眠时间的小误差累加起来将扩大总误差。
 //-----------------------------------------------------------------------------
-void CThreadImpl::Sleep(double fSeconds)
+void ThreadImpl::sleep(double seconds)
 {
 	const double SLEEP_INTERVAL = 0.5;      // 每次睡眠的时间(秒)
-	double fOnceSecs;
+	double onceSecs;
 
-	m_bSleepInterrupted = false;
+	isSleepInterrupted_ = false;
 
-	while (!GetTerminated() && fSeconds > 0 && !m_bSleepInterrupted)
+	while (!isTerminated() && seconds > 0 && !isSleepInterrupted_)
 	{
-		fOnceSecs = (fSeconds >= SLEEP_INTERVAL ? SLEEP_INTERVAL : fSeconds);
-		fSeconds -= fOnceSecs;
+		onceSecs = (seconds >= SLEEP_INTERVAL ? SLEEP_INTERVAL : seconds);
+		seconds -= onceSecs;
 
-		SleepSec(fOnceSecs, true);
+		sleepSec(onceSecs, true);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CWin32ThreadImpl
+// class Win32ThreadImpl
 
 #ifdef ISE_WIN32
 
 //-----------------------------------------------------------------------------
 // 描述: 线程执行函数
 // 参数:
-//   pParam - 线程参数，此处指向 CWin32ThreadImpl 对象
+//   param - 线程参数，此处指向 Win32ThreadImpl 对象
 //-----------------------------------------------------------------------------
-UINT __stdcall ThreadExecProc(void *pParam)
+UINT __stdcall threadExecProc(void *param)
 {
-	CWin32ThreadImpl *pThreadImpl = (CWin32ThreadImpl*)pParam;
-	int nReturnValue = 0;
+	Win32ThreadImpl *threadImpl = (Win32ThreadImpl*)param;
+	int returnValue = 0;
 
 	{
-		pThreadImpl->SetExecuting(true);
+		threadImpl->setExecuting(true);
 
-		// 对象 AutoFinalizer 进行自动化善后工作
-		struct CAutoFinalizer
+		// 对象 autoFinalizer 进行自动化善后工作
+		struct AutoFinalizer
 		{
-			CWin32ThreadImpl *m_pThreadImpl;
-			CAutoFinalizer(CWin32ThreadImpl *pThreadImpl) { m_pThreadImpl = pThreadImpl; }
-			~CAutoFinalizer()
+			Win32ThreadImpl *threadImpl_;
+			AutoFinalizer(Win32ThreadImpl *threadImpl) { threadImpl_ = threadImpl; }
+			~AutoFinalizer()
 			{
-				m_pThreadImpl->SetExecuting(false);
-				if (m_pThreadImpl->GetFreeOnTerminate())
-					delete m_pThreadImpl->GetThread();
+				threadImpl_->setExecuting(false);
+				if (threadImpl_->isFreeOnTerminate())
+					delete threadImpl_->getThread();
 			}
-		} AutoFinalizer(pThreadImpl);
+		} autoFinalizer(threadImpl);
 
-		if (!pThreadImpl->m_bTerminated)
+		if (!threadImpl->terminated_)
 		{
-			try { pThreadImpl->Execute(); } catch (CException&) {}
+			try { threadImpl->execute(); } catch (Exception&) {}
 
 			// 记下线程返回值
-			nReturnValue = pThreadImpl->m_nReturnValue;
+			returnValue = threadImpl->returnValue_;
 		}
 	}
 
 	// 注意: 请查阅 _endthreadex 和 ExitThread 的区别
-	_endthreadex(nReturnValue);
-	//ExitThread(nReturnValue);
+	_endthreadex(returnValue);
+	//ExitThread(returnValue);
 
-	return nReturnValue;
+	return returnValue;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 构造函数
 //-----------------------------------------------------------------------------
-CWin32ThreadImpl::CWin32ThreadImpl(CThread *pThread) :
-	CThreadImpl(pThread),
-	m_nHandle(0),
-	m_nPriority(THREAD_PRI_NORMAL)
+Win32ThreadImpl::Win32ThreadImpl(Thread *thread) :
+	ThreadImpl(thread),
+	handle_(0),
+	priority_(THREAD_PRI_NORMAL)
 {
 	// nothing
 }
@@ -210,32 +210,32 @@ CWin32ThreadImpl::CWin32ThreadImpl(CThread *pThread) :
 //-----------------------------------------------------------------------------
 // 描述: 析构函数
 //-----------------------------------------------------------------------------
-CWin32ThreadImpl::~CWin32ThreadImpl()
+Win32ThreadImpl::~Win32ThreadImpl()
 {
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		if (m_bExecuting)
-			Terminate();
-		if (!m_bFreeOnTerminate)
-			WaitFor();
+		if (isExecuting_)
+			terminate();
+		if (!isFreeOnTerminate_)
+			waitFor();
 	}
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		CloseHandle(m_nHandle);
+		CloseHandle(handle_);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 线程错误处理
 //-----------------------------------------------------------------------------
-void CWin32ThreadImpl::CheckThreadError(bool bSuccess)
+void Win32ThreadImpl::checkThreadError(bool success)
 {
-	if (!bSuccess)
+	if (!success)
 	{
-		string strErrMsg = SysErrorMessage(GetLastError());
-		Logger().WriteStr(strErrMsg.c_str());
-		IseThrowThreadException(strErrMsg.c_str());
+		string errMsg = sysErrorMessage(GetLastError());
+		logger().writeStr(errMsg.c_str());
+		iseThrowThreadException(errMsg.c_str());
 	}
 }
 
@@ -243,78 +243,78 @@ void CWin32ThreadImpl::CheckThreadError(bool bSuccess)
 // 描述: 创建线程并执行
 // 注意: 此成员方法在对象声明周期中只可调用一次。
 //-----------------------------------------------------------------------------
-void CWin32ThreadImpl::Run()
+void Win32ThreadImpl::run()
 {
-	CheckNotRunning();
-	m_bRunCalled = true;
+	checkNotRunning();
+	isRunCalled_ = true;
 
 	// 注意: 请查阅 CRT::_beginthreadex 和 API::CreateThread 的区别，前者兼容于CRT。
-	m_nHandle = (HANDLE)_beginthreadex(NULL, 0, ThreadExecProc, (LPVOID)this,
-		CREATE_SUSPENDED, (UINT*)&m_nThreadId);
-	//m_nHandle = CreateThread(NULL, 0, ThreadExecProc, (LPVOID)this, CREATE_SUSPENDED, (LPDWORD)&m_nThreadId);
+	handle_ = (HANDLE)_beginthreadex(NULL, 0, threadExecProc, (LPVOID)this,
+		CREATE_SUSPENDED, (UINT*)&threadId_);
+	//handle_ = CreateThread(NULL, 0, threadExecProc, (LPVOID)this, CREATE_SUSPENDED, (LPDWORD)&threadId_);
 
-	CheckThreadError(m_nHandle != 0);
+	checkThreadError(handle_ != 0);
 
 	// 设置线程优先级
-	if (m_nPriority != THREAD_PRI_NORMAL)
-		SetPriority(m_nPriority);
+	if (priority_ != THREAD_PRI_NORMAL)
+		setPriority(priority_);
 
-	::ResumeThread(m_nHandle);
+	::ResumeThread(handle_);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知线程退出
 //-----------------------------------------------------------------------------
-void CWin32ThreadImpl::Terminate()
+void Win32ThreadImpl::terminate()
 {
-	CThreadImpl::Terminate();
+	ThreadImpl::terminate();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 强行杀死线程
 // 注意:
-//   1. 调用此函数后，对线程类对象的一切操作皆不可用(Terminate(); WaitFor(); delete pThread; 等)。
+//   1. 调用此函数后，对线程类对象的一切操作皆不可用(terminate(); waitFor(); delete thread; 等)。
 //   2. 线程被杀死后，用户所管理的某些重要资源可能未能得到释放，比如锁资源 (还未来得及解锁
-//      便被杀了)，所以重要资源的释放工作必须在 BeforeKill 中进行。
+//      便被杀了)，所以重要资源的释放工作必须在 beforeKill 中进行。
 //   3. Win32 下强杀线程，线程执行过程中的栈对象不会析构。
 //-----------------------------------------------------------------------------
-void CWin32ThreadImpl::Kill()
+void Win32ThreadImpl::kill()
 {
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		BeforeKill();
+		beforeKill();
 
-		m_nThreadId = 0;
-		TerminateThread(m_nHandle, 0);
-		::CloseHandle(m_nHandle);
+		threadId_ = 0;
+		TerminateThread(handle_, 0);
+		::CloseHandle(handle_);
 	}
 
-	delete (CThread*)&m_Thread;
+	delete (Thread*)&thread_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 等待线程退出
 // 返回: 线程返回值
 //-----------------------------------------------------------------------------
-int CWin32ThreadImpl::WaitFor()
+int Win32ThreadImpl::waitFor()
 {
-	ISE_ASSERT(m_bFreeOnTerminate == false);
+	ISE_ASSERT(isFreeOnTerminate_ == false);
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		WaitForSingleObject(m_nHandle, INFINITE);
-		GetExitCodeThread(m_nHandle, (LPDWORD)&m_nReturnValue);
+		WaitForSingleObject(handle_, INFINITE);
+		GetExitCodeThread(handle_, (LPDWORD)&returnValue_);
 	}
 
-	return m_nReturnValue;
+	return returnValue_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置线程的优先级
 //-----------------------------------------------------------------------------
-void CWin32ThreadImpl::SetPriority(int nValue)
+void Win32ThreadImpl::setPriority(int value)
 {
-	int nPriorities[7] = {
+	int priorities[7] = {
 		THREAD_PRIORITY_IDLE,
 		THREAD_PRIORITY_LOWEST,
 		THREAD_PRIORITY_BELOW_NORMAL,
@@ -324,50 +324,50 @@ void CWin32ThreadImpl::SetPriority(int nValue)
 		THREAD_PRIORITY_TIME_CRITICAL
 	};
 
-	nValue = (int)EnsureRange((int)nValue, 0, 6);
-	m_nPriority = nValue;
-	if (m_nThreadId != 0)
-		SetThreadPriority(m_nHandle, nPriorities[nValue]);
+	value = (int)ensureRange((int)value, 0, 6);
+	priority_ = value;
+	if (threadId_ != 0)
+		SetThreadPriority(handle_, priorities[value]);
 }
 
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CLinuxThreadImpl
+// class LinuxThreadImpl
 
 #ifdef ISE_LINUX
 
 //-----------------------------------------------------------------------------
 // 描述: 线程清理函数
 // 参数:
-//   pParam - 线程参数，此处指向 CLinuxThreadImpl 对象
+//   param - 线程参数，此处指向 LinuxThreadImpl 对象
 //-----------------------------------------------------------------------------
-void ThreadFinalProc(void *pParam)
+void threadFinalProc(void *param)
 {
-	CLinuxThreadImpl *pThreadImpl = (CLinuxThreadImpl*)pParam;
+	LinuxThreadImpl *threadImpl = (LinuxThreadImpl*)param;
 
-	pThreadImpl->SetExecuting(false);
-	if (pThreadImpl->GetFreeOnTerminate())
-		delete pThreadImpl->GetThread();
+	threadImpl->setExecuting(false);
+	if (threadImpl->isFreeOnTerminate())
+		delete threadImpl->getThread();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 线程执行函数
 // 参数:
-//   pParam - 线程参数，此处指向 CLinuxThreadImpl 对象
+//   param - 线程参数，此处指向 LinuxThreadImpl 对象
 //-----------------------------------------------------------------------------
-void* ThreadExecProc(void *pParam)
+void* threadExecProc(void *param)
 {
-	CLinuxThreadImpl *pThreadImpl = (CLinuxThreadImpl*)pParam;
-	int nReturnValue = 0;
+	LinuxThreadImpl *threadImpl = (LinuxThreadImpl*)param;
+	int returnValue = 0;
 
 	{
 		// 等待线程对象准备就绪
-		pThreadImpl->m_pExecSem->Wait();
-		delete pThreadImpl->m_pExecSem;
-		pThreadImpl->m_pExecSem = NULL;
+		threadImpl->execSem_->wait();
+		delete threadImpl->execSem_;
+		threadImpl->execSem_ = NULL;
 
-		pThreadImpl->SetExecuting(true);
+		threadImpl->setExecuting(true);
 
 		// 线程对 cancel 信号的响应方式有三种: (1)不响应 (2)推迟到取消点再响应 (3)尽量立即响应。
 		// 此处设置线程为第(3)种方式，即可马上被 cancel 信号终止。
@@ -375,23 +375,23 @@ void* ThreadExecProc(void *pParam)
 		pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
 		// 注册清理函数
-		pthread_cleanup_push(ThreadFinalProc, pThreadImpl);
+		pthread_cleanup_push(threadFinalProc, threadImpl);
 
-		if (!pThreadImpl->m_bTerminated)
+		if (!threadImpl->terminated_)
 		{
 			// 线程在执行过程中若收到 cancel 信号，会抛出一个异常(究竟是什么类型的异常？)，
 			// 此异常千万不可去阻拦它( try{}catch(...){} )，系统能侦测出此异常是否被彻底阻拦，
 			// 若是，则会发出 SIGABRT 信号，并在终端输出 "FATAL: exception not rethrown"。
-			// 所以此处的策略是只阻拦 CException 异常(在ISE中所有异常皆从 CException 继承)。
-			// 在 pThread->Execute() 的执行过程中，用户应该注意如下事项:
+			// 所以此处的策略是只阻拦 Exception 异常(在ISE中所有异常皆从 Exception 继承)。
+			// 在 thread->execute() 的执行过程中，用户应该注意如下事项:
 			// 1. 请参照此处的做法去拦截异常，而切不可阻拦所有类型的异常( 即catch(...) );
-			// 2. 不可抛出 CException 及其子类之外的异常。假如抛出一个整数( 如 throw 5; )，
-			//    系统会因为没有此异常的处理程序而调用 abort。(尽管如此，ThreadFinalProc
+			// 2. 不可抛出 Exception 及其子类之外的异常。假如抛出一个整数( 如 throw 5; )，
+			//    系统会因为没有此异常的处理程序而调用 abort。(尽管如此，threadFinalProc
 			//    仍会象 pthread_cleanup_push 所承诺的那样被执行到。)
-			try { pThreadImpl->Execute(); } catch (CException& e) {}
+			try { threadImpl->execute(); } catch (Exception& e) {}
 
 			// 记下线程返回值
-			nReturnValue = pThreadImpl->m_nReturnValue;
+			returnValue = threadImpl->returnValue_;
 		}
 
 		pthread_cleanup_pop(1);
@@ -400,18 +400,18 @@ void* ThreadExecProc(void *pParam)
 		pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 	}
 
-	pthread_exit((void*)nReturnValue);
+	pthread_exit((void*)returnValue);
 	return NULL;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 构造函数
 //-----------------------------------------------------------------------------
-CLinuxThreadImpl::CLinuxThreadImpl(CThread *pThread) :
-	CThreadImpl(pThread),
-	m_nPolicy(THREAD_POL_DEFAULT),
-	m_nPriority(THREAD_PRI_DEFAULT),
-	m_pExecSem(NULL)
+LinuxThreadImpl::LinuxThreadImpl(Thread *thread) :
+	ThreadImpl(thread),
+	policy_(THREAD_POL_DEFAULT),
+	priority_(THREAD_PRI_DEFAULT),
+	execSem_(NULL)
 {
 	// nothing
 }
@@ -419,35 +419,35 @@ CLinuxThreadImpl::CLinuxThreadImpl(CThread *pThread) :
 //-----------------------------------------------------------------------------
 // 描述: 析构函数
 //-----------------------------------------------------------------------------
-CLinuxThreadImpl::~CLinuxThreadImpl()
+LinuxThreadImpl::~LinuxThreadImpl()
 {
-	delete m_pExecSem;
-	m_pExecSem = NULL;
+	delete execSem_;
+	execSem_ = NULL;
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		if (m_bExecuting)
-			Terminate();
-		if (!m_bFreeOnTerminate)
-			WaitFor();
+		if (isExecuting_)
+			terminate();
+		if (!isFreeOnTerminate_)
+			waitFor();
 	}
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		pthread_detach(m_nThreadId);
+		pthread_detach(threadId_);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 线程错误处理
 //-----------------------------------------------------------------------------
-void CLinuxThreadImpl::CheckThreadError(int nErrorCode)
+void LinuxThreadImpl::checkThreadError(int errorCode)
 {
-	if (nErrorCode != 0)
+	if (errorCode != 0)
 	{
-		string strErrMsg = SysErrorMessage(nErrorCode);
-		Logger().WriteStr(strErrMsg.c_str());
-		IseThrowThreadException(strErrMsg.c_str());
+		string errMsg = sysErrorMessage(errorCode);
+		logger().writeStr(errMsg.c_str());
+		iseThrowThreadException(errMsg.c_str());
 	}
 }
 
@@ -455,58 +455,58 @@ void CLinuxThreadImpl::CheckThreadError(int nErrorCode)
 // 描述: 创建线程并执行
 // 注意: 此成员方法在对象声明周期中只可调用一次。
 //-----------------------------------------------------------------------------
-void CLinuxThreadImpl::Run()
+void LinuxThreadImpl::run()
 {
-	CheckNotRunning();
-	m_bRunCalled = true;
+	checkNotRunning();
+	isRunCalled_ = true;
 
-	delete m_pExecSem;
-	m_pExecSem = new CSemaphore(0);
+	delete execSem_;
+	execSem_ = new Semaphore(0);
 
 	// 创建线程
-	CheckThreadError(pthread_create((pthread_t*)&m_nThreadId, NULL, ThreadExecProc, (void*)this));
+	checkThreadError(pthread_create((pthread_t*)&threadId_, NULL, threadExecProc, (void*)this));
 
 	// 设置线程调度策略
-	if (m_nPolicy != THREAD_POL_DEFAULT)
-		SetPolicy(m_nPolicy);
+	if (policy_ != THREAD_POL_DEFAULT)
+		setPolicy(policy_);
 	// 设置线程优先级
-	if (m_nPriority != THREAD_PRI_DEFAULT)
-		SetPriority(m_nPriority);
+	if (priority_ != THREAD_PRI_DEFAULT)
+		setPriority(priority_);
 
 	// 线程对象已准备就绪，线程函数可以开始运行
-	m_pExecSem->Increase();
+	execSem_->increase();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知线程退出
 //-----------------------------------------------------------------------------
-void CLinuxThreadImpl::Terminate()
+void LinuxThreadImpl::terminate()
 {
-	CThreadImpl::Terminate();
+	ThreadImpl::terminate();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 强行杀死线程
 // 注意:
-//   1. 调用此函数后，线程对象即被销毁，对线程类对象的一切操作皆不可用(Terminate();
-//      WaitFor(); delete pThread; 等)。
-//   2. 在杀死线程前，m_bFreeOnTerminate 会自动设为 true，以便对象能自动释放。
+//   1. 调用此函数后，线程对象即被销毁，对线程类对象的一切操作皆不可用(terminate();
+//      waitFor(); delete thread; 等)。
+//   2. 在杀死线程前，isFreeOnTerminate_ 会自动设为 true，以便对象能自动释放。
 //   3. 线程被杀死后，用户所管理的某些重要资源可能未能得到释放，比如锁资源 (还未来得及解锁
-//      便被杀了)，所以重要资源的释放工作必须在 BeforeKill 中进行。
+//      便被杀了)，所以重要资源的释放工作必须在 beforeKill 中进行。
 //   4. pthread 没有规定在线程收到 cancel 信号后是否进行 C++ stack unwinding，也就是说栈对象
 //      的析构函数不一定会执行。实验表明，在 RedHat AS (glibc-2.3.4) 下会进行 stack unwinding，
 //      而在 Debian 4.0 (glibc-2.3.6) 下则不会。
 //-----------------------------------------------------------------------------
-void CLinuxThreadImpl::Kill()
+void LinuxThreadImpl::kill()
 {
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		BeforeKill();
+		beforeKill();
 
-		if (m_bExecuting)
+		if (isExecuting_)
 		{
-			SetFreeOnTerminate(true);
-			pthread_cancel(m_nThreadId);
+			setFreeOnTerminate(true);
+			pthread_cancel(threadId_);
 			return;
 		}
 	}
@@ -518,179 +518,179 @@ void CLinuxThreadImpl::Kill()
 // 描述: 等待线程退出
 // 返回: 线程返回值
 //-----------------------------------------------------------------------------
-int CLinuxThreadImpl::WaitFor()
+int LinuxThreadImpl::waitFor()
 {
-	ISE_ASSERT(m_bFreeOnTerminate == false);
+	ISE_ASSERT(isFreeOnTerminate_ == false);
 
-	pthread_t nThreadId = m_nThreadId;
+	pthread_t threadId = threadId_;
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
-		m_nThreadId = 0;
-		CheckThreadError(pthread_join(nThreadId, (void**)&m_nReturnValue));
+		threadId_ = 0;
+		checkThreadError(pthread_join(threadId, (void**)&returnValue_));
 	}
 
-	return m_nReturnValue;
+	return returnValue_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置线程的调度策略
 //-----------------------------------------------------------------------------
-void CLinuxThreadImpl::SetPolicy(int nValue)
+void LinuxThreadImpl::setPolicy(int value)
 {
-	if (nValue != THREAD_POL_DEFAULT &&
-		nValue != THREAD_POL_RR &&
-		nValue != THREAD_POL_FIFO)
+	if (value != THREAD_POL_DEFAULT &&
+		value != THREAD_POL_RR &&
+		value != THREAD_POL_FIFO)
 	{
-		nValue = THREAD_POL_DEFAULT;
+		value = THREAD_POL_DEFAULT;
 	}
 
-	m_nPolicy = nValue;
+	policy_ = value;
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
 		struct sched_param param;
-		param.sched_priority = m_nPriority;
-		pthread_setschedparam(m_nThreadId, m_nPolicy, &param);
+		param.sched_priority = priority_;
+		pthread_setschedparam(threadId_, policy_, &param);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置线程的优先级
 //-----------------------------------------------------------------------------
-void CLinuxThreadImpl::SetPriority(int nValue)
+void LinuxThreadImpl::setPriority(int value)
 {
-	if (nValue < THREAD_PRI_MIN || nValue > THREAD_PRI_MAX)
-		nValue = THREAD_PRI_DEFAULT;
+	if (value < THREAD_PRI_MIN || value > THREAD_PRI_MAX)
+		value = THREAD_PRI_DEFAULT;
 
-	m_nPriority = nValue;
+	priority_ = value;
 
-	if (m_nThreadId != 0)
+	if (threadId_ != 0)
 	{
 		struct sched_param param;
-		param.sched_priority = m_nPriority;
-		pthread_setschedparam(m_nThreadId, m_nPolicy, &param);
+		param.sched_priority = priority_;
+		pthread_setschedparam(threadId_, policy_, &param);
 	}
 }
 
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThread
+// class Thread
 
 //-----------------------------------------------------------------------------
 // 描述: 创建一个线程并马上执行
 //-----------------------------------------------------------------------------
-void CThread::Create(THREAD_EXEC_PROC pExecProc, void *pParam)
+void Thread::create(THREAD_EXEC_PROC execProc, void *param)
 {
-	CThread *pThread = new CThread();
+	Thread *thread = new Thread();
 
-	pThread->SetFreeOnTerminate(true);
-	pThread->m_pExecProc = pExecProc;
-	pThread->m_pThreadParam = pParam;
+	thread->setFreeOnTerminate(true);
+	thread->execProc_ = execProc;
+	thread->threadParam_ = param;
 
-	pThread->Run();
+	thread->run();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThreadList
+// class ThreadList
 
-CThreadList::CThreadList() :
-	m_Items(false, false)
+ThreadList::ThreadList() :
+	items_(false, false)
 {
 	// nothing
 }
 
-CThreadList::~CThreadList()
+ThreadList::~ThreadList()
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-void CThreadList::Add(CThread *pThread)
+void ThreadList::add(Thread *thread)
 {
-	CAutoLocker Locker(m_Lock);
-	m_Items.Add(pThread, false);
+	AutoLocker locker(lock_);
+	items_.add(thread, false);
 }
 
 //-----------------------------------------------------------------------------
 
-void CThreadList::Remove(CThread *pThread)
+void ThreadList::remove(Thread *thread)
 {
-	CAutoLocker Locker(m_Lock);
-	m_Items.Remove(pThread);
+	AutoLocker locker(lock_);
+	items_.remove(thread);
 }
 
 //-----------------------------------------------------------------------------
 
-bool CThreadList::Exists(CThread *pThread)
+bool ThreadList::exists(Thread *thread)
 {
-	CAutoLocker Locker(m_Lock);
-	return m_Items.Exists(pThread);
+	AutoLocker locker(lock_);
+	return items_.exists(thread);
 }
 
 //-----------------------------------------------------------------------------
 
-void CThreadList::Clear()
+void ThreadList::clear()
 {
-	CAutoLocker Locker(m_Lock);
-	m_Items.Clear();
+	AutoLocker locker(lock_);
+	items_.clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知所有线程退出
 //-----------------------------------------------------------------------------
-void CThreadList::TerminateAllThreads()
+void ThreadList::terminateAllThreads()
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
+	for (int i = 0; i < items_.getCount(); i++)
 	{
-		CThread *pThread = m_Items[i];
-		pThread->Terminate();
+		Thread *thread = items_[i];
+		thread->terminate();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 等待所有线程退出
 // 参数:
-//   nMaxWaitForSecs - 最长等待时间(秒) (为 -1 表示无限等待)
-//   pKilledCount    - 传回最终强杀了多少个线程
+//   maxWaitForSecs - 最长等待时间(秒) (为 -1 表示无限等待)
+//   killedCountPtr  - 传回最终强杀了多少个线程
 // 注意:
 //   此函数要求列表中各线程在退出时自动销毁自己并从列表中移除。
 //-----------------------------------------------------------------------------
-void CThreadList::WaitForAllThreads(int nMaxWaitForSecs, int *pKilledCount)
+void ThreadList::waitForAllThreads(int maxWaitForSecs, int *killedCountPtr)
 {
 	const double SLEEP_INTERVAL = 0.1;  // (秒)
-	double nWaitSecs = 0;
-	int nKilledCount = 0;
+	double waitSecs = 0;
+	int killedCount = 0;
 
 	// 通知所有线程退出
-	TerminateAllThreads();
+	terminateAllThreads();
 
 	// 等待线程退出
-	while (nWaitSecs < (UINT)nMaxWaitForSecs)
+	while (waitSecs < (UINT)maxWaitForSecs)
 	{
-		if (m_Items.GetCount() == 0) break;
-		SleepSec(SLEEP_INTERVAL, true);
-		nWaitSecs += SLEEP_INTERVAL;
+		if (items_.getCount() == 0) break;
+		sleepSec(SLEEP_INTERVAL, true);
+		waitSecs += SLEEP_INTERVAL;
 	}
 
 	// 若等待超时，则强行杀死各线程
-	if (m_Items.GetCount() > 0)
+	if (items_.getCount() > 0)
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
-		nKilledCount = m_Items.GetCount();
-		for (int i = 0; i < m_Items.GetCount(); i++)
-			m_Items[i]->Kill();
+		killedCount = items_.getCount();
+		for (int i = 0; i < items_.getCount(); i++)
+			items_[i]->kill();
 
-		m_Items.Clear();
+		items_.clear();
 	}
 
-	if (pKilledCount)
-		*pKilledCount = nKilledCount;
+	if (killedCountPtr)
+		*killedCountPtr = killedCount;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

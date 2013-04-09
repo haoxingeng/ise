@@ -40,88 +40,88 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CAssistorThread;
-class CAssistorThreadPool;
-class CAssistorServer;
+class AssistorThread;
+class AssistorThreadPool;
+class AssistorServer;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAssistorThread - 辅助线程类
+// class AssistorThread - 辅助线程类
 //
 // 说明:
 // 1. 对于服务端程序，除了网络服务之外，一般还需要若干后台守护线程，用于后台维护工作，
 //    比如垃圾数据回收、数据库过期数据清理等等。这类服务线程统称为 assistor thread.
 
-class CAssistorThread : public CThread
+class AssistorThread : public Thread
 {
 private:
-	CAssistorThreadPool *m_pOwnPool;        // 所属线程池
-	int m_nAssistorIndex;                   // 辅助服务序号(0-based)
+	AssistorThreadPool *ownPool_;        // 所属线程池
+	int assistorIndex_;                  // 辅助服务序号(0-based)
 protected:
-	virtual void Execute();
-	virtual void DoKill();
+	virtual void execute();
+	virtual void doKill();
 public:
-	CAssistorThread(CAssistorThreadPool *pThreadPool, int nAssistorIndex);
-	virtual ~CAssistorThread();
+	AssistorThread(AssistorThreadPool *threadPool, int assistorIndex);
+	virtual ~AssistorThread();
 
-	int GetIndex() const { return m_nAssistorIndex; }
+	int getIndex() const { return assistorIndex_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAssistorThreadPool - 辅助线程池类
+// class AssistorThreadPool - 辅助线程池类
 
-class CAssistorThreadPool
+class AssistorThreadPool
 {
 private:
-	CAssistorServer *m_pOwnAssistorSvr;     // 所属辅助服务器
-	CThreadList m_ThreadList;               // 线程列表
+	AssistorServer *ownAssistorSvr_;     // 所属辅助服务器
+	ThreadList threadList_;               // 线程列表
 
 public:
-	explicit CAssistorThreadPool(CAssistorServer *pOwnAssistorServer);
-	virtual ~CAssistorThreadPool();
+	explicit AssistorThreadPool(AssistorServer *ownAssistorServer);
+	virtual ~AssistorThreadPool();
 
-	void RegisterThread(CAssistorThread *pThread);
-	void UnregisterThread(CAssistorThread *pThread);
+	void registerThread(AssistorThread *thread);
+	void unregisterThread(AssistorThread *thread);
 
 	// 通知所有线程退出
-	void TerminateAllThreads();
+	void terminateAllThreads();
 	// 等待所有线程退出
-	void WaitForAllThreads();
+	void waitForAllThreads();
 	// 打断指定线程的睡眠
-	void InterruptThreadSleep(int nAssistorIndex);
+	void interruptThreadSleep(int assistorIndex);
 
 	// 取得当前线程数量
-	int GetThreadCount() { return m_ThreadList.GetCount(); }
+	int getThreadCount() { return threadList_.getCount(); }
 	// 取得所属辅助服务器
-	CAssistorServer& GetAssistorServer() { return *m_pOwnAssistorSvr; }
+	AssistorServer& getAssistorServer() { return *ownAssistorSvr_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAssistorServer - 辅助服务类
+// class AssistorServer - 辅助服务类
 
-class CAssistorServer
+class AssistorServer
 {
 private:
-	bool m_bActive;                         // 服务器是否启动
-	CAssistorThreadPool m_ThreadPool;       // 辅助线程池
+	bool isActive_;                       // 服务器是否启动
+	AssistorThreadPool threadPool_;       // 辅助线程池
 
 public:
-	explicit CAssistorServer();
-	virtual ~CAssistorServer();
+	explicit AssistorServer();
+	virtual ~AssistorServer();
 
 	// 启动服务器
-	void Open();
+	void open();
 	// 关闭服务器
-	void Close();
+	void close();
 
 	// 辅助服务线程执行函数
-	void OnAssistorThreadExecute(CAssistorThread& AssistorThread, int nAssistorIndex);
+	void onAssistorThreadExecute(AssistorThread& assistorThread, int assistorIndex);
 
 	// 通知所有辅助线程退出
-	void TerminateAllAssistorThreads();
+	void terminateAllAssistorThreads();
 	// 等待所有辅助线程退出
-	void WaitForAllAssistorThreads();
+	void waitForAllAssistorThreads();
 	// 打断指定辅助线程的睡眠
-	void InterruptAssistorThreadSleep(int nAssistorIndex);
+	void interruptAssistorThreadSleep(int assistorIndex);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

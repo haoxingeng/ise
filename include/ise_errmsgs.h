@@ -62,7 +62,7 @@ const char* const SEM_PACKET_PACK_ERROR           = "Packet pack error.";
 const char* const SEM_UNSAFE_VALUE_IN_PACKET      = "Unsafe value in packet.";
 
 // ise_thread
-const char* const SEM_THREAD_RUN_ONCE             = "CThread::Run() can be call only once.";
+const char* const SEM_THREAD_RUN_ONCE             = "Thread::run() can be call only once.";
 
 // ise_xml_doc
 const char* const SEM_INVALID_XML_FILE_FORMAT     = "Invalid file format.";

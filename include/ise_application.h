@@ -57,10 +57,10 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CIseBusiness;
-class CIseOptions;
-class CIseMainServer;
-class CIseApplication;
+class IseBusiness;
+class IseOptions;
+class IseMainServer;
+class IseApplication;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
@@ -81,58 +81,58 @@ enum SERVER_TYPE
 };
 
 // 用户信号处理回调
-typedef void (*USER_SIGNAL_HANDLER_PROC)(void *pParam, int nSignalNumber);
+typedef void (*USER_SIGNAL_HANDLER_PROC)(void *param, int signalNumber);
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseBusiness - ISE业务基类
+// class IseBusiness - ISE业务基类
 
-class CIseBusiness
+class IseBusiness
 {
 public:
-	CIseBusiness() {}
-	virtual ~CIseBusiness() {}
+	IseBusiness() {}
+	virtual ~IseBusiness() {}
 
 	// 初始化 (失败则抛出异常)
-	virtual void Initialize() {}
+	virtual void initialize() {}
 	// 结束化 (无论初始化是否有异常，结束时都会执行)
-	virtual void Finalize() {}
+	virtual void finalize() {}
 
 	// 解释命令行参数，参数不正确则返回 false
-	virtual bool ParseArguments(int nArgc, char *sArgv[]) { return true; }
+	virtual bool parseArguments(int argc, char *argv[]) { return true; }
 	// 返回程序的当前版本号
-	virtual string GetAppVersion() { return "1.0.0.0"; }
+	virtual string getAppVersion() { return "1.0.0.0"; }
 	// 返回程序的帮助信息
-	virtual string GetAppHelp() { return ""; }
+	virtual string getAppHelp() { return ""; }
 	// 处理启动状态
-	virtual void DoStartupState(STARTUP_STATE nState) {}
+	virtual void doStartupState(STARTUP_STATE state) {}
 	// 初始化ISE配置信息
-	virtual void InitIseOptions(CIseOptions& IseOpt) {}
+	virtual void initIseOptions(IseOptions& options) {}
 
 	// UDP数据包分类
-	virtual void ClassifyUdpPacket(void *pPacketBuffer, int nPacketSize, int& nGroupIndex) { nGroupIndex = 0; }
+	virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex) { groupIndex = 0; }
 	// UDP数据包分派
-	virtual void DispatchUdpPacket(CUdpWorkerThread& WorkerThread, int nGroupIndex, CUdpPacket& Packet) {}
+	virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) {}
 
 	// 接受了一个新的TCP连接
-	virtual void OnTcpConnection(CTcpConnection *pConnection) {}
+	virtual void onTcpConnection(TcpConnection *connection) {}
 	// TCP连接传输过程发生了错误 (ISE将随之删除此连接对象)
-	virtual void OnTcpError(CTcpConnection *pConnection) {}
+	virtual void onTcpError(TcpConnection *connection) {}
 	// TCP连接上的一个接收任务已完成
-	virtual void OnTcpRecvComplete(CTcpConnection *pConnection, void *pPacketBuffer,
-		int nPacketSize, const CCustomParams& Params) {}
+	virtual void onTcpRecvComplete(TcpConnection *connection, void *packetBuffer,
+		int packetSize, const CustomParams& params) {}
 	// TCP连接上的一个发送任务已完成
-	virtual void OnTcpSendComplete(CTcpConnection *pConnection, const CCustomParams& Params) {}
+	virtual void onTcpSendComplete(TcpConnection *connection, const CustomParams& params) {}
 
-	// 辅助服务线程执行(nAssistorIndex: 0-based)
-	virtual void AssistorThreadExecute(CAssistorThread& AssistorThread, int nAssistorIndex) {}
-	// 系统守护线程执行 (nSecondCount: 0-based)
-	virtual void DaemonThreadExecute(CThread& Thread, int nSecondCount) {}
+	// 辅助服务线程执行(assistorIndex: 0-based)
+	virtual void assistorThreadExecute(AssistorThread& assistorThread, int assistorIndex) {}
+	// 系统守护线程执行 (secondCount: 0-based)
+	virtual void daemonThreadExecute(Thread& thread, int secondCount) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseOptions - ISE配置类
+// class IseOptions - ISE配置类
 
-class CIseOptions
+class IseOptions
 {
 public:
 	// 服务器常规配置缺省值
@@ -168,246 +168,246 @@ public:
 private:
 	/* ------------ 系统配置: ------------------ */
 
-	string m_strLogFileName;            // 日志文件名 (含路径)
-	bool m_bLogNewFileDaily;            // 是否每天用一个单独的文件存储日志
-	bool m_bIsDaemon;                   // 是否后台守护程序(daemon)
-	bool m_bAllowMultiInstance;         // 是否允许多个程序实体同时运行
+	string logFileName_;              // 日志文件名 (含路径)
+	bool logNewFileDaily_;            // 是否每天用一个单独的文件存储日志
+	bool isDaemon_;                   // 是否后台守护程序(daemon)
+	bool allowMultiInstance_;         // 是否允许多个程序实体同时运行
 
 	/* ------------ 服务器常规配置: ------------ */
 
 	// 服务器类型 (ST_UDP | ST_TCP)
-	UINT m_nServerType;
+	UINT serverType_;
 	// 后台调整工作者线程数量的时间间隔(秒)
-	int m_nAdjustThreadInterval;
+	int adjustThreadInterval_;
 	// 辅助线程的个数
-	int m_nAssistorThreadCount;
+	int assistorThreadCount_;
 
 	/* ------------ UDP服务器配置: ------------ */
 
 	struct CUdpRequestGroupOpt
 	{
-		int nRequestQueueCapacity;      // 请求队列的容量(即可容纳多少个数据包)
-		int nMinWorkerThreads;          // 工作者线程的最少个数
-		int nMaxWorkerThreads;          // 工作者线程的最多个数
+		int requestQueueCapacity;      // 请求队列的容量(即可容纳多少个数据包)
+		int minWorkerThreads;          // 工作者线程的最少个数
+		int maxWorkerThreads;          // 工作者线程的最多个数
 
 		CUdpRequestGroupOpt()
 		{
-			nRequestQueueCapacity = DEF_UDP_REQ_QUEUE_CAPACITY;
-			nMinWorkerThreads = DEF_UDP_WORKER_THREADS_MIN;
-			nMaxWorkerThreads = DEF_UDP_WORKER_THREADS_MAX;
+			requestQueueCapacity = DEF_UDP_REQ_QUEUE_CAPACITY;
+			minWorkerThreads = DEF_UDP_WORKER_THREADS_MIN;
+			maxWorkerThreads = DEF_UDP_WORKER_THREADS_MAX;
 		}
 	};
 	typedef vector<CUdpRequestGroupOpt> CUdpRequestGroupOpts;
 
 	// UDP服务端口
-	int m_nUdpServerPort;
+	int udpServerPort_;
 	// 监听线程的数量
-	int m_nUdpListenerThreadCount;
+	int udpListenerThreadCount_;
 	// 请求组别的数量
-	int m_nUdpRequestGroupCount;
+	int udpRequestGroupCount_;
 	// 每个组别内的配置
-	CUdpRequestGroupOpts m_UdpRequestGroupOpts;
+	CUdpRequestGroupOpts udpRequestGroupOpts_;
 	// 数据包在队列中的有效等待时间，超时则不予处理(秒)
-	int m_nUdpRequestEffWaitTime;
+	int udpRequestEffWaitTime_;
 	// 工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
-	int m_nUdpWorkerThreadTimeOut;
+	int udpWorkerThreadTimeOut_;
 	// 请求队列中数据包数量警戒线，若超过警戒线则尝试增加线程
-	int m_nUdpRequestQueueAlertLine;
+	int udpRequestQueueAlertLine_;
 
 	/* ------------ TCP服务器配置: ------------ */
 
 	struct CTcpServerOpt
 	{
-		int nTcpServerPort;             // TCP服务端口号
+		int tcpServerPort;             // TCP服务端口号
 
 		CTcpServerOpt()
 		{
-			nTcpServerPort = 0;
+			tcpServerPort = 0;
 		}
 	};
 	typedef vector<CTcpServerOpt> CTcpServerOpts;
 
 	// TCP服务器的数量 (一个TCP服务器占用一个TCP端口)
-	int m_nTcpServerCount;
+	int tcpServerCount_;
 	// 每个TCP服务器的配置
-	CTcpServerOpts m_TcpServerOpts;
+	CTcpServerOpts tcpServerOpts_;
 	// TCP事件循环的个数
-	int m_nTcpEventLoopCount;
+	int tcpEventLoopCount_;
 
 public:
-	CIseOptions();
+	IseOptions();
 
 	// 系统配置设置/获取-------------------------------------------------------
 
-	void SetLogFileName(const string& strValue, bool bLogNewFileDaily = false)
-		{ m_strLogFileName = strValue; m_bLogNewFileDaily = bLogNewFileDaily; }
-	void SetIsDaemon(bool bValue) { m_bIsDaemon = bValue; }
-	void SetAllowMultiInstance(bool bValue) { m_bAllowMultiInstance = bValue; }
+	void setLogFileName(const string& value, bool logNewFileDaily = false)
+		{ logFileName_ = value; logNewFileDaily_ = logNewFileDaily; }
+	void setIsDaemon(bool value) { isDaemon_ = value; }
+	void setAllowMultiInstance(bool value) { allowMultiInstance_ = value; }
 
-	string GetLogFileName() { return m_strLogFileName; }
-	bool GetLogNewFileDaily() { return m_bLogNewFileDaily; }
-	bool GetIsDaemon() { return m_bIsDaemon; }
-	bool GetAllowMultiInstance() { return m_bAllowMultiInstance; }
+	string getLogFileName() { return logFileName_; }
+	bool getLogNewFileDaily() { return logNewFileDaily_; }
+	bool getIsDaemon() { return isDaemon_; }
+	bool getAllowMultiInstance() { return allowMultiInstance_; }
 
 	// 服务器配置设置----------------------------------------------------------
 
 	// 设置服务器类型(ST_UDP | ST_TCP)
-	void SetServerType(UINT nSvrType);
+	void setServerType(UINT serverType);
 	// 设置后台调整工作者线程数量的时间间隔(秒)
-	void SetAdjustThreadInterval(int nSecs);
+	void setAdjustThreadInterval(int seconds);
 	// 设置辅助线程的数量
-	void SetAssistorThreadCount(int nCount);
+	void setAssistorThreadCount(int count);
 
 	// 设置UDP服务端口号
-	void SetUdpServerPort(int nPort);
+	void setUdpServerPort(int port);
 	// 设置UDP监听线程的数量
-	void SetUdpListenerThreadCount(int nCount);
+	void setUdpListenerThreadCount(int count);
 	// 设置UDP请求的组别总数
-	void SetUdpRequestGroupCount(int nCount);
+	void setUdpRequestGroupCount(int count);
 	// 设置UDP请求队列的最大容量 (即可容纳多少个数据包)
-	void SetUdpRequestQueueCapacity(int nGroupIndex, int nCapacity);
+	void setUdpRequestQueueCapacity(int groupIndex, int capacity);
 	// 设置UDP工作者线程个数的上下限
-	void SetUdpWorkerThreadCount(int nGroupIndex, int nMinThreads, int nMaxThreads);
+	void setUdpWorkerThreadCount(int groupIndex, int minThreads, int maxThreads);
 	// 设置UDP请求在队列中的有效等待时间，超时则不予处理(秒)
-	void SetUdpRequestEffWaitTime(int nSecs);
+	void setUdpRequestEffWaitTime(int seconds);
 	// 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
-	void SetUdpWorkerThreadTimeOut(int nSecs);
+	void setUdpWorkerThreadTimeOut(int seconds);
 	// 设置UDP请求队列中数据包数量警戒线
-	void SetUdpRequestQueueAlertLine(int nCount);
+	void SetUdpRequestQueueAlertLine(int count);
 
 	// 设置TCP服务器的总数
-	void SetTcpServerCount(int nCount);
+	void setTcpServerCount(int count);
 	// 设置TCP服务端口号
-	void SetTcpServerPort(int nServerIndex, int nPort);
+	void setTcpServerPort(int serverIndex, int port);
 	// 设置TCP事件循环的个数
-	void SetTcpEventLoopCount(int nCount);
+	void setTcpEventLoopCount(int count);
 
 	// 服务器配置获取----------------------------------------------------------
 
-	UINT GetServerType() { return m_nServerType; }
-	int GetAdjustThreadInterval() { return m_nAdjustThreadInterval; }
-	int GetAssistorThreadCount() { return m_nAssistorThreadCount; }
+	UINT getServerType() { return serverType_; }
+	int getAdjustThreadInterval() { return adjustThreadInterval_; }
+	int getAssistorThreadCount() { return assistorThreadCount_; }
 
-	int GetUdpServerPort() { return m_nUdpServerPort; }
-	int GetUdpListenerThreadCount() { return m_nUdpListenerThreadCount; }
-	int GetUdpRequestGroupCount() { return m_nUdpRequestGroupCount; }
-	int GetUdpRequestQueueCapacity(int nGroupIndex);
-	void GetUdpWorkerThreadCount(int nGroupIndex, int& nMinThreads, int& nMaxThreads);
-	int GetUdpRequestEffWaitTime() { return m_nUdpRequestEffWaitTime; }
-	int GetUdpWorkerThreadTimeOut() { return m_nUdpWorkerThreadTimeOut; }
-	int GetUdpRequestQueueAlertLine() { return m_nUdpRequestQueueAlertLine; }
+	int getUdpServerPort() { return udpServerPort_; }
+	int getUdpListenerThreadCount() { return udpListenerThreadCount_; }
+	int getUdpRequestGroupCount() { return udpRequestGroupCount_; }
+	int getUdpRequestQueueCapacity(int groupIndex);
+	void getUdpWorkerThreadCount(int groupIndex, int& minThreads, int& maxThreads);
+	int getUdpRequestEffWaitTime() { return udpRequestEffWaitTime_; }
+	int getUdpWorkerThreadTimeOut() { return udpWorkerThreadTimeOut_; }
+	int getUdpRequestQueueAlertLine() { return udpRequestQueueAlertLine_; }
 
-	int GetTcpServerCount() { return m_nTcpServerCount; }
-	int GetTcpServerPort(int nServerIndex);
-	int GetTcpEventLoopCount() { return m_nTcpEventLoopCount; }
+	int getTcpServerCount() { return tcpServerCount_; }
+	int getTcpServerPort(int serverIndex);
+	int getTcpEventLoopCount() { return tcpEventLoopCount_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseMainServer - 主服务器类
+// class IseMainServer - 主服务器类
 
-class CIseMainServer
+class IseMainServer
 {
 private:
-	CMainUdpServer *m_pUdpServer;        // UDP服务器
-	CMainTcpServer *m_pTcpServer;        // TCP服务器
-	CAssistorServer *m_pAssistorServer;  // 辅助服务器
-	CSysThreadMgr *m_pSysThreadMgr;      // 系统线程管理器
+	MainUdpServer *udpServer_;        // UDP服务器
+	MainTcpServer *tcpServer_;        // TCP服务器
+	AssistorServer *assistorServer_;  // 辅助服务器
+	SysThreadMgr *sysThreadMgr_;      // 系统线程管理器
 private:
-	void RunBackground();
+	void runBackground();
 public:
-	CIseMainServer();
-	virtual ~CIseMainServer();
+	IseMainServer();
+	virtual ~IseMainServer();
 
-	void Initialize();
-	void Finalize();
-	void Run();
+	void initialize();
+	void finalize();
+	void run();
 
-	CMainUdpServer& GetMainUdpServer() { return *m_pUdpServer; }
-	CMainTcpServer& GetMainTcpServer() { return *m_pTcpServer; }
-	CAssistorServer& GetAssistorServer() { return *m_pAssistorServer; }
+	MainUdpServer& getMainUdpServer() { return *udpServer_; }
+	MainTcpServer& getMainTcpServer() { return *tcpServer_; }
+	AssistorServer& getAssistorServer() { return *assistorServer_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseApplication - ISE应用程序类
+// class IseApplication - ISE应用程序类
 //
 // 说明:
 // 1. 此类是整个服务程序的主框架，全局单例对象(Application)在程序启动时即被创建；
 // 2. 一般来说，服务程序是由外部发出命令(kill)而退出的。在ISE中，程序收到kill退出命令后
-//    (此时当前执行点一定在 IseApplication.Run() 中)，会触发 ExitProgramSignalHandler
-//    信号处理器，进而利用 longjmp 方法使执行点模拟从 Run() 中退出，继而执行 Finalize。
+//    (此时当前执行点一定在 iseApplication.run() 中)，会触发 ExitProgramSignalHandler
+//    信号处理器，进而利用 longjmp 方法使执行点模拟从 run() 中退出，继而执行 finalize。
 // 3. 若程序发生致命的非法操作错误，会先触发 FatalErrorSignalHandler 信号处理器，
 //    然后同样按照正常的析构顺序退出。
-// 4. 若程序内部想正常退出，不推荐使用exit函数。而是 IseApplication.SetTeraminted(true).
+// 4. 若程序内部想正常退出，不推荐使用exit函数。而是 iseApplication.SetTeraminted(true).
 //    这样才能让程序按照正常的析构顺序退出。
 
-class CIseApplication
+class IseApplication
 {
 private:
-	friend void UserSignalHandler(int nSigNo);
+	friend void userSignalHandler(int sigNo);
 
 private:
-	CIseOptions m_IseOptions;                       // ISE配置
-	CIseMainServer *m_pMainServer;                  // 主服务器
-	StringArray m_ArgList;                          // 命令行参数
-	string m_strExeName;                            // 可执行文件的全名(含绝对路径)
-	time_t m_nAppStartTime;                         // 程序启动时的时间
-	bool m_bInitialized;                            // 是否成功初始化
-	bool m_bTerminated;                             // 是否应退出的标志
-	CCallBackList<USER_SIGNAL_HANDLER_PROC> m_OnUserSignal;  // 用户信号处理回调
+	IseOptions iseOptions_;                       // ISE配置
+	IseMainServer *mainServer_;                   // 主服务器
+	StringArray argList_;                         // 命令行参数
+	string exeName_;                              // 可执行文件的全名(含绝对路径)
+	time_t appStartTime_;                         // 程序启动时的时间
+	bool initialized_;                            // 是否成功初始化
+	bool terminated_;                             // 是否应退出的标志
+	CallbackList<USER_SIGNAL_HANDLER_PROC> onUserSignal_;  // 用户信号处理回调
 
 private:
-	bool ProcessStandardArgs();
-	void CheckMultiInstance();
-	void ApplyIseOptions();
-	void CreateMainServer();
-	void FreeMainServer();
-	void CreateIseBusiness();
-	void FreeIseBusiness();
-	void InitExeName();
-	void InitDaemon();
-	void InitSignals();
-	void InitNewOperHandler();
-	void CloseTerminal();
-	void DoFinalize();
+	bool processStandardArgs();
+	void checkMultiInstance();
+	void applyIseOptions();
+	void createMainServer();
+	void freeMainServer();
+	void createIseBusiness();
+	void freeIseBusiness();
+	void initExeName();
+	void initDaemon();
+	void initSignals();
+	void initNewOperHandler();
+	void closeTerminal();
+	void doFinalize();
 
 public:
-	CIseApplication();
-	virtual ~CIseApplication();
+	IseApplication();
+	virtual ~IseApplication();
 
-	bool ParseArguments(int nArgc, char *sArgv[]);
-	void Initialize();
-	void Finalize();
-	void Run();
+	bool parseArguments(int argc, char *argv[]);
+	void initialize();
+	void finalize();
+	void run();
 
-	inline CIseOptions& GetIseOptions() { return m_IseOptions; }
-	inline CIseMainServer& GetMainServer() { return *m_pMainServer; }
-	inline CIseScheduleTaskMgr& GetScheduleTaskMgr() { return CIseScheduleTaskMgr::Instance(); }
+	inline IseOptions& getIseOptions() { return iseOptions_; }
+	inline IseMainServer& getMainServer() { return *mainServer_; }
+	inline IseScheduleTaskMgr& getScheduleTaskMgr() { return IseScheduleTaskMgr::instance(); }
 
-	inline void SetTerminated(bool bValue) { m_bTerminated = bValue; }
-	inline bool GetTerminated() { return m_bTerminated; }
+	inline void setTerminated(bool value) { terminated_ = value; }
+	inline bool getTerminated() { return terminated_; }
 
 	// 取得可执行文件的全名(含绝对路径)
-	string GetExeName() { return m_strExeName; }
+	string getExeName() { return exeName_; }
 	// 取得可执行文件所在的路径
-	string GetExePath();
+	string getExePath();
 	// 取得命令行参数个数(首个参数为程序路径文件名)
-	int GetArgCount() { return (int)m_ArgList.size(); }
-	// 取得命令行参数字符串 (nIndex: 0-based)
-	string GetArgString(int nIndex);
+	int getArgCount() { return (int)argList_.size(); }
+	// 取得命令行参数字符串 (index: 0-based)
+	string getArgString(int index);
 	// 取得程序启动时的时间
-	time_t GetAppStartTime() { return m_nAppStartTime; }
+	time_t getAppStartTime() { return appStartTime_; }
 
 	// 注册用户信号处理器
-	void RegisterUserSignalHandler(USER_SIGNAL_HANDLER_PROC pProc, void *pParam = NULL);
+	void registerUserSignalHandler(USER_SIGNAL_HANDLER_PROC proc, void *param = NULL);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // 全局变量声明
 
 // 应用程序对象
-extern CIseApplication IseApplication;
+extern IseApplication iseApplication;
 // ISE业务对象指针
-extern CIseBusiness *pIseBusiness;
+extern IseBusiness *iseBusiness;
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -37,9 +37,9 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CIseServerModule;
-class CIseServerModuleMgr;
-class CIseSvrModBusiness;
+class IseServerModule;
+class IseServerModuleMgr;
+class IseSvrModBusiness;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
@@ -50,137 +50,137 @@ typedef vector<UINT> ACTION_CODE_ARRAY;
 // UDP组别的配置
 struct UDP_GROUP_OPTIONS
 {
-	int nQueueCapacity;
-	int nMinThreads;
-	int nMaxThreads;
+	int queueCapacity;
+	int minThreads;
+	int maxThreads;
 };
 
 // TCP服务器的配置
 struct TCP_SERVER_OPTIONS
 {
-	int nPort;
+	int port;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseServerModule - 服务器模块基类
+// class IseServerModule - 服务器模块基类
 
-class CIseServerModule
+class IseServerModule
 {
 public:
-	friend class CIseServerModuleMgr;
+	friend class IseServerModuleMgr;
 private:
-	int m_nSvrModIndex;   // (0-based)
+	int svrModIndex_;   // (0-based)
 public:
-	CIseServerModule() : m_nSvrModIndex(0) {}
-	virtual ~CIseServerModule() {}
+	IseServerModule() : svrModIndex_(0) {}
+	virtual ~IseServerModule() {}
 
 	// 取得该服务模块中的UDP组别数量
-	virtual int GetUdpGroupCount() { return 0; }
+	virtual int getUdpGroupCount() { return 0; }
 	// 取得该模块中某UDP组别所接管的动作代码
-	virtual void GetUdpGroupActionCodes(int nGroupIndex, ACTION_CODE_ARRAY& List) {}
+	virtual void getUdpGroupActionCodes(int groupIndex, ACTION_CODE_ARRAY& list) {}
 	// 取得该模块中某UDP组别的配置
-	virtual void GetUdpGroupOptions(int nGroupIndex, UDP_GROUP_OPTIONS& Options) {}
+	virtual void getUdpGroupOptions(int groupIndex, UDP_GROUP_OPTIONS& options) {}
 	// 取得该服务模块中的TCP服务器数量
-	virtual int GetTcpServerCount() { return 0; }
+	virtual int getTcpServerCount() { return 0; }
 	// 取得该模块中某TCP服务器的配置
-	virtual void GetTcpServerOptions(int nServerIndex, TCP_SERVER_OPTIONS& Options) {}
+	virtual void getTcpServerOptions(int serverIndex, TCP_SERVER_OPTIONS& options) {}
 
 	// UDP数据包分派
-	virtual void DispatchUdpPacket(CUdpWorkerThread& WorkerThread, CUdpPacket& ) {}
+	virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, UdpPacket& ) {}
 
 	// 接受了一个新的TCP连接
-	virtual void OnTcpConnection(CTcpConnection *pConnection) {}
+	virtual void onTcpConnection(TcpConnection *connection) {}
 	// TCP连接传输过程发生了错误 (ISE将随之删除此连接对象)
-	virtual void OnTcpError(CTcpConnection *pConnection) {}
+	virtual void onTcpError(TcpConnection *connection) {}
 	// TCP连接上的一个接收任务已完成
-	virtual void OnTcpRecvComplete(CTcpConnection *pConnection, void *pPacketBuffer,
-		int nPacketSize, const CCustomParams& Params) {}
+	virtual void onTcpRecvComplete(TcpConnection *connection, void *packetBuffer,
+		int packetSize, const CustomParams& params) {}
 	// TCP连接上的一个发送任务已完成
-	virtual void OnTcpSendComplete(CTcpConnection *pConnection, const CCustomParams& Params) {}
+	virtual void onTcpSendComplete(TcpConnection *connection, const CustomParams& params) {}
 
 	// 返回此模块所需辅助服务线程的数量
-	virtual int GetAssistorThreadCount() { return 0; }
-	// 辅助服务线程执行(nAssistorIndex: 0-based)
-	virtual void AssistorThreadExecute(CAssistorThread& AssistorThread, int nAssistorIndex) {}
-	// 系统守护线程执行 (nSecondCount: 0-based)
-	virtual void DaemonThreadExecute(CThread& Thread, int nSecondCount) {}
+	virtual int getAssistorThreadCount() { return 0; }
+	// 辅助服务线程执行(assistorIndex: 0-based)
+	virtual void assistorThreadExecute(AssistorThread& assistorThread, int assistorIndex) {}
+	// 系统守护线程执行 (secondCount: 0-based)
+	virtual void daemonThreadExecute(Thread& thread, int secondCount) {}
 
 	// 消息分派
-	virtual void DispatchMessage(CBaseSvrModMessage& Message) {}
+	virtual void dispatchMessage(BaseSvrModMessage& Message) {}
 
 	// 返回服务模块序号
-	int GetSvrModIndex() const { return m_nSvrModIndex; }
+	int getSvrModIndex() const { return svrModIndex_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseServerModuleMgr - 服务模块管理器
+// class IseServerModuleMgr - 服务模块管理器
 
-class CIseServerModuleMgr
+class IseServerModuleMgr
 {
 private:
-	CList m_Items;        // 服务模块列表( (CIseServerModule*)[] )
+	PointerList items_;        // 服务模块列表( (IseServerModule*)[] )
 public:
-	CIseServerModuleMgr();
-	virtual ~CIseServerModuleMgr();
+	IseServerModuleMgr();
+	virtual ~IseServerModuleMgr();
 
-	void InitServerModuleList(const CList& List);
-	void ClearServerModuleList();
+	void initServerModuleList(const PointerList& list);
+	void clearServerModuleList();
 
-	inline int GetCount() const { return m_Items.GetCount(); }
-	inline CIseServerModule& GetItems(int nIndex) { return *(CIseServerModule*)m_Items[nIndex]; }
+	inline int getCount() const { return items_.getCount(); }
+	inline IseServerModule& getItems(int index) { return *(IseServerModule*)items_[index]; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseSvrModBusiness - 支持服务模块的ISE业务类
+// class IseSvrModBusiness - 支持服务模块的ISE业务类
 
-class CIseSvrModBusiness : public CIseBusiness
+class IseSvrModBusiness : public IseBusiness
 {
 public:
-	friend class CIseServerModule;
+	friend class IseServerModule;
 protected:
 	typedef hash_map<UINT, int> ACTION_CODE_MAP;      // <动作代码, UDP组别号>
 	typedef hash_map<UINT, int> UDP_GROUP_INDEX_MAP;  // <全局UDP组别号, 服务模块号>
 	typedef hash_map<UINT, int> TCP_SERVER_INDEX_MAP; // <全局TCP服务器序号, 服务模块号>
 
-	CIseServerModuleMgr m_ServerModuleMgr;            // 服务模块管理器
-	ACTION_CODE_MAP m_ActionCodeMap;                  // <动作代码, UDP组别号> 映射表
-	UDP_GROUP_INDEX_MAP m_UdpGroupIndexMap;           // <全局UDP组别号, 服务模块号> 映射表
-	TCP_SERVER_INDEX_MAP m_TcpServerIndexMap;         // <全局TCP服务器序号, 服务模块号> 映射表
+	IseServerModuleMgr serverModuleMgr_;              // 服务模块管理器
+	ACTION_CODE_MAP actionCodeMap_;                   // <动作代码, UDP组别号> 映射表
+	UDP_GROUP_INDEX_MAP udpGroupIndexMap_;            // <全局UDP组别号, 服务模块号> 映射表
+	TCP_SERVER_INDEX_MAP tcpServerIndexMap_;          // <全局TCP服务器序号, 服务模块号> 映射表
 private:
-	int GetUdpGroupCount();
-	int GetTcpServerCount();
-	void InitActionCodeMap();
-	void InitUdpGroupIndexMap();
-	void InitTcpServerIndexMap();
-	void UpdateIseOptions();
+	int getUdpGroupCount();
+	int getTcpServerCount();
+	void initActionCodeMap();
+	void initUdpGroupIndexMap();
+	void initTcpServerIndexMap();
+	void updateIseOptions();
 protected:
 	// UDP数据包过滤函数 (返回: true-有效包, false-无效包)
-	virtual bool FilterUdpPacket(void *pPacketBuffer, int nPacketSize) { return true; }
+	virtual bool filterUdpPacket(void *packetBuffer, int packetSize) { return true; }
 	// 取得UDP数据包中的动作代码
-	virtual UINT GetUdpPacketActionCode(void *pPacketBuffer, int nPacketSize) { return 0; }
+	virtual UINT getUdpPacketActionCode(void *packetBuffer, int packetSize) { return 0; }
 	// 创建所有服务模块
-	virtual void CreateServerModules(CList& SvrModList) {}
+	virtual void createServerModules(PointerList& svrModList) {}
 public:
-	CIseSvrModBusiness() {}
-	virtual ~CIseSvrModBusiness() {}
+	IseSvrModBusiness() {}
+	virtual ~IseSvrModBusiness() {}
 public:
-	virtual void Initialize();
-	virtual void Finalize();
+	virtual void initialize();
+	virtual void finalize();
 
-	virtual void ClassifyUdpPacket(void *pPacketBuffer, int nPacketSize, int& nGroupIndex);
-	virtual void DispatchUdpPacket(CUdpWorkerThread& WorkerThread, int nGroupIndex, CUdpPacket& Packet);
+	virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex);
+	virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet);
 
-	virtual void OnTcpConnection(CTcpConnection *pConnection);
-	virtual void OnTcpError(CTcpConnection *pConnection);
-	virtual void OnTcpRecvComplete(CTcpConnection *pConnection, void *pPacketBuffer,
-		int nPacketSize, const CCustomParams& Params);
-	virtual void OnTcpSendComplete(CTcpConnection *pConnection, const CCustomParams& Params);
+	virtual void onTcpConnection(TcpConnection *connection);
+	virtual void onTcpError(TcpConnection *connection);
+	virtual void onTcpRecvComplete(TcpConnection *connection, void *packetBuffer,
+		int packetSize, const CustomParams& params);
+	virtual void onTcpSendComplete(TcpConnection *connection, const CustomParams& params);
 
-	virtual void AssistorThreadExecute(CAssistorThread& AssistorThread, int nAssistorIndex);
-	virtual void DaemonThreadExecute(CThread& Thread, int nSecondCount);
+	virtual void assistorThreadExecute(AssistorThread& assistorThread, int assistorIndex);
+	virtual void daemonThreadExecute(Thread& thread, int secondCount);
 public:
-	int GetAssistorIndex(int nServerModuleIndex, int nLocalAssistorIndex);
-	void DispatchMessage(CBaseSvrModMessage& Message);
+	int getAssistorIndex(int serverModuleIndex, int localAssistorIndex);
+	void dispatchMessage(BaseSvrModMessage& message);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

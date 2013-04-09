@@ -36,63 +36,63 @@ namespace ise
 const char* const EXCEPTION_LOG_PREFIX = "ERROR: ";
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CException
+// class Exception
 
 //-----------------------------------------------------------------------------
 // 描述: 用于 std::exception 返回错误信息
 //-----------------------------------------------------------------------------
-const char* CException::what() const throw()
+const char* Exception::what() const throw()
 {
-	m_strWhat = GetErrorMessage();
-	return m_strWhat.c_str();
+	what_ = getErrorMessage();
+	return what_.c_str();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回用于 Log 的字符串
 //-----------------------------------------------------------------------------
-string CException::MakeLogStr() const
+string Exception::makeLogStr() const
 {
-	return string(EXCEPTION_LOG_PREFIX) + GetErrorMessage();
+	return string(EXCEPTION_LOG_PREFIX) + getErrorMessage();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSimpleException
+// class SimpleException
 
-CSimpleException::CSimpleException(const char *lpszErrorMsg,
-	const char *lpszSrcFileName, int nSrcLineNumber)
+SimpleException::SimpleException(const char *errorMsg,
+	const char *srcFileName, int srcLineNumber)
 {
-	if (lpszErrorMsg)
-		m_strErrorMsg = lpszErrorMsg;
-	if (lpszSrcFileName)
-		m_strSrcFileName = lpszSrcFileName;
-	m_nSrcLineNumber = nSrcLineNumber;
+	if (errorMsg)
+		errorMsg_ = errorMsg;
+	if (srcFileName)
+		srcFileName_ = srcFileName;
+	srcLineNumber_ = srcLineNumber;
 }
 
 //-----------------------------------------------------------------------------
 
-string CSimpleException::MakeLogStr() const
+string SimpleException::makeLogStr() const
 {
-	string strResult(GetErrorMessage());
+	string result(getErrorMessage());
 
-	if (!m_strSrcFileName.empty() && m_nSrcLineNumber >= 0)
-		strResult = strResult + " (" + m_strSrcFileName + ":" + IntToStr(m_nSrcLineNumber) + ")";
+	if (!srcFileName_.empty() && srcLineNumber_ >= 0)
+		result = result + " (" + srcFileName_ + ":" + intToStr(srcLineNumber_) + ")";
 
-	strResult = string(EXCEPTION_LOG_PREFIX) + strResult;
+	result = string(EXCEPTION_LOG_PREFIX) + result;
 
-	return strResult;
+	return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CFileException
+// class FileException
 
-CFileException::CFileException(const char *lpszFileName, int nErrorCode, const char *lpszErrorMsg) :
-	m_strFileName(lpszFileName),
-	m_nErrorCode(nErrorCode)
+FileException::FileException(const char *fileName, int errorCode, const char *errorMsg) :
+	fileName_(fileName),
+	errorCode_(errorCode)
 {
-	if (lpszErrorMsg == NULL)
-		m_strErrorMsg = SysErrorMessage(nErrorCode);
+	if (errorMsg == NULL)
+		errorMsg_ = sysErrorMessage(errorCode);
 	else
-		m_strErrorMsg = lpszErrorMsg;
+		errorMsg_ = errorMsg;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

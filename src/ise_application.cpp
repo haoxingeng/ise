@@ -33,7 +33,7 @@ using namespace ise;
 ///////////////////////////////////////////////////////////////////////////////
 // 外部函数声明
 
-CIseBusiness* CreateIseBusinessObject();
+IseBusiness* createIseBusinessObject();
 
 ///////////////////////////////////////////////////////////////////////////////
 // 主函数
@@ -44,19 +44,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 {
 	try
 	{
-		if (IseApplication.ParseArguments(__argc, __argv))
+		if (iseApplication.parseArguments(__argc, __argv))
 		{
 			struct CAppFinalizer {
-				~CAppFinalizer() { IseApplication.Finalize(); }
+				~CAppFinalizer() { iseApplication.finalize(); }
 			} AppFinalizer;
 
-			IseApplication.Initialize();
-			IseApplication.Run();
+			iseApplication.initialize();
+			iseApplication.run();
 		}
 	}
-	catch (CException& e)
+	catch (Exception& e)
 	{
-		Logger().WriteException(e);
+		logger().writeException(e);
 	}
 
 	return 0;
@@ -69,20 +69,20 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		if (IseApplication.ParseArguments(argc, argv))
+		if (iseApplication.parseArguments(argc, argv))
 		{
 			struct CAppFinalizer {
-				~CAppFinalizer() { IseApplication.Finalize(); }
+				~CAppFinalizer() { iseApplication.finalize(); }
 			} AppFinalizer;
 
-			IseApplication.Initialize();
-			IseApplication.Run();
+			iseApplication.initialize();
+			iseApplication.run();
 		}
 	}
-	catch (CException& e)
+	catch (Exception& e)
 	{
-		cout << e.MakeLogStr() << endl << endl;
-		Logger().WriteException(e);
+		cout << e.makeLogStr() << endl << endl;
+		logger().writeException(e);
 	}
 
 	return 0;
@@ -97,17 +97,17 @@ namespace ise
 // 全局变量定义
 
 // 应用程序对象
-CIseApplication IseApplication;
+IseApplication iseApplication;
 // ISE业务对象指针
-CIseBusiness *pIseBusiness;
+IseBusiness *iseBusiness;
 
 #ifdef ISE_LINUX
 // 用于进程退出时长跳转
-static sigjmp_buf ProcExitJmpBuf;
+static sigjmp_buf procExitJmpBuf;
 #endif
 
 // 用于内存不足的情况下程序退出
-static char *pReservedMemoryForExit;
+static char *reservedMemoryForExit;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 信号处理器
@@ -116,33 +116,33 @@ static char *pReservedMemoryForExit;
 //-----------------------------------------------------------------------------
 // 描述: 正常退出程序 信号处理器
 //-----------------------------------------------------------------------------
-void ExitProgramSignalHandler(int nSigNo)
+void exitProgramSignalHandler(int sigNo)
 {
-	static bool bInHandler = false;
-	if (bInHandler) return;
-	bInHandler = true;
+	static bool isInHandler = false;
+	if (isInHandler) return;
+	isInHandler = true;
 
 	// 停止主线程循环
-	IseApplication.SetTerminated(true);
+	iseApplication.setTerminated(true);
 
-	Logger().WriteFmt(SEM_SIG_TERM, nSigNo);
+	logger().writeFmt(SEM_SIG_TERM, sigNo);
 
-	siglongjmp(ProcExitJmpBuf, 1);
+	siglongjmp(procExitJmpBuf, 1);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 致命非法操作 信号处理器
 //-----------------------------------------------------------------------------
-void FatalErrorSignalHandler(int nSigNo)
+void fatalErrorSignalHandler(int sigNo)
 {
-	static bool bInHandler = false;
-	if (bInHandler) return;
-	bInHandler = true;
+	static bool isInHandler = false;
+	if (isInHandler) return;
+	isInHandler = true;
 
 	// 停止主线程循环
-	IseApplication.SetTerminated(true);
+	iseApplication.setTerminated(true);
 
-	Logger().WriteFmt(SEM_SIG_FATAL_ERROR, nSigNo);
+	logger().writeFmt(SEM_SIG_FATAL_ERROR, sigNo);
 	abort();
 }
 #endif
@@ -150,14 +150,14 @@ void FatalErrorSignalHandler(int nSigNo)
 //-----------------------------------------------------------------------------
 // 描述: 用户信号处理器
 //-----------------------------------------------------------------------------
-void UserSignalHandler(int nSigNo)
+void userSignalHandler(int sigNo)
 {
-	const CCallBackList<USER_SIGNAL_HANDLER_PROC>& ProcList = IseApplication.m_OnUserSignal;
+	const CallbackList<USER_SIGNAL_HANDLER_PROC>& procList = iseApplication.onUserSignal_;
 
-	for (int i = 0; i < ProcList.GetCount(); i++)
+	for (int i = 0; i < procList.getCount(); i++)
 	{
-		const CCallBackDef<USER_SIGNAL_HANDLER_PROC>& ProcItem = ProcList.GetItem(i);
-		ProcItem.pProc(ProcItem.pParam, nSigNo);
+		const CallbackDef<USER_SIGNAL_HANDLER_PROC>& procItem = procList.getItem(i);
+		procItem.proc(procItem.param, sigNo);
 	}
 }
 
@@ -167,142 +167,142 @@ void UserSignalHandler(int nSigNo)
 //   若未安装错误处理器(set_new_handler)，则当 new 操作失败时抛出 bad_alloc 异常；
 //   而安装错误处理器后，new 操作将不再抛出异常，而是调用处理器函数。
 //-----------------------------------------------------------------------------
-void OutOfMemoryHandler()
+void outOfMemoryHandler()
 {
-	static bool bInHandler = false;
-	if (bInHandler) return;
-	bInHandler = true;
+	static bool isInHandler = false;
+	if (isInHandler) return;
+	isInHandler = true;
 
 	// 释放保留内存，以免程序退出过程中再次出现内存不足
-	delete[] pReservedMemoryForExit;
-	pReservedMemoryForExit = NULL;
+	delete[] reservedMemoryForExit;
+	reservedMemoryForExit = NULL;
 
-	Logger().WriteStr(SEM_OUT_OF_MEMORY);
+	logger().writeStr(SEM_OUT_OF_MEMORY);
 	abort();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseOptions
+// class IseOptions
 
-CIseOptions::CIseOptions()
+IseOptions::IseOptions()
 {
-	m_strLogFileName = "";
-	m_bLogNewFileDaily = false;
-	m_bIsDaemon = false;
-	m_bAllowMultiInstance = false;
+	logFileName_ = "";
+	logNewFileDaily_ = false;
+	isDaemon_ = false;
+	allowMultiInstance_ = false;
 
-	SetServerType(DEF_SERVER_TYPE);
-	SetAdjustThreadInterval(DEF_ADJUST_THREAD_INTERVAL);
-	SetAssistorThreadCount(DEF_ASSISTOR_THREAD_COUNT);
+	setServerType(DEF_SERVER_TYPE);
+	setAdjustThreadInterval(DEF_ADJUST_THREAD_INTERVAL);
+	setAssistorThreadCount(DEF_ASSISTOR_THREAD_COUNT);
 
-	SetUdpServerPort(DEF_UDP_SERVER_PORT);
-	SetUdpListenerThreadCount(DEF_UDP_LISTENER_THD_COUNT);
-	SetUdpRequestGroupCount(DEF_UDP_REQ_GROUP_COUNT);
+	setUdpServerPort(DEF_UDP_SERVER_PORT);
+	setUdpListenerThreadCount(DEF_UDP_LISTENER_THD_COUNT);
+	setUdpRequestGroupCount(DEF_UDP_REQ_GROUP_COUNT);
 	for (int i = 0; i < DEF_UDP_REQ_GROUP_COUNT; i++)
 	{
-		SetUdpRequestQueueCapacity(i, DEF_UDP_REQ_QUEUE_CAPACITY);
-		SetUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
+		setUdpRequestQueueCapacity(i, DEF_UDP_REQ_QUEUE_CAPACITY);
+		setUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
 	}
-	SetUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
-	SetUdpWorkerThreadTimeOut(DEF_UDP_WORKER_THD_TIMEOUT);
+	setUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
+	setUdpWorkerThreadTimeOut(DEF_UDP_WORKER_THD_TIMEOUT);
 	SetUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
 
-	SetTcpServerCount(DEF_TCP_REQ_GROUP_COUNT);
+	setTcpServerCount(DEF_TCP_REQ_GROUP_COUNT);
 	for (int i = 0; i < DEF_TCP_REQ_GROUP_COUNT; i++)
-		SetTcpServerPort(i, DEF_TCP_SERVER_PORT);
-	SetTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
+		setTcpServerPort(i, DEF_TCP_SERVER_PORT);
+	setTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置服务器类型(UDP|TCP)
 // 参数:
-//   nSvrType - 服务器器类型(可多选或不选)
+//   serverType - 服务器器类型(可多选或不选)
 // 示例:
 //   SetServerType(ST_UDP | ST_TCP);
 //-----------------------------------------------------------------------------
-void CIseOptions::SetServerType(UINT nSvrType)
+void IseOptions::setServerType(UINT serverType)
 {
-	m_nServerType = nSvrType;
+	serverType_ = serverType;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置后台维护工作者线程数量的时间间隔(秒)
 //-----------------------------------------------------------------------------
-void CIseOptions::SetAdjustThreadInterval(int nSecs)
+void IseOptions::setAdjustThreadInterval(int seconds)
 {
-	if (nSecs <= 0) nSecs = DEF_ADJUST_THREAD_INTERVAL;
-	m_nAdjustThreadInterval = nSecs;
+	if (seconds <= 0) seconds = DEF_ADJUST_THREAD_INTERVAL;
+	adjustThreadInterval_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置辅助线程的数量
 //-----------------------------------------------------------------------------
-void CIseOptions::SetAssistorThreadCount(int nCount)
+void IseOptions::setAssistorThreadCount(int count)
 {
-	if (nCount < 0) nCount = 0;
-	m_nAssistorThreadCount = nCount;
+	if (count < 0) count = 0;
+	assistorThreadCount_ = count;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP服务端口号
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpServerPort(int nPort)
+void IseOptions::setUdpServerPort(int port)
 {
-	m_nUdpServerPort = nPort;
+	udpServerPort_ = port;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP监听线程的数量
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpListenerThreadCount(int nCount)
+void IseOptions::setUdpListenerThreadCount(int count)
 {
-	if (nCount < 1) nCount = 1;
+	if (count < 1) count = 1;
 
-	m_nUdpListenerThreadCount = nCount;
+	udpListenerThreadCount_ = count;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP数据包的组别总数
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpRequestGroupCount(int nCount)
+void IseOptions::setUdpRequestGroupCount(int count)
 {
-	if (nCount <= 0) nCount = DEF_UDP_REQ_GROUP_COUNT;
+	if (count <= 0) count = DEF_UDP_REQ_GROUP_COUNT;
 
-	m_nUdpRequestGroupCount = nCount;
-	m_UdpRequestGroupOpts.resize(nCount);
+	udpRequestGroupCount_ = count;
+	udpRequestGroupOpts_.resize(count);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP请求队列的最大容量 (即可容纳多少个数据包)
 // 参数:
-//   nGroupIndex - 组别号 (0-based)
-//   nCapacity   - 容量
+//   groupIndex - 组别号 (0-based)
+//   capacity   - 容量
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpRequestQueueCapacity(int nGroupIndex, int nCapacity)
+void IseOptions::setUdpRequestQueueCapacity(int groupIndex, int capacity)
 {
-	if (nGroupIndex < 0 || nGroupIndex >= m_nUdpRequestGroupCount) return;
+	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
 
-	if (nCapacity <= 0) nCapacity = DEF_UDP_REQ_QUEUE_CAPACITY;
+	if (capacity <= 0) capacity = DEF_UDP_REQ_QUEUE_CAPACITY;
 
-	m_UdpRequestGroupOpts[nGroupIndex].nRequestQueueCapacity = nCapacity;
+	udpRequestGroupOpts_[groupIndex].requestQueueCapacity = capacity;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP工作者线程个数的上下限
 // 参数:
-//   nGroupIndex - 组别号 (0-based)
-//   nMinThreads - 线程个数的下限
-//   nMaxThreads - 线程个数的上限
+//   groupIndex - 组别号 (0-based)
+//   minThreads - 线程个数的下限
+//   maxThreads - 线程个数的上限
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpWorkerThreadCount(int nGroupIndex, int nMinThreads, int nMaxThreads)
+void IseOptions::setUdpWorkerThreadCount(int groupIndex, int minThreads, int maxThreads)
 {
-	if (nGroupIndex < 0 || nGroupIndex >= m_nUdpRequestGroupCount) return;
+	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
 
-	if (nMinThreads < 1) nMinThreads = 1;
-	if (nMaxThreads < nMinThreads) nMaxThreads = nMinThreads;
+	if (minThreads < 1) minThreads = 1;
+	if (maxThreads < minThreads) maxThreads = minThreads;
 
-	m_UdpRequestGroupOpts[nGroupIndex].nMinWorkerThreads = nMinThreads;
-	m_UdpRequestGroupOpts[nGroupIndex].nMaxWorkerThreads = nMaxThreads;
+	udpRequestGroupOpts_[groupIndex].minWorkerThreads = minThreads;
+	udpRequestGroupOpts_[groupIndex].maxWorkerThreads = maxThreads;
 }
 
 //-----------------------------------------------------------------------------
@@ -310,115 +310,115 @@ void CIseOptions::SetUdpWorkerThreadCount(int nGroupIndex, int nMinThreads, int 
 // 参数:
 //   nMSecs - 等待秒数
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpRequestEffWaitTime(int nSecs)
+void IseOptions::setUdpRequestEffWaitTime(int seconds)
 {
-	if (nSecs <= 0) nSecs = DEF_UDP_REQ_EFF_WAIT_TIME;
-	m_nUdpRequestEffWaitTime = nSecs;
+	if (seconds <= 0) seconds = DEF_UDP_REQ_EFF_WAIT_TIME;
+	udpRequestEffWaitTime_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpWorkerThreadTimeOut(int nSecs)
+void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
 {
-	if (nSecs < 0) nSecs = 0;
-	m_nUdpWorkerThreadTimeOut = nSecs;
+	if (seconds < 0) seconds = 0;
+	udpWorkerThreadTimeOut_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置请求队列中数据包数量警戒线
 //-----------------------------------------------------------------------------
-void CIseOptions::SetUdpRequestQueueAlertLine(int nCount)
+void IseOptions::SetUdpRequestQueueAlertLine(int count)
 {
-	if (nCount < 1) nCount = 1;
-	m_nUdpRequestQueueAlertLine = nCount;
+	if (count < 1) count = 1;
+	udpRequestQueueAlertLine_ = count;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置TCP数据包的组别总数
 //-----------------------------------------------------------------------------
-void CIseOptions::SetTcpServerCount(int nCount)
+void IseOptions::setTcpServerCount(int count)
 {
-	if (nCount < 0) nCount = 0;
+	if (count < 0) count = 0;
 
-	m_nTcpServerCount = nCount;
-	m_TcpServerOpts.resize(nCount);
+	tcpServerCount_ = count;
+	tcpServerOpts_.resize(count);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置TCP服务端口号
 // 参数:
-//   nServerIndex - TCP服务器序号 (0-based)
-//   nPort        - 端口号
+//   serverIndex - TCP服务器序号 (0-based)
+//   port        - 端口号
 //-----------------------------------------------------------------------------
-void CIseOptions::SetTcpServerPort(int nServerIndex, int nPort)
+void IseOptions::setTcpServerPort(int serverIndex, int port)
 {
-	if (nServerIndex < 0 || nServerIndex >= m_nTcpServerCount) return;
+	if (serverIndex < 0 || serverIndex >= tcpServerCount_) return;
 
-	m_TcpServerOpts[nServerIndex].nTcpServerPort = nPort;
+	tcpServerOpts_[serverIndex].tcpServerPort = port;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置TCP事件循环的个数
 //-----------------------------------------------------------------------------
-void CIseOptions::SetTcpEventLoopCount(int nCount)
+void IseOptions::setTcpEventLoopCount(int count)
 {
-	if (nCount < 1) nCount = 1;
-	m_nTcpEventLoopCount = nCount;
+	if (count < 1) count = 1;
+	tcpEventLoopCount_ = count;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得UDP请求队列的最大容量 (即可容纳多少个数据包)
 // 参数:
-//   nGroupIndex - 组别号 (0-based)
+//   groupIndex - 组别号 (0-based)
 //-----------------------------------------------------------------------------
-int CIseOptions::GetUdpRequestQueueCapacity(int nGroupIndex)
+int IseOptions::getUdpRequestQueueCapacity(int groupIndex)
 {
-	if (nGroupIndex < 0 || nGroupIndex >= m_nUdpRequestGroupCount) return -1;
+	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return -1;
 
-	return m_UdpRequestGroupOpts[nGroupIndex].nRequestQueueCapacity;
+	return udpRequestGroupOpts_[groupIndex].requestQueueCapacity;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得UDP工作者线程个数的上下限
 // 参数:
-//   nGroupIndex - 组别号 (0-based)
-//   nMinThreads - 存放线程个数的下限
-//   nMaxThreads - 存放线程个数的上限
+//   groupIndex - 组别号 (0-based)
+//   minThreads - 存放线程个数的下限
+//   maxThreads - 存放线程个数的上限
 //-----------------------------------------------------------------------------
-void CIseOptions::GetUdpWorkerThreadCount(int nGroupIndex, int& nMinThreads, int& nMaxThreads)
+void IseOptions::getUdpWorkerThreadCount(int groupIndex, int& minThreads, int& maxThreads)
 {
-	if (nGroupIndex < 0 || nGroupIndex >= m_nUdpRequestGroupCount) return;
+	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
 
-	nMinThreads = m_UdpRequestGroupOpts[nGroupIndex].nMinWorkerThreads;
-	nMaxThreads = m_UdpRequestGroupOpts[nGroupIndex].nMaxWorkerThreads;
+	minThreads = udpRequestGroupOpts_[groupIndex].minWorkerThreads;
+	maxThreads = udpRequestGroupOpts_[groupIndex].maxWorkerThreads;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得TCP服务端口号
 // 参数:
-//   nServerIndex - TCP服务器的序号 (0-based)
+//   serverIndex - TCP服务器的序号 (0-based)
 //-----------------------------------------------------------------------------
-int CIseOptions::GetTcpServerPort(int nServerIndex)
+int IseOptions::getTcpServerPort(int serverIndex)
 {
-	if (nServerIndex < 0 || nServerIndex >= m_nTcpServerCount) return -1;
+	if (serverIndex < 0 || serverIndex >= tcpServerCount_) return -1;
 
-	return m_TcpServerOpts[nServerIndex].nTcpServerPort;
+	return tcpServerOpts_[serverIndex].tcpServerPort;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseMainServer
+// class IseMainServer
 
-CIseMainServer::CIseMainServer() :
-	m_pUdpServer(NULL),
-	m_pTcpServer(NULL),
-	m_pAssistorServer(NULL),
-	m_pSysThreadMgr(NULL)
+IseMainServer::IseMainServer() :
+	udpServer_(NULL),
+	tcpServer_(NULL),
+	assistorServer_(NULL),
+	sysThreadMgr_(NULL)
 {
 	// nothing
 }
 
-CIseMainServer::~CIseMainServer()
+IseMainServer::~IseMainServer()
 {
 	// nothing
 }
@@ -426,35 +426,35 @@ CIseMainServer::~CIseMainServer()
 //-----------------------------------------------------------------------------
 // 描述: 服务器开始运行后，主线程进行后台守护工作
 //-----------------------------------------------------------------------------
-void CIseMainServer::RunBackground()
+void IseMainServer::runBackground()
 {
-	int nAdjustThreadInterval = IseApplication.GetIseOptions().GetAdjustThreadInterval();
-	int nSecondCount = 0;
+	int adjustThreadInterval = iseApplication.getIseOptions().getAdjustThreadInterval();
+	int secondCount = 0;
 
-	while (!IseApplication.GetTerminated())
+	while (!iseApplication.getTerminated())
 	try
 	{
 		try
 		{
-			// 每隔 nAdjustThreadInterval 秒执行一次
-			if ((nSecondCount % nAdjustThreadInterval) == 0)
+			// 每隔 adjustThreadInterval 秒执行一次
+			if ((secondCount % adjustThreadInterval) == 0)
 			{
 #ifdef ISE_LINUX
 				// 暂时屏蔽退出信号
-				CSignalMasker SigMasker(true);
-				SigMasker.SetSignals(1, SIGTERM);
-				SigMasker.Block();
+				SignalMasker sigMasker(true);
+				sigMasker.setSignals(1, SIGTERM);
+				sigMasker.block();
 #endif
 
 				// 维护工作者线程的数量
-				if (m_pUdpServer) m_pUdpServer->AdjustWorkerThreadCount();
+				if (udpServer_) udpServer_->adjustWorkerThreadCount();
 			}
 		}
 		catch (...)
 		{}
 
-		nSecondCount++;
-		SleepSec(1, true);  // 1秒
+		secondCount++;
+		sleepSec(1, true);  // 1秒
 	}
 	catch (...)
 	{}
@@ -462,94 +462,94 @@ void CIseMainServer::RunBackground()
 
 //-----------------------------------------------------------------------------
 // 描述: 服务器初始化 (若初始化失败则抛出异常)
-// 备注: 由 IseApplication.Initialize() 调用
+// 备注: 由 iseApplication.initialize() 调用
 //-----------------------------------------------------------------------------
-void CIseMainServer::Initialize()
+void IseMainServer::initialize()
 {
 	// 初始化 UDP 服务器
-	if (IseApplication.GetIseOptions().GetServerType() & ST_UDP)
+	if (iseApplication.getIseOptions().getServerType() & ST_UDP)
 	{
-		m_pUdpServer = new CMainUdpServer();
-		m_pUdpServer->SetLocalPort(IseApplication.GetIseOptions().GetUdpServerPort());
-		m_pUdpServer->SetListenerThreadCount(IseApplication.GetIseOptions().GetUdpListenerThreadCount());
-		m_pUdpServer->Open();
+		udpServer_ = new MainUdpServer();
+		udpServer_->setLocalPort(iseApplication.getIseOptions().getUdpServerPort());
+		udpServer_->setListenerThreadCount(iseApplication.getIseOptions().getUdpListenerThreadCount());
+		udpServer_->open();
 	}
 
 	// 初始化 TCP 服务器
-	if (IseApplication.GetIseOptions().GetServerType() & ST_TCP)
+	if (iseApplication.getIseOptions().getServerType() & ST_TCP)
 	{
-		m_pTcpServer = new CMainTcpServer();
-		m_pTcpServer->Open();
+		tcpServer_ = new MainTcpServer();
+		tcpServer_->open();
 	}
 
 	// 初始化辅助服务器
-	m_pAssistorServer = new CAssistorServer();
-	m_pAssistorServer->Open();
+	assistorServer_ = new AssistorServer();
+	assistorServer_->open();
 
 	// 初始化系统线程管理器
-	m_pSysThreadMgr = new CSysThreadMgr();
-	m_pSysThreadMgr->Initialize();
+	sysThreadMgr_ = new SysThreadMgr();
+	sysThreadMgr_->initialize();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 服务器结束化
-// 备注: 由 IseApplication.Finalize() 调用，在 CIseMainServer 的析构函数中不必调用
+// 备注: 由 iseApplication.finalize() 调用，在 IseMainServer 的析构函数中不必调用
 //-----------------------------------------------------------------------------
-void CIseMainServer::Finalize()
+void IseMainServer::finalize()
 {
-	if (m_pAssistorServer)
+	if (assistorServer_)
 	{
-		m_pAssistorServer->Close();
-		delete m_pAssistorServer;
-		m_pAssistorServer = NULL;
+		assistorServer_->close();
+		delete assistorServer_;
+		assistorServer_ = NULL;
 	}
 
-	if (m_pUdpServer)
+	if (udpServer_)
 	{
-		m_pUdpServer->Close();
-		delete m_pUdpServer;
-		m_pUdpServer = NULL;
+		udpServer_->close();
+		delete udpServer_;
+		udpServer_ = NULL;
 	}
 
-	if (m_pTcpServer)
+	if (tcpServer_)
 	{
-		m_pTcpServer->Close();
-		delete m_pTcpServer;
-		m_pTcpServer = NULL;
+		tcpServer_->close();
+		delete tcpServer_;
+		tcpServer_ = NULL;
 	}
 
-	if (m_pSysThreadMgr)
+	if (sysThreadMgr_)
 	{
-		m_pSysThreadMgr->Finalize();
-		delete m_pSysThreadMgr;
-		m_pSysThreadMgr = NULL;
+		sysThreadMgr_->finalize();
+		delete sysThreadMgr_;
+		sysThreadMgr_ = NULL;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开始运行服务器
-// 备注: 由 IseApplication.Run() 调用
+// 备注: 由 iseApplication.run() 调用
 //-----------------------------------------------------------------------------
-void CIseMainServer::Run()
+void IseMainServer::run()
 {
-	RunBackground();
+	runBackground();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseApplication
+// class IseApplication
 
-CIseApplication::CIseApplication() :
-	m_pMainServer(NULL),
-	m_nAppStartTime(time(NULL)),
-	m_bInitialized(false),
-	m_bTerminated(false)
+IseApplication::IseApplication() :
+	mainServer_(NULL),
+	appStartTime_(time(NULL)),
+	initialized_(false),
+	terminated_(false)
 {
-	CreateIseBusiness();
+	createIseBusiness();
 }
 
-CIseApplication::~CIseApplication()
+IseApplication::~IseApplication()
 {
-	Finalize();
+	finalize();
 }
 
 //-----------------------------------------------------------------------------
@@ -558,21 +558,21 @@ CIseApplication::~CIseApplication()
 //   true  - 当前命令行参数是标准参数
 //   false - 与上相反
 //-----------------------------------------------------------------------------
-bool CIseApplication::ProcessStandardArgs()
+bool IseApplication::processStandardArgs()
 {
-	if (GetArgCount() == 2)
+	if (getArgCount() == 2)
 	{
-		string strArg = GetArgString(1);
-		if (strArg == "--version")
+		string arg = getArgString(1);
+		if (arg == "--version")
 		{
-			string strVersion = pIseBusiness->GetAppVersion();
-			printf("%s\n", strVersion.c_str());
+			string version = iseBusiness->getAppVersion();
+			printf("%s\n", version.c_str());
 			return true;
 		}
-		if (strArg == "--help")
+		if (arg == "--help")
 		{
-			string strHelp = pIseBusiness->GetAppHelp();
-			printf("%s\n", strHelp.c_str());
+			string help = iseBusiness->getAppHelp();
+			printf("%s\n", help.c_str());
 			return true;
 		}
 	}
@@ -583,79 +583,79 @@ bool CIseApplication::ProcessStandardArgs()
 //-----------------------------------------------------------------------------
 // 描述: 检查是否运行了多个程序实体
 //-----------------------------------------------------------------------------
-void CIseApplication::CheckMultiInstance()
+void IseApplication::checkMultiInstance()
 {
-	if (m_IseOptions.GetAllowMultiInstance()) return;
+	if (iseOptions_.getAllowMultiInstance()) return;
 
 #ifdef ISE_WIN32
-	CreateMutexA(NULL, false, GetExeName().c_str());
+	CreateMutexA(NULL, false, getExeName().c_str());
 	if (GetLastError() == ERROR_ALREADY_EXISTS)
-		IseThrowException(SEM_ALREADY_RUNNING);
+		iseThrowException(SEM_ALREADY_RUNNING);
 #endif
 #ifdef ISE_LINUX
 	umask(0);
-	int fd = open(GetExeName().c_str(), O_RDONLY, 0666);
+	int fd = open(getExeName().c_str(), O_RDONLY, 0666);
 	if (fd >= 0 && flock(fd, LOCK_EX | LOCK_NB) != 0)
-		IseThrowException(SEM_ALREADY_RUNNING);
+		iseThrowException(SEM_ALREADY_RUNNING);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 应用 ISE 配置
 //-----------------------------------------------------------------------------
-void CIseApplication::ApplyIseOptions()
+void IseApplication::applyIseOptions()
 {
-	Logger().SetFileName(m_IseOptions.GetLogFileName(), m_IseOptions.GetLogNewFileDaily());
+	logger().setFileName(iseOptions_.getLogFileName(), iseOptions_.getLogNewFileDaily());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建主服务器
 //-----------------------------------------------------------------------------
-void CIseApplication::CreateMainServer()
+void IseApplication::createMainServer()
 {
-	if (!m_pMainServer)
-		m_pMainServer = new CIseMainServer;
+	if (!mainServer_)
+		mainServer_ = new IseMainServer;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 释放主服务器
 //-----------------------------------------------------------------------------
-void CIseApplication::FreeMainServer()
+void IseApplication::freeMainServer()
 {
-	delete m_pMainServer;
-	m_pMainServer = NULL;
+	delete mainServer_;
+	mainServer_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 创建 CIseBusiness 对象
+// 描述: 创建 IseBusiness 对象
 //-----------------------------------------------------------------------------
-void CIseApplication::CreateIseBusiness()
+void IseApplication::createIseBusiness()
 {
-	if (!pIseBusiness)
-		pIseBusiness = CreateIseBusinessObject();
+	if (!iseBusiness)
+		iseBusiness = createIseBusinessObject();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 释放 CIseBusiness 对象
+// 描述: 释放 IseBusiness 对象
 //-----------------------------------------------------------------------------
-void CIseApplication::FreeIseBusiness()
+void IseApplication::freeIseBusiness()
 {
-	delete pIseBusiness;
-	pIseBusiness = NULL;
+	delete iseBusiness;
+	iseBusiness = NULL;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得自身文件的全名，并初始化 m_strExeName
+// 描述: 取得自身文件的全名，并初始化 exeName_
 //-----------------------------------------------------------------------------
-void CIseApplication::InitExeName()
+void IseApplication::initExeName()
 {
-	m_strExeName = GetAppExeName();
+	exeName_ = GetAppExeName();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 守护模式初始化
 //-----------------------------------------------------------------------------
-void CIseApplication::InitDaemon()
+void IseApplication::initDaemon()
 {
 #ifdef ISE_WIN32
 #endif
@@ -664,7 +664,7 @@ void CIseApplication::InitDaemon()
 
 	r = fork();
 	if (r < 0)
-		IseThrowException(SEM_INIT_DAEMON_ERROR);
+		iseThrowException(SEM_INIT_DAEMON_ERROR);
 	else if (r != 0)
 		exit(0);
 
@@ -741,7 +741,7 @@ void CIseApplication::InitDaemon()
 // # SIGPWR    30   Power failure.
 // # SIGSYS    31   非法的系统调用。
 //-----------------------------------------------------------------------------
-void CIseApplication::InitSignals()
+void IseApplication::initSignals()
 {
 #ifdef ISE_WIN32
 #endif
@@ -749,45 +749,45 @@ void CIseApplication::InitSignals()
 	int i;
 
 	// 忽略某些信号
-	int nIgnoreSignals[] = {SIGHUP, SIGINT, SIGQUIT, SIGPIPE, SIGTSTP, SIGTTIN,
+	int ignoreSignals[] = {SIGHUP, SIGINT, SIGQUIT, SIGPIPE, SIGTSTP, SIGTTIN,
 		SIGTTOU, SIGXCPU, SIGCHLD, SIGPWR, SIGALRM, SIGVTALRM, SIGIO};
-	for (i = 0; i < sizeof(nIgnoreSignals)/sizeof(int); i++)
-		signal(nIgnoreSignals[i], SIG_IGN);
+	for (i = 0; i < sizeof(ignoreSignals)/sizeof(int); i++)
+		signal(ignoreSignals[i], SIG_IGN);
 
 	// 安装致命非法操作信号处理器
-	int nFatalSignals[] = {SIGILL, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT, SIGPROF, SIGSYS};
-	for (i = 0; i < sizeof(nFatalSignals)/sizeof(int); i++)
-		signal(nFatalSignals[i], FatalErrorSignalHandler);
+	int fatalSignals[] = {SIGILL, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT, SIGPROF, SIGSYS};
+	for (i = 0; i < sizeof(fatalSignals)/sizeof(int); i++)
+		signal(fatalSignals[i], fatalErrorSignalHandler);
 
 	// 安装正常退出信号处理器
-	int nExitSignals[] = {SIGTERM/*, SIGABRT*/};
-	for (i = 0; i < sizeof(nExitSignals)/sizeof(int); i++)
-		signal(nExitSignals[i], ExitProgramSignalHandler);
+	int exitSignals[] = {SIGTERM/*, SIGABRT*/};
+	for (i = 0; i < sizeof(exitSignals)/sizeof(int); i++)
+		signal(exitSignals[i], exitProgramSignalHandler);
 
 	// 安装用户信号处理器
-	int nUserSignals[] = {SIGUSR1, SIGUSR2};
-	for (i = 0; i < sizeof(nUserSignals)/sizeof(int); i++)
-		signal(nUserSignals[i], UserSignalHandler);
+	int userSignals[] = {SIGUSR1, SIGUSR2};
+	for (i = 0; i < sizeof(userSignals)/sizeof(int); i++)
+		signal(userSignals[i], userSignalHandler);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化 new 操作符的错误处理函数
 //-----------------------------------------------------------------------------
-void CIseApplication::InitNewOperHandler()
+void IseApplication::initNewOperHandler()
 {
 	const int RESERVED_MEM_SIZE = 1024*1024*2;     // 2M
 
-	set_new_handler(OutOfMemoryHandler);
+	set_new_handler(outOfMemoryHandler);
 
 	// 用于内存不足的情况下程序退出
-	pReservedMemoryForExit = new char[RESERVED_MEM_SIZE];
+	reservedMemoryForExit = new char[RESERVED_MEM_SIZE];
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 关闭终端
 //-----------------------------------------------------------------------------
-void CIseApplication::CloseTerminal()
+void IseApplication::closeTerminal()
 {
 #ifdef ISE_WIN32
 #endif
@@ -801,15 +801,15 @@ void CIseApplication::CloseTerminal()
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 应用程序结束化 (不检查 m_bInitialized 标志)
+// 描述: 应用程序结束化 (不检查 initialized_ 标志)
 //-----------------------------------------------------------------------------
-void CIseApplication::DoFinalize()
+void IseApplication::doFinalize()
 {
-	try { if (m_pMainServer) m_pMainServer->Finalize(); } catch (...) {}
-	try { pIseBusiness->Finalize(); } catch (...) {}
-	try { FreeMainServer(); } catch (...) {}
-	try { FreeIseBusiness(); } catch (...) {}
-	try { NetworkFinalize(); } catch (...) {}
+	try { if (mainServer_) mainServer_->finalize(); } catch (...) {}
+	try { iseBusiness->finalize(); } catch (...) {}
+	try { freeMainServer(); } catch (...) {}
+	try { freeIseBusiness(); } catch (...) {}
+	try { networkFinalize(); } catch (...) {}
 }
 
 //-----------------------------------------------------------------------------
@@ -818,54 +818,54 @@ void CIseApplication::DoFinalize()
 //   true  - 允许程序继执行
 //   false - 程序应退出 (比如命令行参数不正确)
 //-----------------------------------------------------------------------------
-bool CIseApplication::ParseArguments(int nArgc, char *sArgv[])
+bool IseApplication::parseArguments(int argc, char *argv[])
 {
 	// 先记录命令行参数
-	m_ArgList.clear();
-	for (int i = 0; i < nArgc; i++)
-		m_ArgList.push_back(sArgv[i]);
+	argList_.clear();
+	for (int i = 0; i < argc; i++)
+		argList_.push_back(argv[i]);
 
 	// 处理标准命令行参数
-	if (ProcessStandardArgs()) return false;
+	if (processStandardArgs()) return false;
 
-	// 交给 pIseBusiness 解释
-	return pIseBusiness->ParseArguments(nArgc, sArgv);
+	// 交给 iseBusiness 解释
+	return iseBusiness->parseArguments(argc, argv);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 应用程序初始化 (若初始化失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CIseApplication::Initialize()
+void IseApplication::initialize()
 {
 	try
 	{
 #ifdef ISE_LINUX
 		// 在初始化阶段要屏蔽退出信号
-		CSignalMasker SigMasker(true);
-		SigMasker.SetSignals(1, SIGTERM);
-		SigMasker.Block();
+		SignalMasker sigMasker(true);
+		sigMasker.setSignals(1, SIGTERM);
+		sigMasker.block();
 #endif
 
-		NetworkInitialize();
-		InitExeName();
-		pIseBusiness->DoStartupState(SS_BEFORE_START);
-		pIseBusiness->InitIseOptions(m_IseOptions);
-		CheckMultiInstance();
-		if (m_IseOptions.GetIsDaemon()) InitDaemon();
-		InitSignals();
-		InitNewOperHandler();
-		ApplyIseOptions();
-		CreateMainServer();
-		pIseBusiness->Initialize();
-		m_pMainServer->Initialize();
-		pIseBusiness->DoStartupState(SS_AFTER_START);
-		if (m_IseOptions.GetIsDaemon()) CloseTerminal();
-		m_bInitialized = true;
+		networkInitialize();
+		initExeName();
+		iseBusiness->doStartupState(SS_BEFORE_START);
+		iseBusiness->initIseOptions(iseOptions_);
+		checkMultiInstance();
+		if (iseOptions_.getIsDaemon()) initDaemon();
+		initSignals();
+		initNewOperHandler();
+		applyIseOptions();
+		createMainServer();
+		iseBusiness->initialize();
+		mainServer_->initialize();
+		iseBusiness->doStartupState(SS_AFTER_START);
+		if (iseOptions_.getIsDaemon()) closeTerminal();
+		initialized_ = true;
 	}
-	catch (CException&)
+	catch (Exception&)
 	{
-		pIseBusiness->DoStartupState(SS_START_FAIL);
-		DoFinalize();
+		iseBusiness->doStartupState(SS_START_FAIL);
+		doFinalize();
 		throw;
 	}
 }
@@ -873,44 +873,44 @@ void CIseApplication::Initialize()
 //-----------------------------------------------------------------------------
 // 描述: 应用程序结束化
 //-----------------------------------------------------------------------------
-void CIseApplication::Finalize()
+void IseApplication::finalize()
 {
-	if (m_bInitialized)
+	if (initialized_)
 	{
-		DoFinalize();
-		m_bInitialized = false;
+		doFinalize();
+		initialized_ = false;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开始运行应用程序
 //-----------------------------------------------------------------------------
-void CIseApplication::Run()
+void IseApplication::run()
 {
 #ifdef ISE_LINUX
 	// 进程被终止时长跳转到此处并立即返回
-	if (sigsetjmp(ProcExitJmpBuf, 0)) return;
+	if (sigsetjmp(procExitJmpBuf, 0)) return;
 #endif
 
-	if (m_pMainServer)
-		m_pMainServer->Run();
+	if (mainServer_)
+		mainServer_->run();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径
 //-----------------------------------------------------------------------------
-string CIseApplication::GetExePath()
+string IseApplication::getExePath()
 {
-	return ExtractFilePath(m_strExeName);
+	return extractFilePath(exeName_);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得命令行参数字符串 (nIndex: 0-based)
+// 描述: 取得命令行参数字符串 (index: 0-based)
 //-----------------------------------------------------------------------------
-string CIseApplication::GetArgString(int nIndex)
+string IseApplication::getArgString(int index)
 {
-	if (nIndex >= 0 && nIndex < (int)m_ArgList.size())
-		return m_ArgList[nIndex];
+	if (index >= 0 && index < (int)argList_.size())
+		return argList_[index];
 	else
 		return "";
 }
@@ -918,9 +918,9 @@ string CIseApplication::GetArgString(int nIndex)
 //-----------------------------------------------------------------------------
 // 描述: 注册用户信号处理器
 //-----------------------------------------------------------------------------
-void CIseApplication::RegisterUserSignalHandler(USER_SIGNAL_HANDLER_PROC pProc, void *pParam)
+void IseApplication::registerUserSignalHandler(USER_SIGNAL_HANDLER_PROC proc, void *param)
 {
-	m_OnUserSignal.Register(pProc, pParam);
+	onUserSignal_.registerCallback(proc, param);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -38,8 +38,8 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CIseScheduleTask;
-class CIseScheduleTaskMgr;
+class IseScheduleTask;
+class IseScheduleTaskMgr;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
@@ -53,8 +53,8 @@ enum ISE_SCHEDULE_TASK_TYPE
 	STT_EVERY_YEAR,
 };
 
-typedef void (*SCH_TASK_TRIGGER_PROC)(void *pParam, UINT nTaskId, const CCustomParams& CustomParams);
-typedef CCallBackDef<SCH_TASK_TRIGGER_PROC> SCH_TASK_TRIGGRE_CALLBACK;
+typedef void (*SCH_TASK_TRIGGER_PROC)(void *param, UINT taskId, const CustomParams& customParams);
+typedef CallbackDef<SCH_TASK_TRIGGER_PROC> SCH_TASK_TRIGGRE_CALLBACK;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 常量定义
@@ -64,54 +64,54 @@ const int SECONDS_PER_HOUR   = 60*60;
 const int SECONDS_PER_DAY    = 60*60*24;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseScheduleTask
+// class IseScheduleTask
 
-class CIseScheduleTask
+class IseScheduleTask
 {
 private:
-	UINT m_nTaskId;                         // 任务ID
-	ISE_SCHEDULE_TASK_TYPE m_nTaskType;     // 任务类型
-	UINT m_nAfterSeconds;                   // 按任务类型到达指定时间点后延后多少秒触发事件
-	time_t m_nLastTriggerTime;              // 此任务上次触发事件的时间
-	SCH_TASK_TRIGGRE_CALLBACK m_OnTrigger;  // 触发事件回调
-	CCustomParams m_CustomParams;           // 自定义参数
+	UINT taskId_;                         // 任务ID
+	ISE_SCHEDULE_TASK_TYPE taskType_;     // 任务类型
+	UINT afterSeconds_;                   // 按任务类型到达指定时间点后延后多少秒触发事件
+	time_t lastTriggerTime_;              // 此任务上次触发事件的时间
+	SCH_TASK_TRIGGRE_CALLBACK onTrigger_; // 触发事件回调
+	CustomParams customParams_;           // 自定义参数
 public:
-	CIseScheduleTask(UINT nTaskId, ISE_SCHEDULE_TASK_TYPE nTaskType,
-		UINT nAfterSeconds, const SCH_TASK_TRIGGRE_CALLBACK& OnTrigger,
-		const CCustomParams& CustomParams);
-	~CIseScheduleTask() {}
+	IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
+		UINT afterSeconds, const SCH_TASK_TRIGGRE_CALLBACK& onTrigger,
+		const CustomParams& customParams);
+	~IseScheduleTask() {}
 
-	void Process();
+	void process();
 
-	UINT GetTaskId() const { return m_nTaskId; }
-	ISE_SCHEDULE_TASK_TYPE GetTaskType() const { return m_nTaskType; }
-	UINT GetAfterSeconds() const { return m_nAfterSeconds; }
+	UINT getTaskId() const { return taskId_; }
+	ISE_SCHEDULE_TASK_TYPE getTaskType() const { return taskType_; }
+	UINT getAfterSeconds() const { return afterSeconds_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseScheduleTaskMgr
+// class IseScheduleTaskMgr
 
-class CIseScheduleTaskMgr
+class IseScheduleTaskMgr
 {
 private:
-	typedef CObjectList<CIseScheduleTask> CIseScheduleTaskList;
+	typedef ObjectList<IseScheduleTask> IseScheduleTaskList;
 
-	CIseScheduleTaskList m_TaskList;
-	CSeqNumberAlloc m_TaskIdAlloc;
-	CCriticalSection m_Lock;
+	IseScheduleTaskList taskList_;
+	SeqNumberAlloc taskIdAlloc_;
+	CriticalSection lock_;
 private:
-	CIseScheduleTaskMgr();
+	IseScheduleTaskMgr();
 public:
-	~CIseScheduleTaskMgr();
-	static CIseScheduleTaskMgr& Instance();
+	~IseScheduleTaskMgr();
+	static IseScheduleTaskMgr& instance();
 
-	void Execute(CThread& ExecutorThread);
+	void execute(Thread& ExecutorThread);
 
-	UINT AddTask(ISE_SCHEDULE_TASK_TYPE nTaskType, UINT nAfterSeconds,
-		const SCH_TASK_TRIGGRE_CALLBACK& OnTrigger,
-		const CCustomParams& CustomParams = EMPTY_PARAMS);
-	bool RemoveTask(UINT nTaskId);
-	void Clear();
+	UINT addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
+		const SCH_TASK_TRIGGRE_CALLBACK& onTrigger,
+		const CustomParams& customParams = EMPTY_PARAMS);
+	bool removeTask(UINT taskId);
+	void clear();
 };
 
 ///////////////////////////////////////////////////////////////////////////////

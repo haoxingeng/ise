@@ -39,22 +39,22 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 杂项函数
 
-static int s_nNetworkInitCount = 0;
+static int s_networkInitCount = 0;
 
 //-----------------------------------------------------------------------------
 // 描述: 网络初始化 (若失败则抛出异常)
 //-----------------------------------------------------------------------------
-void NetworkInitialize()
+void networkInitialize()
 {
-	s_nNetworkInitCount++;
-	if (s_nNetworkInitCount > 1) return;
+	s_networkInitCount++;
+	if (s_networkInitCount > 1) return;
 
 #ifdef ISE_WIN32
-	WSAData Wsd;
-	if (WSAStartup(MAKEWORD(2, 2), &Wsd) != 0)
+	WSAData wsd;
+	if (WSAStartup(MAKEWORD(2, 2), &wsd) != 0)
 	{
-		s_nNetworkInitCount--;
-		IseThrowSocketLastError();
+		s_networkInitCount--;
+		iseThrowSocketLastError();
 	}
 #endif
 }
@@ -62,11 +62,11 @@ void NetworkInitialize()
 //-----------------------------------------------------------------------------
 // 描述: 网络结束化
 //-----------------------------------------------------------------------------
-void NetworkFinalize()
+void networkFinalize()
 {
-	if (s_nNetworkInitCount > 0)
-		s_nNetworkInitCount--;
-	if (s_nNetworkInitCount != 0) return;
+	if (s_networkInitCount > 0)
+		s_networkInitCount--;
+	if (s_networkInitCount != 0) return;
 
 #ifdef ISE_WIN32
 	WSACleanup();
@@ -75,23 +75,23 @@ void NetworkFinalize()
 
 //-----------------------------------------------------------------------------
 
-bool IsNetworkInited()
+bool isNetworkInited()
 {
-	return (s_nNetworkInitCount > 0);
+	return (s_networkInitCount > 0);
 }
 
 //-----------------------------------------------------------------------------
 
-void EnsureNetworkInited()
+void ensureNetworkInited()
 {
-	if (!IsNetworkInited())
-		NetworkInitialize();
+	if (!isNetworkInited())
+		networkInitialize();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得最后的错误代码
 //-----------------------------------------------------------------------------
-int IseSocketGetLastError()
+int iseSocketGetLastError()
 {
 #ifdef ISE_WIN32
 	return WSAGetLastError();
@@ -104,12 +104,12 @@ int IseSocketGetLastError()
 //-----------------------------------------------------------------------------
 // 描述: 返回错误信息
 //-----------------------------------------------------------------------------
-string IseSocketGetErrorMsg(int nError)
+string iseSocketGetErrorMsg(int errorCode)
 {
-	string strResult;
+	string result;
 	const char *p = "";
 
-	switch (nError)
+	switch (errorCode)
 	{
 	case SS_EINTR:              p = SSEM_EINTR;                break;
 	case SS_EBADF:              p = SSEM_EBADF;                break;
@@ -152,66 +152,66 @@ string IseSocketGetErrorMsg(int nError)
 	case SS_ENOTEMPTY:          p = SSEM_ENOTEMPTY;            break;
 	}
 
-	strResult = FormatString(SSEM_ERROR, nError, p);
-	return strResult;
+	result = formatString(SSEM_ERROR, errorCode, p);
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得最后错误的对应信息
 //-----------------------------------------------------------------------------
-string IseSocketGetLastErrMsg()
+string iseSocketGetLastErrMsg()
 {
-	return IseSocketGetErrorMsg(IseSocketGetLastError());
+	return iseSocketGetErrorMsg(iseSocketGetLastError());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 关闭套接字
 //-----------------------------------------------------------------------------
-void IseCloseSocket(SOCKET nHandle)
+void iseCloseSocket(SOCKET handle)
 {
 #ifdef ISE_WIN32
-	closesocket(nHandle);
+	closesocket(handle);
 #endif
 #ifdef ISE_LINUX
-	close(nHandle);
+	close(handle);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 整形IP(主机字节顺序) -> 串型IP
 //-----------------------------------------------------------------------------
-string IpToString(UINT nIp)
+string ipToString(UINT ip)
 {
 #pragma pack(1)
 	union CIpUnion
 	{
-		UINT nValue;
+		UINT value;
 		struct
 		{
-			unsigned char ch1;  // nValue的最低字节
+			unsigned char ch1;  // value的最低字节
 			unsigned char ch2;
 			unsigned char ch3;
 			unsigned char ch4;
 		} Bytes;
 	} IpUnion;
 #pragma pack()
-	char strString[64];
+	char str[64];
 
-	IpUnion.nValue = nIp;
-	sprintf(strString, "%u.%u.%u.%u", IpUnion.Bytes.ch4, IpUnion.Bytes.ch3,
+	IpUnion.value = ip;
+	sprintf(str, "%u.%u.%u.%u", IpUnion.Bytes.ch4, IpUnion.Bytes.ch3,
 		IpUnion.Bytes.ch2, IpUnion.Bytes.ch1);
-	return &strString[0];
+	return &str[0];
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 串型IP -> 整形IP(主机字节顺序)
 //-----------------------------------------------------------------------------
-UINT StringToIp(const string& strString)
+UINT stringToIp(const string& str)
 {
 #pragma pack(1)
 	union CIpUnion
 	{
-		UINT nValue;
+		UINT value;
 		struct
 		{
 			unsigned char ch1;
@@ -219,18 +219,18 @@ UINT StringToIp(const string& strString)
 			unsigned char ch3;
 			unsigned char ch4;
 		} Bytes;
-	} IpUnion;
+	} ipUnion;
 #pragma pack()
-	IntegerArray IntList;
+	IntegerArray intList;
 
-	SplitStringToInt(strString, '.', IntList);
-	if (IntList.size() == 4)
+	splitStringToInt(str, '.', intList);
+	if (intList.size() == 4)
 	{
-		IpUnion.Bytes.ch1 = IntList[3];
-		IpUnion.Bytes.ch2 = IntList[2];
-		IpUnion.Bytes.ch3 = IntList[1];
-		IpUnion.Bytes.ch4 = IntList[0];
-		return IpUnion.nValue;
+		ipUnion.Bytes.ch1 = intList[3];
+		ipUnion.Bytes.ch2 = intList[2];
+		ipUnion.Bytes.ch3 = intList[1];
+		ipUnion.Bytes.ch4 = intList[0];
+		return ipUnion.value;
 	}
 	else
 		return 0;
@@ -239,101 +239,101 @@ UINT StringToIp(const string& strString)
 //-----------------------------------------------------------------------------
 // 描述: 填充 SockAddr 结构
 //-----------------------------------------------------------------------------
-void GetSocketAddr(SockAddr& SockAddr, UINT nIpHostValue, int nPort)
+void getSocketAddr(SockAddr& sockAddr, UINT ipHostValue, int port)
 {
-	memset(&SockAddr, 0, sizeof(SockAddr));
-	SockAddr.sin_family = AF_INET;
-	SockAddr.sin_addr.s_addr = htonl(nIpHostValue);
-	SockAddr.sin_port = htons(nPort);
+	memset(&sockAddr, 0, sizeof(sockAddr));
+	sockAddr.sin_family = AF_INET;
+	sockAddr.sin_addr.s_addr = htonl(ipHostValue);
+	sockAddr.sin_port = htons(port);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得空闲端口号
 // 参数:
-//   nProto      - 网络协议(UDP,TCP)
-//   nStartPort  - 起始端口号
-//   nCheckTimes - 检测次数
+//   proto      - 网络协议(UDP,TCP)
+//   startPort  - 起始端口号
+//   checkTimes - 检测次数
 // 返回:
 //   空闲端口号 (若失败则返回 0)
 //-----------------------------------------------------------------------------
-int GetFreePort(NET_PROTO_TYPE nProto, int nStartPort, int nCheckTimes)
+int getFreePort(NET_PROTO_TYPE proto, int startPort, int checkTimes)
 {
-	int i, nResult = 0;
-	bool bSuccess;
-	SockAddr Addr;
+	int i, result = 0;
+	bool success;
+	SockAddr addr;
 
-	ise::NetworkInitialize();
-	struct CAutoFinalizer {
-		~CAutoFinalizer() { ise::NetworkFinalize(); }
-	} AutoFinalizer;
+	ise::networkInitialize();
+	struct AutoFinalizer {
+		~AutoFinalizer() { ise::networkFinalize(); }
+	} autoFinalizer;
 
-	SOCKET s = socket(PF_INET, (nProto == NPT_UDP? SOCK_DGRAM : SOCK_STREAM), IPPROTO_IP);
+	SOCKET s = socket(PF_INET, (proto == NPT_UDP? SOCK_DGRAM : SOCK_STREAM), IPPROTO_IP);
 	if (s == INVALID_SOCKET) return 0;
 
-	bSuccess = false;
-	for (i = 0; i < nCheckTimes; i++)
+	success = false;
+	for (i = 0; i < checkTimes; i++)
 	{
-		nResult = nStartPort + i;
-		GetSocketAddr(Addr, ntohl(INADDR_ANY), nResult);
-		if (bind(s, (struct sockaddr*)&Addr, sizeof(Addr)) != -1)
+		result = startPort + i;
+		getSocketAddr(addr, ntohl(INADDR_ANY), result);
+		if (bind(s, (struct sockaddr*)&addr, sizeof(addr)) != -1)
 		{
-			bSuccess = true;
+			success = true;
 			break;
 		}
 	}
 
-	IseCloseSocket(s);
-	if (!bSuccess) nResult = 0;
-	return nResult;
+	iseCloseSocket(s);
+	if (!success) result = 0;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得本机IP列表
 //-----------------------------------------------------------------------------
-void GetLocalIpList(StringArray& IpList)
+void getLocalIpList(StringArray& ipList)
 {
 #ifdef ISE_WIN32
-	char sHostName[250];
-	hostent *pHostEnt;
-	in_addr **addr_ptr;
+	char hostName[250];
+	hostent *hostEnt;
+	in_addr **addrPtr;
 
-	IpList.clear();
-	gethostname(sHostName, sizeof(sHostName));
-	pHostEnt = gethostbyname(sHostName);
-	if (pHostEnt)
+	ipList.clear();
+	gethostname(hostName, sizeof(hostName));
+	hostEnt = gethostbyname(hostName);
+	if (hostEnt)
 	{
-		addr_ptr = (in_addr**)(pHostEnt->h_addr_list);
+		addrPtr = (in_addr**)(hostEnt->h_addr_list);
 		int i = 0;
-		while (addr_ptr[i])
+		while (addrPtr[i])
 		{
-			UINT nIp = ntohl( *(UINT*)(addr_ptr[i]) );
-			IpList.push_back(IpToString(nIp));
+			UINT ip = ntohl( *(UINT*)(addrPtr[i]) );
+			ipList.push_back(ipToString(ip));
 			i++;
 		}
 	}
 #endif
 #ifdef ISE_LINUX
 	const int MAX_INTERFACES = 16;
-	int nFd, nIntfCount;
+	int fd, intfCount;
 	struct ifreq buf[MAX_INTERFACES];
 	struct ifconf ifc;
 
-	IpList.clear();
-	if ((nFd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0)
+	ipList.clear();
+	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0)
 	{
 		ifc.ifc_len = sizeof(buf);
 		ifc.ifc_buf = (caddr_t) buf;
-		if (!ioctl(nFd, SIOCGIFCONF, (char*)&ifc))
+		if (!ioctl(fd, SIOCGIFCONF, (char*)&ifc))
 		{
-			nIntfCount = ifc.ifc_len / sizeof(struct ifreq);
-			for (int i = 0; i < nIntfCount; i++)
+			intfCount = ifc.ifc_len / sizeof(struct ifreq);
+			for (int i = 0; i < intfCount; i++)
 			{
-				ioctl(nFd, SIOCGIFADDR, (char*)&buf[i]);
+				ioctl(fd, SIOCGIFADDR, (char*)&buf[i]);
 				UINT nIp = ((struct sockaddr_in*)(&buf[i].ifr_addr))->sin_addr.s_addr;
-				IpList.push_back(IpToString(ntohl(nIp)));
+				ipList.push_back(ipToString(ntohl(nIp)));
 			}
 		}
-		close(nFd);
+		close(fd);
 	}
 #endif
 }
@@ -341,217 +341,217 @@ void GetLocalIpList(StringArray& IpList)
 //-----------------------------------------------------------------------------
 // 描述: 取得本机IP
 //-----------------------------------------------------------------------------
-string GetLocalIp()
+string getLocalIp()
 {
-	StringArray IpList;
-	string strResult;
+	StringArray ipList;
+	string result;
 
-	GetLocalIpList(IpList);
-	if (!IpList.empty())
+	getLocalIpList(ipList);
+	if (!ipList.empty())
 	{
-		if (IpList.size() == 1)
-			strResult = IpList[0];
+		if (ipList.size() == 1)
+			result = ipList[0];
 		else
 		{
-			for (UINT i = 0; i < IpList.size(); i++)
-				if (IpList[i] != "127.0.0.1")
+			for (UINT i = 0; i < ipList.size(); i++)
+				if (ipList[i] != "127.0.0.1")
 				{
-					strResult = IpList[i];
+					result = ipList[i];
 					break;
 				}
 
-			if (strResult.length() == 0)
-				strResult = IpList[0];
+			if (result.length() == 0)
+				result = ipList[0];
 		}
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 域名地址 -> IP地址
 // 备注: 若失败，则返回空字符串。
 //-----------------------------------------------------------------------------
-string LookupHostAddr(const string& strHost)
+string lookupHostAddr(const string& host)
 {
-	string strResult = "";
+	string result = "";
 
-	struct hostent* pHost = gethostbyname(strHost.c_str());
-	if (pHost != NULL)
-		strResult = IpToString(ntohl(((struct in_addr *)pHost->h_addr)->s_addr));
+	struct hostent* hostentPtr = gethostbyname(host.c_str());
+	if (hostentPtr != NULL)
+		result = ipToString(ntohl(((struct in_addr *)hostentPtr->h_addr)->s_addr));
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取最后的错误码并抛出异常
 //-----------------------------------------------------------------------------
-void IseThrowSocketLastError()
+void iseThrowSocketLastError()
 {
-	IseThrowSocketException(IseSocketGetLastErrMsg().c_str());
+	iseThrowSocketException(iseSocketGetLastErrMsg().c_str());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSocket
+// class Socket
 
-CSocket::CSocket() :
-	m_bActive(false),
-	m_nHandle(INVALID_SOCKET),
-	m_nDomain(PF_INET),
-	m_nType(SOCK_STREAM),
-	m_nProtocol(IPPROTO_IP),
-	m_bBlockMode(true)
+Socket::Socket() :
+	isActive_(false),
+	handle_(INVALID_SOCKET),
+	domain_(PF_INET),
+	type_(SOCK_STREAM),
+	protocol_(IPPROTO_IP),
+	isBlockMode_(true)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-CSocket::~CSocket()
+Socket::~Socket()
 {
-	Close();
+	close();
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::DoSetBlockMode(SOCKET nHandle, bool bValue)
+void Socket::doSetBlockMode(SOCKET handle, bool value)
 {
 #ifdef ISE_WIN32
-	UINT nNotBlock = (bValue? 0 : 1);
-	if (ioctlsocket(nHandle, FIONBIO, (u_long*)&nNotBlock) < 0)
-		IseThrowSocketLastError();
+	UINT notBlock = (value? 0 : 1);
+	if (ioctlsocket(handle, FIONBIO, (u_long*)&notBlock) < 0)
+		iseThrowSocketLastError();
 #endif
 #ifdef ISE_LINUX
-	int nFlag = fcntl(nHandle, F_GETFL);
+	int flag = fcntl(handle, F_GETFL);
 
-	if (bValue)
-		nFlag &= ~O_NONBLOCK;
+	if (value)
+		flag &= ~O_NONBLOCK;
 	else
-		nFlag |= O_NONBLOCK;
+		flag |= O_NONBLOCK;
 
-	if (fcntl(nHandle, F_SETFL, nFlag) < 0)
-		IseThrowSocketLastError();
+	if (fcntl(handle, F_SETFL, flag) < 0)
+		iseThrowSocketLastError();
 #endif
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::DoClose()
+void Socket::doClose()
 {
-	shutdown(m_nHandle, SS_SD_BOTH);
-	IseCloseSocket(m_nHandle);
-	m_nHandle = INVALID_SOCKET;
-	m_bActive = false;
+	shutdown(handle_, SS_SD_BOTH);
+	iseCloseSocket(handle_);
+	handle_ = INVALID_SOCKET;
+	isActive_ = false;
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::SetActive(bool bValue)
+void Socket::setActive(bool value)
 {
-	if (bValue != m_bActive)
+	if (value != isActive_)
 	{
-		if (bValue) Open();
-		else Close();
+		if (value) open();
+		else close();
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::SetDomain(int nValue)
+void Socket::setDomain(int value)
 {
-	if (nValue != m_nDomain)
+	if (value != domain_)
 	{
-		if (GetActive()) Close();
-		m_nDomain = nValue;
+		if (isActive()) close();
+		domain_ = value;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::SetType(int nValue)
+void Socket::setType(int value)
 {
-	if (nValue != m_nType)
+	if (value != type_)
 	{
-		if (GetActive()) Close();
-		m_nType = nValue;
+		if (isActive()) close();
+		type_ = value;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::SetProtocol(int nValue)
+void Socket::setProtocol(int value)
 {
-	if (nValue != m_nProtocol)
+	if (value != protocol_)
 	{
-		if (GetActive()) Close();
-		m_nProtocol = nValue;
+		if (isActive()) close();
+		protocol_ = value;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::SetBlockMode(bool bValue)
+void Socket::setBlockMode(bool value)
 {
-	// 此处不应作 bValue != m_bBlockMode 的判断，因为在不同的平台下，
+	// 此处不应作 value != isBlockMode_ 的判断，因为在不同的平台下，
 	// 套接字阻塞方式的缺省值不一样。
-	if (m_bActive)
-		DoSetBlockMode(m_nHandle, bValue);
-	m_bBlockMode = bValue;
+	if (isActive_)
+		doSetBlockMode(handle_, value);
+	isBlockMode_ = value;
 }
 
 //-----------------------------------------------------------------------------
 
-void CSocket::SetHandle(SOCKET nValue)
+void Socket::setHandle(SOCKET value)
 {
-	if (nValue != m_nHandle)
+	if (value != handle_)
 	{
-		if (GetActive()) Close();
-		m_nHandle = nValue;
-		if (m_nHandle != INVALID_SOCKET)
-			m_bActive = true;
+		if (isActive()) close();
+		handle_ = value;
+		if (handle_ != INVALID_SOCKET)
+			isActive_ = true;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 绑定套接字
 //-----------------------------------------------------------------------------
-void CSocket::Bind(int nPort)
+void Socket::bind(int port)
 {
-	SockAddr Addr;
-	int nValue = 1;
+	SockAddr addr;
+	int value = 1;
 
-	GetSocketAddr(Addr, ntohl(INADDR_ANY), nPort);
+	getSocketAddr(addr, ntohl(INADDR_ANY), port);
 
 	// 强制重新绑定，而不受其它因素的影响
-	setsockopt(m_nHandle, SOL_SOCKET, SO_REUSEADDR, (char*)&nValue, sizeof(int));
+	setsockopt(handle_, SOL_SOCKET, SO_REUSEADDR, (char*)&value, sizeof(int));
 	// 绑定套接字
-	if (bind(m_nHandle, (struct sockaddr*)&Addr, sizeof(Addr)) < 0)
-		IseThrowSocketLastError();
+	if (::bind(handle_, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+		iseThrowSocketLastError();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 打开套接字
 //-----------------------------------------------------------------------------
-void CSocket::Open()
+void Socket::open()
 {
-	if (!m_bActive)
+	if (!isActive_)
 	{
 		try
 		{
-			SOCKET nHandle;
-			nHandle = socket(m_nDomain, m_nType, m_nProtocol);
-			if (nHandle == INVALID_SOCKET)
-				IseThrowSocketLastError();
-			m_bActive = (nHandle != INVALID_SOCKET);
-			if (m_bActive)
+			SOCKET handle;
+			handle = socket(domain_, type_, protocol_);
+			if (handle == INVALID_SOCKET)
+				iseThrowSocketLastError();
+			isActive_ = (handle != INVALID_SOCKET);
+			if (isActive_)
 			{
-				m_nHandle = nHandle;
-				SetBlockMode(m_bBlockMode);
+				handle_ = handle;
+				setBlockMode(isBlockMode_);
 			}
 		}
-		catch (CSocketException&)
+		catch (SocketException&)
 		{
-			DoClose();
+			doClose();
 			throw;
 		}
 	}
@@ -560,70 +560,70 @@ void CSocket::Open()
 //-----------------------------------------------------------------------------
 // 描述: 关闭套接字
 //-----------------------------------------------------------------------------
-void CSocket::Close()
+void Socket::close()
 {
-	if (m_bActive) DoClose();
+	if (isActive_) doClose();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpSocket
+// class UdpSocket
 
 //-----------------------------------------------------------------------------
 // 描述: 接收数据
 //-----------------------------------------------------------------------------
-int CUdpSocket::RecvBuffer(void *pBuffer, int nSize)
+int UdpSocket::recvBuffer(void *buffer, int size)
 {
-	CPeerAddress PeerAddr;
-	return RecvBuffer(pBuffer, nSize, PeerAddr);
+	InetAddress peerAddr;
+	return recvBuffer(buffer, size, peerAddr);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 接收数据
 //-----------------------------------------------------------------------------
-int CUdpSocket::RecvBuffer(void *pBuffer, int nSize, CPeerAddress& PeerAddr)
+int UdpSocket::recvBuffer(void *buffer, int size, InetAddress& peerAddr)
 {
-	SockAddr Addr;
-	int nBytes;
-	socklen_t nSockLen = sizeof(Addr);
+	SockAddr addr;
+	int bytes;
+	socklen_t sockLen = sizeof(addr);
 
-	memset(&Addr, 0, sizeof(Addr));
-	nBytes = recvfrom(m_nHandle, (char*)pBuffer, nSize, 0, (struct sockaddr*)&Addr, &nSockLen);
+	memset(&addr, 0, sizeof(addr));
+	bytes = recvfrom(handle_, (char*)buffer, size, 0, (struct sockaddr*)&addr, &sockLen);
 
-	if (nBytes > 0)
+	if (bytes > 0)
 	{
-		PeerAddr.nIp = ntohl(Addr.sin_addr.s_addr);
-		PeerAddr.nPort = ntohs(Addr.sin_port);
+		peerAddr.nIp = ntohl(addr.sin_addr.s_addr);
+		peerAddr.port = ntohs(addr.sin_port);
 	}
 
-	return nBytes;
+	return bytes;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 发送数据
 //-----------------------------------------------------------------------------
-int CUdpSocket::SendBuffer(void *pBuffer, int nSize, const CPeerAddress& PeerAddr, int nSendTimes)
+int UdpSocket::sendBuffer(void *buffer, int size, const InetAddress& peerAddr, int sendTimes)
 {
-	int nResult = 0;
-	SockAddr Addr;
-	socklen_t nSockLen = sizeof(Addr);
+	int result = 0;
+	SockAddr addr;
+	socklen_t sockLen = sizeof(addr);
 
-	GetSocketAddr(Addr, PeerAddr.nIp, PeerAddr.nPort);
+	getSocketAddr(addr, peerAddr.nIp, peerAddr.port);
 
-	for (int i = 0; i < nSendTimes; i++)
-		nResult = sendto(m_nHandle, (char*)pBuffer, nSize, 0, (struct sockaddr*)&Addr, nSockLen);
+	for (int i = 0; i < sendTimes; i++)
+		result = sendto(handle_, (char*)buffer, size, 0, (struct sockaddr*)&addr, sockLen);
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 打开套接字
 //-----------------------------------------------------------------------------
-void CUdpSocket::Open()
+void UdpSocket::open()
 {
-	CSocket::Open();
+	Socket::open();
 
 #ifdef ISE_WIN32
-	if (m_bActive)
+	if (isActive_)
 	{
 		// Windows下，当收到ICMP包("ICMP port unreachable")后，recvfrom将返回-1，
 		// 错误为 WSAECONNRESET(10054)。用下面的方法禁用该行为。
@@ -632,89 +632,89 @@ void CUdpSocket::Open()
 		#define _WSAIOW(x,y)      (IOC_IN|(x)|(y))
 		#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR,12)
 
-		DWORD dwBytesReturned = 0;
-		BOOL bNewBehavior = FALSE;
-		::WSAIoctl(GetHandle(), SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior),
-			NULL, 0, &dwBytesReturned, NULL, NULL);
+		DWORD bytesReturned = 0;
+		BOOL newBehavior = FALSE;
+		::WSAIoctl(getHandle(), SIO_UDP_CONNRESET, &newBehavior, sizeof(newBehavior),
+			NULL, 0, &bytesReturned, NULL, NULL);
 	}
 #endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpServer
+// class UdpServer
 
-CUdpServer::CUdpServer() :
-	m_nLocalPort(0),
-	m_pListenerThreadPool(NULL)
+UdpServer::UdpServer() :
+	localPort_(0),
+	listenerThreadPool_(NULL)
 {
-	m_pListenerThreadPool = new CUdpListenerThreadPool(this);
-	SetListenerThreadCount(1);
+	listenerThreadPool_ = new UdpListenerThreadPool(this);
+	setListenerThreadCount(1);
 }
 
 //-----------------------------------------------------------------------------
 
-CUdpServer::~CUdpServer()
+UdpServer::~UdpServer()
 {
-	delete m_pListenerThreadPool;
+	delete listenerThreadPool_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 收到数据包
 //-----------------------------------------------------------------------------
-void CUdpServer::DataReceived(void *pPacketBuffer, int nPacketSize, const CPeerAddress& PeerAddr)
+void UdpServer::dataReceived(void *packetBuffer, int packetSize, const InetAddress& peerAddr)
 {
-	if (m_OnRecvData.pProc)
-		m_OnRecvData.pProc(m_OnRecvData.pParam, pPacketBuffer, nPacketSize, PeerAddr);
+	if (onRecvData_.proc)
+		onRecvData_.proc(onRecvData_.param, packetBuffer, packetSize, peerAddr);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 启动监听线程
 //-----------------------------------------------------------------------------
-void CUdpServer::StartListenerThreads()
+void UdpServer::startListenerThreads()
 {
-	m_pListenerThreadPool->StartThreads();
+	listenerThreadPool_->startThreads();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 停止监听线程
 //-----------------------------------------------------------------------------
-void CUdpServer::StopListenerThreads()
+void UdpServer::stopListenerThreads()
 {
-	m_pListenerThreadPool->StopThreads();
+	listenerThreadPool_->stopThreads();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置监听端口
 //-----------------------------------------------------------------------------
-void CUdpServer::SetLocalPort(int nValue)
+void UdpServer::setLocalPort(int value)
 {
-	if (nValue != m_nLocalPort)
+	if (value != localPort_)
 	{
-		if (GetActive()) Close();
-		m_nLocalPort = nValue;
+		if (isActive()) close();
+		localPort_ = value;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开启 UDP 服务器
 //-----------------------------------------------------------------------------
-void CUdpServer::Open()
+void UdpServer::open()
 {
 	try
 	{
-		if (!m_bActive)
+		if (!isActive_)
 		{
-			CUdpSocket::Open();
-			if (m_bActive)
+			UdpSocket::open();
+			if (isActive_)
 			{
-				Bind(m_nLocalPort);
-				StartListenerThreads();
+				bind(localPort_);
+				startListenerThreads();
 			}
 		}
 	}
-	catch (CSocketException&)
+	catch (SocketException&)
 	{
-		Close();
+		close();
 		throw;
 	}
 }
@@ -722,62 +722,62 @@ void CUdpServer::Open()
 //-----------------------------------------------------------------------------
 // 描述: 关闭 UDP 服务器
 //-----------------------------------------------------------------------------
-void CUdpServer::Close()
+void UdpServer::close()
 {
-	if (GetActive())
+	if (isActive())
 	{
-		StopListenerThreads();
-		CUdpSocket::Close();
+		stopListenerThreads();
+		UdpSocket::close();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得监听线程的数量
 //-----------------------------------------------------------------------------
-int CUdpServer::GetListenerThreadCount() const
+int UdpServer::getListenerThreadCount() const
 {
-	return m_pListenerThreadPool->GetMaxThreadCount();
+	return listenerThreadPool_->getMaxThreadCount();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置监听线程的数量
 //-----------------------------------------------------------------------------
-void CUdpServer::SetListenerThreadCount(int nValue)
+void UdpServer::setListenerThreadCount(int value)
 {
-	if (nValue < 1) nValue = 1;
-	m_pListenerThreadPool->SetMaxThreadCount(nValue);
+	if (value < 1) value = 1;
+	listenerThreadPool_->setMaxThreadCount(value);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置“收到数据包”的回调
 //-----------------------------------------------------------------------------
-void CUdpServer::SetOnRecvDataCallBack(UDPSVR_ON_RECV_DATA_PROC pProc, void *pParam)
+void UdpServer::setOnRecvDataCallback(UDPSVR_ON_RECV_DATA_PROC proc, void *param)
 {
-	m_OnRecvData.pProc = pProc;
-	m_OnRecvData.pParam = pParam;
+	onRecvData_.proc = proc;
+	onRecvData_.param = param;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CBaseTcpConnection
+// class BaseTcpConnection
 
-CBaseTcpConnection::CBaseTcpConnection()
+BaseTcpConnection::BaseTcpConnection()
 {
-	m_Socket.SetBlockMode(false);
+	socket_.setBlockMode(false);
 }
 
 //-----------------------------------------------------------------------------
 
-CBaseTcpConnection::CBaseTcpConnection(SOCKET nSocketHandle, const CPeerAddress& PeerAddr)
+BaseTcpConnection::BaseTcpConnection(SOCKET socketHandle, const InetAddress& peerAddr)
 {
-	m_Socket.SetHandle(nSocketHandle);
-	m_Socket.SetBlockMode(false);
-	m_PeerAddr = PeerAddr;
+	socket_.setHandle(socketHandle);
+	socket_.setBlockMode(false);
+	peerAddr_ = peerAddr;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 发送数据
-//   nTimeOutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未发送完全部数据则退出函数。
-//                   若 nTimeOutMSecs 为 -1，则表示不进行超时检测。
+//   timeoutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未发送完全部数据则退出函数。
+//                   若 timeoutMSecs 为 -1，则表示不进行超时检测。
 // 返回:
 //   < 0    - 未发出任何数据，且发送数据过程发生了错误。
 //   >= 0   - 实际发出的字节数。
@@ -786,93 +786,93 @@ CBaseTcpConnection::CBaseTcpConnection(SOCKET nSocketHandle, const CPeerAddress&
 //   2. 若仅因为超时而返回，返回值不会小于0。
 //   3. 此处采用非阻塞套接字模式，以便能及时退出。
 //-----------------------------------------------------------------------------
-int CBaseTcpConnection::DoSyncSendBuffer(void *pBuffer, int nSize, int nTimeOutMSecs)
+int BaseTcpConnection::doSyncSendBuffer(void *buffer, int size, int timeoutMSecs)
 {
 	const int SELECT_WAIT_MSEC = 250;    // 每次等待时间 (毫秒)
 
-	int nResult = -1;
-	bool bError = false;
+	int result = -1;
+	bool error = false;
 	fd_set fds;
 	struct timeval tv;
-	SOCKET nSocketHandle = m_Socket.GetHandle();
-	int n, r, nRemainSize, nIndex;
-	UINT nStartTime, nElapsedMSecs;
+	SOCKET socketHandle = socket_.getHandle();
+	int n, r, remainSize, index;
+	UINT startTime, elapsedMSecs;
 
-	if (nSize <= 0 || !m_Socket.GetActive())
-		return nResult;
+	if (size <= 0 || !socket_.isActive())
+		return result;
 
-	nRemainSize = nSize;
-	nIndex = 0;
-	nStartTime = GetCurTicks();
+	remainSize = size;
+	index = 0;
+	startTime = getCurTicks();
 
-	while (m_Socket.GetActive() && nRemainSize > 0)
+	while (socket_.isActive() && remainSize > 0)
 	try
 	{
 		tv.tv_sec = 0;
-		tv.tv_usec = (nTimeOutMSecs? SELECT_WAIT_MSEC * 1000 : 0);
+		tv.tv_usec = (timeoutMSecs? SELECT_WAIT_MSEC * 1000 : 0);
 
 		FD_ZERO(&fds);
-		FD_SET((UINT)nSocketHandle, &fds);
+		FD_SET((UINT)socketHandle, &fds);
 
-		r = select(nSocketHandle + 1, NULL, &fds, NULL, &tv);
+		r = select(socketHandle + 1, NULL, &fds, NULL, &tv);
 		if (r < 0)
 		{
-			if (IseSocketGetLastError() != SS_EINTR)
+			if (iseSocketGetLastError() != SS_EINTR)
 			{
-				bError = true;    // error
+				error = true;    // error
 				break;
 			}
 		}
 
-		if (r > 0 && m_Socket.GetActive() && FD_ISSET(nSocketHandle, &fds))
+		if (r > 0 && socket_.isActive() && FD_ISSET(socketHandle, &fds))
 		{
-			n = send(nSocketHandle, &((char*)pBuffer)[nIndex], nRemainSize, 0);
+			n = send(socketHandle, &((char*)buffer)[index], remainSize, 0);
 			if (n <= 0)
 			{
-				int nError = IseSocketGetLastError();
-				if ((n == 0) || (nError != SS_EWOULDBLOCK && nError != SS_EINTR))
+				int errorCode = iseSocketGetLastError();
+				if ((n == 0) || (errorCode != SS_EWOULDBLOCK && errorCode != SS_EINTR))
 				{
-					bError = true;    // error
-					Disconnect();
+					error = true;    // error
+					disconnect();
 					break;
 				}
 				else
 					n = 0;
 			}
 
-			nIndex += n;
-			nRemainSize -= n;
+			index += n;
+			remainSize -= n;
 		}
 
 		// 如果需要超时检测
-		if (nTimeOutMSecs >= 0 && nRemainSize > 0)
+		if (timeoutMSecs >= 0 && remainSize > 0)
 		{
-			nElapsedMSecs = GetTickDiff(nStartTime, GetCurTicks());
-			if (nElapsedMSecs >= (UINT)nTimeOutMSecs)
+			elapsedMSecs = getTickDiff(startTime, getCurTicks());
+			if (elapsedMSecs >= (UINT)timeoutMSecs)
 				break;
 		}
 	}
 	catch (...)
 	{
-		bError = true;
+		error = true;
 		break;
 	}
 
-	if (nIndex > 0)
-		nResult = nIndex;
-	else if (bError)
-		nResult = -1;
+	if (index > 0)
+		result = index;
+	else if (error)
+		result = -1;
 	else
-		nResult = 0;
+		result = 0;
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 接收数据
 // 参数:
-//   nTimeOutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未接收完全部数据则退出函数。
-//                   若 nTimeOutMSecs 为 -1，则表示不进行超时检测。
+//   timeoutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未接收完全部数据则退出函数。
+//                   若 timeoutMSecs 为 -1，则表示不进行超时检测。
 // 返回:
 //   < 0    - 未接收到任何数据，且接收数据过程发生了错误。
 //   >= 0   - 实际接收到的字节数。
@@ -881,86 +881,86 @@ int CBaseTcpConnection::DoSyncSendBuffer(void *pBuffer, int nSize, int nTimeOutM
 //   2. 若仅因为超时而返回，返回值不会小于0。
 //   3. 此处采用非阻塞套接字模式，以便能及时退出。
 //-----------------------------------------------------------------------------
-int CBaseTcpConnection::DoSyncRecvBuffer(void *pBuffer, int nSize, int nTimeOutMSecs)
+int BaseTcpConnection::doSyncRecvBuffer(void *buffer, int size, int timeoutMSecs)
 {
 	const int SELECT_WAIT_MSEC = 250;    // 每次等待时间 (毫秒)
 
-	int nResult = -1;
-	bool bError = false;
+	int result = -1;
+	bool error = false;
 	fd_set fds;
 	struct timeval tv;
-	SOCKET nSocketHandle = m_Socket.GetHandle();
-	int n, r, nRemainSize, nIndex;
-	UINT nStartTime, nElapsedMSecs;
+	SOCKET socketHandle = socket_.getHandle();
+	int n, r, remainSize, index;
+	UINT startTime, elapsedMSecs;
 
-	if (nSize <= 0 || !m_Socket.GetActive())
-		return nResult;
+	if (size <= 0 || !socket_.isActive())
+		return result;
 
-	nRemainSize = nSize;
-	nIndex = 0;
-	nStartTime = GetCurTicks();
+	remainSize = size;
+	index = 0;
+	startTime = getCurTicks();
 
-	while (m_Socket.GetActive() && nRemainSize > 0)
+	while (socket_.isActive() && remainSize > 0)
 	try
 	{
 		tv.tv_sec = 0;
-		tv.tv_usec = (nTimeOutMSecs? SELECT_WAIT_MSEC * 1000 : 0);
+		tv.tv_usec = (timeoutMSecs? SELECT_WAIT_MSEC * 1000 : 0);
 
 		FD_ZERO(&fds);
-		FD_SET((UINT)nSocketHandle, &fds);
+		FD_SET((UINT)socketHandle, &fds);
 
-		r = select(nSocketHandle + 1, &fds, NULL, NULL, &tv);
+		r = select(socketHandle + 1, &fds, NULL, NULL, &tv);
 		if (r < 0)
 		{
-			if (IseSocketGetLastError() != SS_EINTR)
+			if (iseSocketGetLastError() != SS_EINTR)
 			{
-				bError = true;    // error
+				error = true;    // error
 				break;
 			}
 		}
 
-		if (r > 0 && m_Socket.GetActive() && FD_ISSET(nSocketHandle, &fds))
+		if (r > 0 && socket_.isActive() && FD_ISSET(socketHandle, &fds))
 		{
-			n = recv(nSocketHandle, &((char*)pBuffer)[nIndex], nRemainSize, 0);
+			n = recv(socketHandle, &((char*)buffer)[index], remainSize, 0);
 			if (n <= 0)
 			{
-				int nError = IseSocketGetLastError();
-				if ((n == 0) || (nError != SS_EWOULDBLOCK && nError != SS_EINTR))
+				int errorCode = iseSocketGetLastError();
+				if ((n == 0) || (errorCode != SS_EWOULDBLOCK && errorCode != SS_EINTR))
 				{
-					bError = true;    // error
-					Disconnect();
+					error = true;    // error
+					disconnect();
 					break;
 				}
 				else
 					n = 0;
 			}
 
-			nIndex += n;
-			nRemainSize -= n;
+			index += n;
+			remainSize -= n;
 		}
 
 		// 如果需要超时检测
-		if (nTimeOutMSecs >= 0 && nRemainSize > 0)
+		if (timeoutMSecs >= 0 && remainSize > 0)
 		{
-			nElapsedMSecs = GetTickDiff(nStartTime, GetCurTicks());
-			if (nElapsedMSecs >= (UINT)nTimeOutMSecs)
+			elapsedMSecs = getTickDiff(startTime, getCurTicks());
+			if (elapsedMSecs >= (UINT)timeoutMSecs)
 				break;
 		}
 	}
 	catch (...)
 	{
-		bError = true;
+		error = true;
 		break;
 	}
 
-	if (nIndex > 0)
-		nResult = nIndex;
-	else if (bError)
-		nResult = -1;
+	if (index > 0)
+		result = index;
+	else if (error)
+		result = -1;
 	else
-		nResult = 0;
+		result = 0;
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -971,28 +971,28 @@ int CBaseTcpConnection::DoSyncRecvBuffer(void *pBuffer, int nSize, int nTimeOutM
 // 备注:
 //   不会抛出异常。
 //-----------------------------------------------------------------------------
-int CBaseTcpConnection::DoAsyncSendBuffer(void *pBuffer, int nSize)
+int BaseTcpConnection::doAsyncSendBuffer(void *buffer, int size)
 {
-	int nResult = -1;
+	int result = -1;
 	try
 	{
-		nResult = send(m_Socket.GetHandle(), (char*)pBuffer, nSize, 0);
-		if (nResult <= 0)
+		result = send(socket_.getHandle(), (char*)buffer, size, 0);
+		if (result <= 0)
 		{
-			int nError = IseSocketGetLastError();
-			if ((nResult == 0) || (nError != SS_EWOULDBLOCK && nError != SS_EINTR))
+			int errorCode = iseSocketGetLastError();
+			if ((result == 0) || (errorCode != SS_EWOULDBLOCK && errorCode != SS_EINTR))
 			{
-				Disconnect();    // error
-				nResult = -1;
+				disconnect();    // error
+				result = -1;
 			}
 			else
-				nResult = 0;
+				result = 0;
 		}
 	}
 	catch (...)
 	{}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -1003,35 +1003,35 @@ int CBaseTcpConnection::DoAsyncSendBuffer(void *pBuffer, int nSize)
 // 备注:
 //   不会抛出异常。
 //-----------------------------------------------------------------------------
-int CBaseTcpConnection::DoAsyncRecvBuffer(void *pBuffer, int nSize)
+int BaseTcpConnection::doAsyncRecvBuffer(void *buffer, int size)
 {
-	int nResult = -1;
+	int result = -1;
 	try
 	{
-		nResult = recv(m_Socket.GetHandle(), (char*)pBuffer, nSize, 0);
-		if (nResult <= 0)
+		result = recv(socket_.getHandle(), (char*)buffer, size, 0);
+		if (result <= 0)
 		{
-			int nError = IseSocketGetLastError();
-			if ((nResult == 0) || (nError != SS_EWOULDBLOCK && nError != SS_EINTR))
+			int errorCode = iseSocketGetLastError();
+			if ((result == 0) || (errorCode != SS_EWOULDBLOCK && errorCode != SS_EINTR))
 			{
-				Disconnect();    // error
-				nResult = -1;
+				disconnect();    // error
+				result = -1;
 			}
 			else
-				nResult = 0;
+				result = 0;
 		}
 	}
 	catch (...)
 	{}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 发送数据
-//   bSyncMode     - 是否以同步方式发送
-//   nTimeOutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未发送完全部数据则退出函数。
-//                   若 nTimeOutMSecs 为 -1，则表示不进行超时检测。
+//   syncMode     - 是否以同步方式发送
+//   timeoutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未发送完全部数据则退出函数。
+//                   若 timeoutMSecs 为 -1，则表示不进行超时检测。
 // 返回:
 //   < 0    - 未发出任何数据，且发送数据过程发生了错误。
 //   >= 0   - 实际发出的字节数。
@@ -1039,23 +1039,23 @@ int CBaseTcpConnection::DoAsyncRecvBuffer(void *pBuffer, int nSize)
 //   1. 不会抛出异常。
 //   2. 若仅因为超时而返回，返回值不会小于0。
 //-----------------------------------------------------------------------------
-int CBaseTcpConnection::SendBuffer(void *pBuffer, int nSize, bool bSyncMode, int nTimeOutMSecs)
+int BaseTcpConnection::sendBuffer(void *buffer, int size, bool syncMode, int timeoutMSecs)
 {
-	int nResult = nSize;
+	int result = size;
 
-	if (bSyncMode)
-		nResult = DoSyncSendBuffer(pBuffer, nSize, nTimeOutMSecs);
+	if (syncMode)
+		result = doSyncSendBuffer(buffer, size, timeoutMSecs);
 	else
-		nResult = DoAsyncSendBuffer(pBuffer, nSize);
+		result = doAsyncSendBuffer(buffer, size);
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 接收数据
-//   bSyncMode     - 是否以同步方式接收
-//   nTimeOutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未接收完全部数据则退出函数。
-//                   若 nTimeOutMSecs 为 -1，则表示不进行超时检测。
+//   syncMode     - 是否以同步方式接收
+//   timeoutMSecs - 指定超时时间(毫秒)，若超过指定时间仍未接收完全部数据则退出函数。
+//                   若 timeoutMSecs 为 -1，则表示不进行超时检测。
 // 返回:
 //   < 0    - 未接收到任何数据，且接收数据过程发生了错误。
 //   >= 0   - 实际接收到的字节数。
@@ -1063,76 +1063,76 @@ int CBaseTcpConnection::SendBuffer(void *pBuffer, int nSize, bool bSyncMode, int
 //   1. 不会抛出异常。
 //   2. 若仅因为超时而返回，返回值不会小于0。
 //-----------------------------------------------------------------------------
-int CBaseTcpConnection::RecvBuffer(void *pBuffer, int nSize, bool bSyncMode, int nTimeOutMSecs)
+int BaseTcpConnection::recvBuffer(void *buffer, int size, bool syncMode, int timeoutMSecs)
 {
-	int nResult = nSize;
+	int result = size;
 
-	if (bSyncMode)
-		nResult = DoSyncRecvBuffer(pBuffer, nSize, nTimeOutMSecs);
+	if (syncMode)
+		result = doSyncRecvBuffer(buffer, size, timeoutMSecs);
 	else
-		nResult = DoAsyncRecvBuffer(pBuffer, nSize);
+		result = doAsyncRecvBuffer(buffer, size);
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开连接
 //-----------------------------------------------------------------------------
-void CBaseTcpConnection::DoDisconnect()
+void BaseTcpConnection::doDisconnect()
 {
-	m_Socket.Close();
+	socket_.close();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回当前是否为连接状态
 //-----------------------------------------------------------------------------
-bool CBaseTcpConnection::IsConnected() const
+bool BaseTcpConnection::isConnected() const
 {
-	return m_Socket.GetActive();
+	return socket_.isActive();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开连接
 //-----------------------------------------------------------------------------
-void CBaseTcpConnection::Disconnect()
+void BaseTcpConnection::disconnect()
 {
-	if (IsConnected())
-		DoDisconnect();
+	if (isConnected())
+		doDisconnect();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpClient
+// class TcpClient
 
 //-----------------------------------------------------------------------------
 // 描述: 发起TCP连接请求 (阻塞式)
 // 备注: 若连接失败，则抛出异常。
 //-----------------------------------------------------------------------------
-void CTcpClient::Connect(const string& strIp, int nPort)
+void TcpClient::connect(const string& ip, int port)
 {
-	if (IsConnected()) Disconnect();
+	if (isConnected()) disconnect();
 
 	try
 	{
-		m_Socket.Open();
-		if (m_Socket.GetActive())
+		socket_.open();
+		if (socket_.isActive())
 		{
-			SockAddr Addr;
+			SockAddr addr;
 
-			GetSocketAddr(Addr, StringToIp(strIp), nPort);
+			getSocketAddr(addr, stringToIp(ip), port);
 
-			bool bOldBlockMode = m_Socket.GetBlockMode();
-			m_Socket.SetBlockMode(true);
+			bool oldBlockMode = socket_.isBlockMode();
+			socket_.setBlockMode(true);
 
-			if (connect(m_Socket.GetHandle(), (struct sockaddr*)&Addr, sizeof(Addr)) < 0)
-				IseThrowSocketLastError();
+			if (::connect(socket_.getHandle(), (struct sockaddr*)&addr, sizeof(addr)) < 0)
+				iseThrowSocketLastError();
 
-			m_Socket.SetBlockMode(bOldBlockMode);
-			m_PeerAddr = CPeerAddress(ntohl(Addr.sin_addr.s_addr), nPort);
+			socket_.setBlockMode(oldBlockMode);
+			peerAddr_ = InetAddress(ntohl(addr.sin_addr.s_addr), port);
 		}
 	}
-	catch (CSocketException&)
+	catch (SocketException&)
 	{
-		m_Socket.Close();
+		socket_.close();
 		throw;
 	}
 }
@@ -1140,7 +1140,7 @@ void CTcpClient::Connect(const string& strIp, int nPort)
 //-----------------------------------------------------------------------------
 // 描述: 发起TCP连接请求 (非阻塞式)
 // 参数:
-//   nTimeOutMSecs - 最多等待的毫秒数，为-1表示不等待
+//   timeoutMSecs - 最多等待的毫秒数，为-1表示不等待
 // 返回:
 //   ACS_CONNECTING - 尚未连接完毕，且尚未发生错误
 //   ACS_CONNECTED  - 连接已建立成功
@@ -1148,51 +1148,51 @@ void CTcpClient::Connect(const string& strIp, int nPort)
 // 备注:
 //   不抛异常。
 //-----------------------------------------------------------------------------
-int CTcpClient::AsyncConnect(const string& strIp, int nPort, int nTimeOutMSecs)
+int TcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
 {
-	int nResult = ACS_CONNECTING;
+	int result = ACS_CONNECTING;
 
-	if (IsConnected()) Disconnect();
+	if (isConnected()) disconnect();
 	try
 	{
-		m_Socket.Open();
-		if (m_Socket.GetActive())
+		socket_.open();
+		if (socket_.isActive())
 		{
-			SockAddr Addr;
+			SockAddr addr;
 			int r;
 
-			GetSocketAddr(Addr, StringToIp(strIp), nPort);
-			m_Socket.SetBlockMode(false);
-			r = connect(m_Socket.GetHandle(), (struct sockaddr*)&Addr, sizeof(Addr));
+			getSocketAddr(addr, stringToIp(ip), port);
+			socket_.setBlockMode(false);
+			r = ::connect(socket_.getHandle(), (struct sockaddr*)&addr, sizeof(addr));
 			if (r == 0)
-				nResult = ACS_CONNECTED;
+				result = ACS_CONNECTED;
 #ifdef ISE_WIN32
-			else if (IseSocketGetLastError() != SS_EWOULDBLOCK)
+			else if (iseSocketGetLastError() != SS_EWOULDBLOCK)
 #endif
 #ifdef ISE_LINUX
-			else if (IseSocketGetLastError() != SS_EINPROGRESS)
+			else if (iseSocketGetLastError() != SS_EINPROGRESS)
 #endif
-				nResult = ACS_FAILED;
+				result = ACS_FAILED;
 
-			m_PeerAddr = CPeerAddress(ntohl(Addr.sin_addr.s_addr), nPort);
+			peerAddr_ = InetAddress(ntohl(addr.sin_addr.s_addr), port);
 		}
 	}
 	catch (...)
 	{
-		m_Socket.Close();
-		nResult = ACS_FAILED;
+		socket_.close();
+		result = ACS_FAILED;
 	}
 
-	if (nResult == ACS_CONNECTING)
-		nResult = CheckAsyncConnectState(nTimeOutMSecs);
+	if (result == ACS_CONNECTING)
+		result = checkAsyncConnectState(timeoutMSecs);
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 检查异步连接的状态
 // 参数:
-//   nTimeOutMSecs - 最多等待的毫秒数，为-1表示不等待
+//   timeoutMSecs - 最多等待的毫秒数，为-1表示不等待
 // 返回:
 //   ACS_CONNECTING - 尚未连接完毕，且尚未发生错误
 //   ACS_CONNECTED  - 连接已建立成功
@@ -1200,148 +1200,148 @@ int CTcpClient::AsyncConnect(const string& strIp, int nPort, int nTimeOutMSecs)
 // 备注:
 //   不抛异常。
 //-----------------------------------------------------------------------------
-int CTcpClient::CheckAsyncConnectState(int nTimeOutMSecs)
+int TcpClient::checkAsyncConnectState(int timeoutMSecs)
 {
-	if (!m_Socket.GetActive()) return ACS_FAILED;
+	if (!socket_.isActive()) return ACS_FAILED;
 
 	const int WAIT_STEP = 100;   // ms
-	int nResult = ACS_CONNECTING;
-	SOCKET nHandle = GetSocket().GetHandle();
+	int result = ACS_CONNECTING;
+	SOCKET handle = getSocket().getHandle();
 	fd_set rset, wset;
 	struct timeval tv;
 	int ms = 0;
 
-	nTimeOutMSecs = max(nTimeOutMSecs, -1);
+	timeoutMSecs = max(timeoutMSecs, -1);
 
 	while (true)
 	{
 		tv.tv_sec = 0;
-		tv.tv_usec = (nTimeOutMSecs? WAIT_STEP * 1000 : 0);
+		tv.tv_usec = (timeoutMSecs? WAIT_STEP * 1000 : 0);
 		FD_ZERO(&rset);
-		FD_SET((DWORD)nHandle, &rset);
+		FD_SET((DWORD)handle, &rset);
 		wset = rset;
 
-		int r = select(nHandle + 1, &rset, &wset, NULL, &tv);
-		if (r > 0 && (FD_ISSET(nHandle, &rset) || FD_ISSET(nHandle, &wset)))
+		int r = select(handle + 1, &rset, &wset, NULL, &tv);
+		if (r > 0 && (FD_ISSET(handle, &rset) || FD_ISSET(handle, &wset)))
 		{
 			socklen_t nErrLen = sizeof(int);
-			int nError = 0;
+			int errorCode = 0;
 			// If error occurs
-			if (getsockopt(nHandle, SOL_SOCKET, SO_ERROR, (char*)&nError, &nErrLen) < 0 || nError)
-				nResult = ACS_FAILED;
+			if (getsockopt(handle, SOL_SOCKET, SO_ERROR, (char*)&errorCode, &nErrLen) < 0 || errorCode)
+				result = ACS_FAILED;
 			else
-				nResult = ACS_CONNECTED;
+				result = ACS_CONNECTED;
 		}
 		else if (r < 0)
 		{
-			if (IseSocketGetLastError() != SS_EINTR)
-				nResult = ACS_FAILED;
+			if (iseSocketGetLastError() != SS_EINTR)
+				result = ACS_FAILED;
 		}
 
-		if (nResult != ACS_CONNECTING)
+		if (result != ACS_CONNECTING)
 			break;
 
 		// Check timeout
-		if (nTimeOutMSecs != -1)
+		if (timeoutMSecs != -1)
 		{
 			ms += WAIT_STEP;
-			if (ms >= nTimeOutMSecs)
+			if (ms >= timeoutMSecs)
 				break;
 		}
 	}
 
-	return nResult;
+	return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpServer
+// class TcpServer
 
-CTcpServer::CTcpServer() :
-	m_nLocalPort(0),
-	m_pListenerThread(NULL)
+TcpServer::TcpServer() :
+	localPort_(0),
+	listenerThread_(NULL)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-CTcpServer::~CTcpServer()
+TcpServer::~TcpServer()
 {
-	Close();
+	close();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建连接对象
 //-----------------------------------------------------------------------------
-CBaseTcpConnection* CTcpServer::CreateConnection(SOCKET nSocketHandle, const CPeerAddress& PeerAddr)
+BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle, const InetAddress& peerAddr)
 {
-	CBaseTcpConnection *pResult = NULL;
+	BaseTcpConnection *result = NULL;
 
-	if (m_OnCreateConn.pProc)
-		m_OnCreateConn.pProc(m_OnCreateConn.pParam, this, nSocketHandle, PeerAddr, pResult);
+	if (onCreateConn_.proc)
+		onCreateConn_.proc(onCreateConn_.param, this, socketHandle, peerAddr, result);
 
-	if (pResult == NULL)
-		pResult = new CBaseTcpConnection(nSocketHandle, PeerAddr);
+	if (result == NULL)
+		result = new BaseTcpConnection(socketHandle, peerAddr);
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 收到连接 (注: pConnection 是堆对象，需使用者释放)
+// 描述: 收到连接 (注: connection 是堆对象，需使用者释放)
 //-----------------------------------------------------------------------------
-void CTcpServer::AcceptConnection(CBaseTcpConnection *pConnection)
+void TcpServer::acceptConnection(BaseTcpConnection *connection)
 {
-	if (m_OnAcceptConn.pProc)
-		m_OnAcceptConn.pProc(m_OnAcceptConn.pParam, this, pConnection);
+	if (onAcceptConn_.proc)
+		onAcceptConn_.proc(onAcceptConn_.param, this, connection);
 	else
-		delete pConnection;
+		delete connection;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 启动监听线程
 //-----------------------------------------------------------------------------
-void CTcpServer::StartListenerThread()
+void TcpServer::startListenerThread()
 {
-	if (!m_pListenerThread)
+	if (!listenerThread_)
 	{
-		m_pListenerThread = new CTcpListenerThread(this);
-		m_pListenerThread->Run();
+		listenerThread_ = new TcpListenerThread(this);
+		listenerThread_->run();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 停止监听线程
 //-----------------------------------------------------------------------------
-void CTcpServer::StopListenerThread()
+void TcpServer::stopListenerThread()
 {
-	if (m_pListenerThread)
+	if (listenerThread_)
 	{
-		m_pListenerThread->Terminate();
-		m_pListenerThread->WaitFor();
-		delete m_pListenerThread;
-		m_pListenerThread = NULL;
+		listenerThread_->terminate();
+		listenerThread_->waitFor();
+		delete listenerThread_;
+		listenerThread_ = NULL;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开启TCP服务器
 //-----------------------------------------------------------------------------
-void CTcpServer::Open()
+void TcpServer::open()
 {
 	try
 	{
-		if (!GetActive())
+		if (!isActive())
 		{
-			m_Socket.Open();
-			m_Socket.Bind(m_nLocalPort);
-			if (listen(m_Socket.GetHandle(), LISTEN_QUEUE_SIZE) < 0)
-				IseThrowSocketLastError();
-			StartListenerThread();
+			socket_.open();
+			socket_.bind(localPort_);
+			if (listen(socket_.getHandle(), LISTEN_QUEUE_SIZE) < 0)
+				iseThrowSocketLastError();
+			startListenerThread();
 		}
 	}
-	catch (CSocketException&)
+	catch (SocketException&)
 	{
-		Close();
+		close();
 		throw;
 	}
 }
@@ -1349,92 +1349,92 @@ void CTcpServer::Open()
 //-----------------------------------------------------------------------------
 // 描述: 关闭TCP服务器
 //-----------------------------------------------------------------------------
-void CTcpServer::Close()
+void TcpServer::close()
 {
-	if (GetActive())
+	if (isActive())
 	{
-		StopListenerThread();
-		m_Socket.Close();
+		stopListenerThread();
+		socket_.close();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开启/关闭TCP服务器
 //-----------------------------------------------------------------------------
-void CTcpServer::SetActive(bool bValue)
+void TcpServer::setActive(bool value)
 {
-	if (GetActive() != bValue)
+	if (isActive() != value)
 	{
-		if (bValue) Open();
-		else Close();
+		if (value) open();
+		else close();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置TCP服务器监听端口
 //-----------------------------------------------------------------------------
-void CTcpServer::SetLocalPort(int nValue)
+void TcpServer::setLocalPort(int value)
 {
-	if (nValue != m_nLocalPort)
+	if (value != localPort_)
 	{
-		if (GetActive()) Close();
-		m_nLocalPort = nValue;
+		if (isActive()) close();
+		localPort_ = value;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置“创建新连接”的回调
 //-----------------------------------------------------------------------------
-void CTcpServer::SetOnCreateConnCallBack(TCPSVR_ON_CREATE_CONN_PROC pProc, void *pParam)
+void TcpServer::setOnCreateConnCallback(TCPSVR_ON_CREATE_CONN_PROC proc, void *param)
 {
-	m_OnCreateConn.pProc = pProc;
-	m_OnCreateConn.pParam = pParam;
+	onCreateConn_.proc = proc;
+	onCreateConn_.param = param;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置“收到连接”的回调
 //-----------------------------------------------------------------------------
-void CTcpServer::SetOnAcceptConnCallBack(TCPSVR_ON_ACCEPT_CONN_PROC pProc, void *pParam)
+void TcpServer::setOnAcceptConnCallback(TCPSVR_ON_ACCEPT_CONN_PROC proc, void *param)
 {
-	m_OnAcceptConn.pProc = pProc;
-	m_OnAcceptConn.pParam = pParam;
+	onAcceptConn_.proc = proc;
+	onAcceptConn_.param = param;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpListenerThread
+// class UdpListenerThread
 
-CUdpListenerThread::CUdpListenerThread(CUdpListenerThreadPool *pThreadPool, int nIndex) :
-	m_pThreadPool(pThreadPool),
-	m_nIndex(nIndex)
+UdpListenerThread::UdpListenerThread(UdpListenerThreadPool *threadPool, int index) :
+	threadPool_(threadPool),
+	index_(index)
 {
-	SetFreeOnTerminate(true);
-	m_pUdpServer = &(pThreadPool->GetUdpServer());
-	m_pThreadPool->RegisterThread(this);
+	setFreeOnTerminate(true);
+	udpServer_ = &(threadPool->getUdpServer());
+	threadPool_->registerThread(this);
 }
 
 //-----------------------------------------------------------------------------
 
-CUdpListenerThread::~CUdpListenerThread()
+UdpListenerThread::~UdpListenerThread()
 {
-	m_pThreadPool->UnregisterThread(this);
+	threadPool_->unregisterThread(this);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: UDP服务器监听工作
 //-----------------------------------------------------------------------------
-void CUdpListenerThread::Execute()
+void UdpListenerThread::execute()
 {
 	const int MAX_UDP_BUFFER_SIZE = 8192;   // UDP数据包最大字节数
 	const int SELECT_WAIT_MSEC    = 100;    // 每次等待时间 (毫秒)
 
 	fd_set fds;
 	struct timeval tv;
-	SOCKET nSocketHandle = m_pUdpServer->GetHandle();
-	CBuffer PacketBuffer(MAX_UDP_BUFFER_SIZE);
-	CPeerAddress PeerAddr;
+	SOCKET socketHandle = udpServer_->getHandle();
+	Buffer packetBuffer(MAX_UDP_BUFFER_SIZE);
+	InetAddress peerAddr;
 	int r, n;
 
-	while (!GetTerminated() && m_pUdpServer->GetActive())
+	while (!isTerminated() && udpServer_->isActive())
 	try
 	{
 		// 设定每次等待时间
@@ -1442,42 +1442,42 @@ void CUdpListenerThread::Execute()
 		tv.tv_usec = SELECT_WAIT_MSEC * 1000;
 
 		FD_ZERO(&fds);
-		FD_SET((UINT)nSocketHandle, &fds);
+		FD_SET((UINT)socketHandle, &fds);
 
-		r = select(nSocketHandle + 1, &fds, NULL, NULL, &tv);
+		r = select(socketHandle + 1, &fds, NULL, NULL, &tv);
 
-		if (r > 0 && m_pUdpServer->GetActive() && FD_ISSET(nSocketHandle, &fds))
+		if (r > 0 && udpServer_->isActive() && FD_ISSET(socketHandle, &fds))
 		{
-			n = m_pUdpServer->RecvBuffer(PacketBuffer.Data(), MAX_UDP_BUFFER_SIZE, PeerAddr);
+			n = udpServer_->recvBuffer(packetBuffer.data(), MAX_UDP_BUFFER_SIZE, peerAddr);
 			if (n > 0)
 			{
-				m_pUdpServer->DataReceived(PacketBuffer.Data(), n, PeerAddr);
+				udpServer_->dataReceived(packetBuffer.data(), n, peerAddr);
 			}
 		}
 		else if (r < 0)
 		{
-			int nError = IseSocketGetLastError();
-			if (nError != SS_EINTR && nError != SS_EINPROGRESS)
+			int errorCode = iseSocketGetLastError();
+			if (errorCode != SS_EINTR && errorCode != SS_EINPROGRESS)
 				break;  // error
 		}
 	}
-	catch (CException&)
+	catch (Exception&)
 	{}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpListenerThreadPool
+// class UdpListenerThreadPool
 
-CUdpListenerThreadPool::CUdpListenerThreadPool(CUdpServer *pUdpServer) :
-	m_pUdpServer(pUdpServer),
-	m_nMaxThreadCount(0)
+UdpListenerThreadPool::UdpListenerThreadPool(UdpServer *udpServer) :
+	udpServer_(udpServer),
+	maxThreadCount_(0)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-CUdpListenerThreadPool::~CUdpListenerThreadPool()
+UdpListenerThreadPool::~UdpListenerThreadPool()
 {
 	// nothing
 }
@@ -1485,54 +1485,54 @@ CUdpListenerThreadPool::~CUdpListenerThreadPool()
 //-----------------------------------------------------------------------------
 // 描述: 注册线程
 //-----------------------------------------------------------------------------
-void CUdpListenerThreadPool::RegisterThread(CUdpListenerThread *pThread)
+void UdpListenerThreadPool::registerThread(UdpListenerThread *thread)
 {
-	m_ThreadList.Add(pThread);
+	threadList_.add(thread);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 注销线程
 //-----------------------------------------------------------------------------
-void CUdpListenerThreadPool::UnregisterThread(CUdpListenerThread *pThread)
+void UdpListenerThreadPool::unregisterThread(UdpListenerThread *thread)
 {
-	m_ThreadList.Remove(pThread);
+	threadList_.remove(thread);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建并启动线程
 //-----------------------------------------------------------------------------
-void CUdpListenerThreadPool::StartThreads()
+void UdpListenerThreadPool::startThreads()
 {
-	for (int i = 0; i < m_nMaxThreadCount; i++)
+	for (int i = 0; i < maxThreadCount_; i++)
 	{
-		CUdpListenerThread *pThread;
-		pThread = new CUdpListenerThread(this, i);
-		pThread->Run();
+		UdpListenerThread *thread;
+		thread = new UdpListenerThread(this, i);
+		thread->run();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知并等待所有线程退出
 //-----------------------------------------------------------------------------
-void CUdpListenerThreadPool::StopThreads()
+void UdpListenerThreadPool::stopThreads()
 {
 	const int MAX_WAIT_FOR_SECS = 5;
-	m_ThreadList.WaitForAllThreads(MAX_WAIT_FOR_SECS);
+	threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpListenerThread
+// class TcpListenerThread
 
-CTcpListenerThread::CTcpListenerThread(CTcpServer *pTcpServer) :
-	m_pTcpServer(pTcpServer)
+TcpListenerThread::TcpListenerThread(TcpServer *tcpServer) :
+	tcpServer_(tcpServer)
 {
-	SetFreeOnTerminate(false);
+	setFreeOnTerminate(false);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP服务器监听工作
 //-----------------------------------------------------------------------------
-void CTcpListenerThread::Execute()
+void TcpListenerThread::execute()
 {
 	const int SELECT_WAIT_MSEC = 100;    // 每次等待时间 (毫秒)
 
@@ -1540,12 +1540,12 @@ void CTcpListenerThread::Execute()
 	struct timeval tv;
 	SockAddr Addr;
 	socklen_t nSockLen = sizeof(Addr);
-	SOCKET nSocketHandle = m_pTcpServer->GetSocket().GetHandle();
-	CPeerAddress PeerAddr;
-	SOCKET nAcceptHandle;
+	SOCKET socketHandle = tcpServer_->getSocket().getHandle();
+	InetAddress peerAddr;
+	SOCKET acceptHandle;
 	int r;
 
-	while (!GetTerminated() && m_pTcpServer->GetActive())
+	while (!isTerminated() && tcpServer_->isActive())
 	try
 	{
 		// 设定每次等待时间
@@ -1553,28 +1553,28 @@ void CTcpListenerThread::Execute()
 		tv.tv_usec = SELECT_WAIT_MSEC * 1000;
 
 		FD_ZERO(&fds);
-		FD_SET((UINT)nSocketHandle, &fds);
+		FD_SET((UINT)socketHandle, &fds);
 
-		r = select(nSocketHandle + 1, &fds, NULL, NULL, &tv);
+		r = select(socketHandle + 1, &fds, NULL, NULL, &tv);
 
-		if (r > 0 && m_pTcpServer->GetActive() && FD_ISSET(nSocketHandle, &fds))
+		if (r > 0 && tcpServer_->isActive() && FD_ISSET(socketHandle, &fds))
 		{
-			nAcceptHandle = accept(nSocketHandle, (struct sockaddr*)&Addr, &nSockLen);
-			if (nAcceptHandle != INVALID_SOCKET)
+			acceptHandle = accept(socketHandle, (struct sockaddr*)&Addr, &nSockLen);
+			if (acceptHandle != INVALID_SOCKET)
 			{
-				PeerAddr = CPeerAddress(ntohl(Addr.sin_addr.s_addr), ntohs(Addr.sin_port));
-				CBaseTcpConnection *pConnection = m_pTcpServer->CreateConnection(nAcceptHandle, PeerAddr);
-				m_pTcpServer->AcceptConnection(pConnection);
+				peerAddr = InetAddress(ntohl(Addr.sin_addr.s_addr), ntohs(Addr.sin_port));
+				BaseTcpConnection *connection = tcpServer_->createConnection(acceptHandle, peerAddr);
+				tcpServer_->acceptConnection(connection);
 			}
 		}
 		else if (r < 0)
 		{
-			int nError = IseSocketGetLastError();
-			if (nError != SS_EINTR && nError != SS_EINPROGRESS)
+			int errorCode = iseSocketGetLastError();
+			if (errorCode != SS_EINTR && errorCode != SS_EINPROGRESS)
 				break;  // error
 		}
 	}
-	catch (CException&)
+	catch (Exception&)
 	{}
 }
 

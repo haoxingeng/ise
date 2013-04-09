@@ -9,23 +9,23 @@ using namespace ise;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class CAppBusiness : public CIseBusiness 
+class AppBusiness : public IseBusiness 
 {
 public:
-    CAppBusiness() {}
-    virtual ~CAppBusiness() {}
+    AppBusiness() {}
+    virtual ~AppBusiness() {}
 
-	virtual void Initialize();
-	virtual void Finalize();
+	virtual void initialize();
+	virtual void finalize();
 
-	virtual void DoStartupState(STARTUP_STATE nState);
-    virtual void InitSseOptions(CIseOptions& SseOpt);
+	virtual void doStartupState(STARTUP_STATE state);
+    virtual void initIseOptions(IseOptions& options);
 
-	virtual void OnTcpConnection(CTcpConnection *pConnection);
-	virtual void OnTcpError(CTcpConnection *pConnection);
-	virtual void OnTcpRecvComplete(CTcpConnection *pConnection, void *pPacketBuffer,
-		int nPacketSize, const CCustomParams& Params);
-	virtual void OnTcpSendComplete(CTcpConnection *pConnection, const CCustomParams& Params);
+	virtual void onTcpConnection(TcpConnection *connection);
+	virtual void onTcpError(TcpConnection *connection);
+	virtual void onTcpRecvComplete(TcpConnection *connection, void *packetBuffer,
+		int packetSize, const CustomParams& params);
+	virtual void onTcpSendComplete(TcpConnection *connection, const CustomParams& params);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

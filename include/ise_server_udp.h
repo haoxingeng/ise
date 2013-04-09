@@ -40,148 +40,148 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CThreadTimeOutChecker;
-class CUdpPacket;
-class CUdpRequestQueue;
-class CUdpWorkerThread;
-class CUdpWorkerThreadPool;
-class CUdpRequestGroup;
-class CMainUdpServer;
+class ThreadTimeOutChecker;
+class UdpPacket;
+class UdpRequestQueue;
+class UdpWorkerThread;
+class UdpWorkerThreadPool;
+class UdpRequestGroup;
+class MainUdpServer;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThreadTimeOutChecker - 线程超时检测类
+// class ThreadTimeOutChecker - 线程超时检测类
 //
 // 说明:
-// 此类用于配合 CUdpWorkerThread/CTcpWorkerThread，进行工作者线程的工作时间超时检测。
+// 此类用于配合 UdpWorkerThread/CTcpWorkerThread，进行工作者线程的工作时间超时检测。
 // 当工作者线程收到一个请求后，马上进入工作状态。一般而言，工作者线程为单个请求持续工作的
 // 时间不宜太长，若太长则会导致服务器空闲工作者线程短缺，使得应付并发请求的能力下降。尤其
 // 对于UDP服务来说情况更是如此。通常情况下，线程工作超时，很少是因为程序的流程和逻辑，而
 // 是由于外部原因，比如数据库繁忙、资源死锁、网络拥堵等等。当线程工作超时后，应通知其退出，
 // 若被通知退出后若干时间内仍未退出，则强行杀死。工作者线程调度中心再适时创建新的线程。
 
-class CThreadTimeOutChecker : public CAutoInvokable
+class ThreadTimeOutChecker : public AutoInvokable
 {
 private:
-	CThread *m_pThread;         // 被检测的线程
-	time_t m_tStartTime;        // 开始计时时的时间戳
-	bool m_bStarted;            // 是否已开始计时
-	UINT m_nTimeOutSecs;        // 超过多少秒认为超时 (为0表示不进行超时检测)
-	CCriticalSection m_Lock;
+	Thread *thread_;          // 被检测的线程
+	time_t startTime_;        // 开始计时时的时间戳
+	bool started_;            // 是否已开始计时
+	UINT timeoutSecs_;        // 超过多少秒认为超时 (为0表示不进行超时检测)
+	CriticalSection lock_;
 
 private:
-	void Start();
-	void Stop();
+	void start();
+	void stop();
 
 protected:
-	virtual void InvokeInitialize() { Start(); }
-	virtual void InvokeFinalize() { Stop(); }
+	virtual void invokeInitialize() { start(); }
+	virtual void invokeFinalize() { stop(); }
 
 public:
-	explicit CThreadTimeOutChecker(CThread *pThread);
-	virtual ~CThreadTimeOutChecker() {}
+	explicit ThreadTimeOutChecker(Thread *thread);
+	virtual ~ThreadTimeOutChecker() {}
 
 	// 检测线程是否已超时，若超时则通知其退出
-	bool Check();
+	bool check();
 
 	// 设置超时时间，若为0则表示不进行超时检测
-	void SetTimeOutSecs(UINT nValue) { m_nTimeOutSecs = nValue; }
+	void setTimeOutSecs(UINT value) { timeoutSecs_ = value; }
 	// 返回是否已开始计时
-	bool GetStarted();
+	bool getStarted();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpPacket - UDP数据包类
+// class UdpPacket - UDP数据包类
 
-class CUdpPacket
+class UdpPacket
 {
 private:
-	void *m_pPacketBuffer;
+	void *packetBuffer_;
 
 public:
-	UINT m_nRecvTimeStamp;
-	CPeerAddress m_PeerAddr;
-	int m_nPacketSize;
+	UINT recvTimeStamp_;
+	InetAddress peerAddr_;
+	int packetSize_;
 
 public:
-	CUdpPacket() :
-		m_pPacketBuffer(NULL),
-		m_nRecvTimeStamp(0),
-		m_PeerAddr(0, 0),
-		m_nPacketSize(0)
+	UdpPacket() :
+		packetBuffer_(NULL),
+		recvTimeStamp_(0),
+		peerAddr_(0, 0),
+		packetSize_(0)
 	{}
-	virtual ~CUdpPacket()
-	{ if (m_pPacketBuffer) free(m_pPacketBuffer); }
+	virtual ~UdpPacket()
+		{ if (packetBuffer_) free(packetBuffer_); }
 
-	void SetPacketBuffer(void *pPakcetBuffer, int nPacketSize);
-	inline void* GetPacketBuffer() const { return m_pPacketBuffer; }
+	void setPacketBuffer(void *pPakcetBuffer, int packetSize);
+	inline void* getPacketBuffer() const { return packetBuffer_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpRequestQueue - UDP请求队列类
+// class UdpRequestQueue - UDP请求队列类
 
-class CUdpRequestQueue
+class UdpRequestQueue
 {
 private:
 	// 各容器优缺点:
 	// deque  - 支持头尾快速增删，但增删中间元素很慢，支持下标访问。
 	// vector - 支持尾部快速增删，头部和中间元素增删很慢，支持下标访问。
 	// list   - 支持任何元素的快速增删，但不支持下标访问，不支持快速取当前长度(size())；
-	typedef deque<CUdpPacket*> PacketList;
+	typedef deque<UdpPacket*> PacketList;
 
-	CUdpRequestGroup *m_pOwnGroup;   // 所属组别
-	PacketList m_PacketList;         // 数据包列表
-	int m_nPacketCount;              // 队列中数据包的个数(为了快速访问)
-	int m_nCapacity;                 // 队列的最大容量
-	int m_nEffWaitTime;              // 数据包有效等待时间(秒)
-	CCriticalSection m_Lock;
-	CSemaphore m_Semaphore;
+	UdpRequestGroup *ownGroup_;    // 所属组别
+	PacketList packetList_;        // 数据包列表
+	int packetCount_;              // 队列中数据包的个数(为了快速访问)
+	int capacity_;                 // 队列的最大容量
+	int effWaitTime_;              // 数据包有效等待时间(秒)
+	CriticalSection lock_;
+	Semaphore semaphore_;
 
 public:
-	explicit CUdpRequestQueue(CUdpRequestGroup *pOwnGroup);
-	virtual ~CUdpRequestQueue() { Clear(); }
+	explicit UdpRequestQueue(UdpRequestGroup *ownGroup);
+	virtual ~UdpRequestQueue() { clear(); }
 
-	void AddPacket(CUdpPacket *pPacket);
-	CUdpPacket* ExtractPacket();
-	void Clear();
-	void BreakWaiting(int nSemCount);
+	void addPacket(UdpPacket *pPacket);
+	UdpPacket* extractPacket();
+	void clear();
+	void breakWaiting(int semCount);
 
-	int GetCount() { return m_nPacketCount; }
+	int getCount() { return packetCount_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpWorkerThread - UDP工作者线程类
+// class UdpWorkerThread - UDP工作者线程类
 //
 // 说明:
 // 1. 缺省情况下，UDP工作者线程允许进行超时检测，若某些情况下需禁用超时检测，可以:
-//    CUdpWorkerThread::GetTimeOutChecker().SetTimeOutSecs(0);
+//    UdpWorkerThread::GetTimeOutChecker().SetTimeOutSecs(0);
 //
 // 名词解释:
 // 1. 超时线程: 因某一请求进入工作状态但长久未完成的线程。
 // 2. 僵死线程: 已被通知退出但长久不退出的线程。
 
-class CUdpWorkerThread : public CThread
+class UdpWorkerThread : public Thread
 {
 private:
-	CUdpWorkerThreadPool *m_pOwnPool;        // 所属线程池
-	CThreadTimeOutChecker m_TimeOutChecker;  // 超时检测器
+	UdpWorkerThreadPool *ownPool_;         // 所属线程池
+	ThreadTimeOutChecker timeoutChecker_;  // 超时检测器
 protected:
-	virtual void Execute();
-	virtual void DoTerminate();
-	virtual void DoKill();
+	virtual void execute();
+	virtual void doTerminate();
+	virtual void doKill();
 public:
-	explicit CUdpWorkerThread(CUdpWorkerThreadPool *pThreadPool);
-	virtual ~CUdpWorkerThread();
+	explicit UdpWorkerThread(UdpWorkerThreadPool *threadPool);
+	virtual ~UdpWorkerThread();
 
 	// 返回超时检测器
-	CThreadTimeOutChecker& GetTimeOutChecker() { return m_TimeOutChecker; }
+	ThreadTimeOutChecker& getTimeoutChecker() { return timeoutChecker_; }
 	// 返回该线程是否空闲状态(即在等待请求)
-	bool IsIdle() { return !m_TimeOutChecker.GetStarted(); }
+	bool isIdle() { return !timeoutChecker_.getStarted(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpWorkerThreadPool - UDP工作者线程池类
+// class UdpWorkerThreadPool - UDP工作者线程池类
 
-class CUdpWorkerThreadPool
+class UdpWorkerThreadPool
 {
 public:
 	enum
@@ -191,90 +191,90 @@ public:
 	};
 
 private:
-	CUdpRequestGroup *m_pOwnGroup;          // 所属组别
-	CThreadList m_ThreadList;               // 线程列表
+	UdpRequestGroup *ownGroup_;           // 所属组别
+	ThreadList threadList_;               // 线程列表
 private:
-	void CreateThreads(int nCount);
-	void TerminateThreads(int nCount);
-	void CheckThreadTimeOut();
-	void KillZombieThreads();
+	void createThreads(int count);
+	void terminateThreads(int count);
+	void checkThreadTimeout();
+	void killZombieThreads();
 public:
-	explicit CUdpWorkerThreadPool(CUdpRequestGroup *pOwnGroup);
-	virtual ~CUdpWorkerThreadPool();
+	explicit UdpWorkerThreadPool(UdpRequestGroup *ownGroup);
+	virtual ~UdpWorkerThreadPool();
 
-	void RegisterThread(CUdpWorkerThread *pThread);
-	void UnregisterThread(CUdpWorkerThread *pThread);
+	void registerThread(UdpWorkerThread *thread);
+	void unregisterThread(UdpWorkerThread *thread);
 
 	// 根据负载情况动态调整线程数量
 	void AdjustThreadCount();
 	// 通知所有线程退出
-	void TerminateAllThreads();
+	void terminateAllThreads();
 	// 等待所有线程退出
-	void WaitForAllThreads();
+	void waitForAllThreads();
 
 	// 取得当前线程数量
-	int GetThreadCount() { return m_ThreadList.GetCount(); }
+	int getThreadCount() { return threadList_.getCount(); }
 	// 取得所属组别
-	CUdpRequestGroup& GetRequestGroup() { return *m_pOwnGroup; }
+	UdpRequestGroup& getRequestGroup() { return *ownGroup_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpRequestGroup - UDP请求组别类
+// class UdpRequestGroup - UDP请求组别类
 
-class CUdpRequestGroup
+class UdpRequestGroup
 {
 private:
-	CMainUdpServer *m_pOwnMainUdpSvr;       // 所属UDP服务器
-	int m_nGroupIndex;                      // 组别号(0-based)
-	CUdpRequestQueue m_RequestQueue;        // 请求队列
-	CUdpWorkerThreadPool m_ThreadPool;      // 工作者线程池
+	MainUdpServer *ownMainUdpSvr_;         // 所属UDP服务器
+	int groupIndex_;                       // 组别号(0-based)
+	UdpRequestQueue requestQueue_;         // 请求队列
+	UdpWorkerThreadPool threadPool_;       // 工作者线程池
 
 public:
-	CUdpRequestGroup(CMainUdpServer *pOwnMainUdpSvr, int nGroupIndex);
-	virtual ~CUdpRequestGroup() {}
+	UdpRequestGroup(MainUdpServer *ownMainUdpSvr, int groupIndex);
+	virtual ~UdpRequestGroup() {}
 
-	int GetGroupIndex() { return m_nGroupIndex; }
-	CUdpRequestQueue& GetRequestQueue() { return m_RequestQueue; }
-	CUdpWorkerThreadPool& GetThreadPool() { return m_ThreadPool; }
+	int getGroupIndex() { return groupIndex_; }
+	UdpRequestQueue& getRequestQueue() { return requestQueue_; }
+	UdpWorkerThreadPool& getThreadPool() { return threadPool_; }
 
 	// 取得所属UDP服务器
-	CMainUdpServer& GetMainUdpServer() { return *m_pOwnMainUdpSvr; }
+	MainUdpServer& getMainUdpServer() { return *ownMainUdpSvr_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMainUdpServer - UDP主服务器类
+// class MainUdpServer - UDP主服务器类
 
-class CMainUdpServer
+class MainUdpServer
 {
 private:
-	CUdpServer m_UdpServer;
-	vector<CUdpRequestGroup*> m_RequestGroupList;   // 请求组别列表
-	int m_nRequestGroupCount;                       // 请求组别总数
+	UdpServer udpServer_;
+	vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
+	int requestGroupCount_;                        // 请求组别总数
 private:
-	void InitUdpServer();
-	void InitRequestGroupList();
-	void ClearRequestGroupList();
+	void initUdpServer();
+	void initRequestGroupList();
+	void clearRequestGroupList();
 private:
-	static void OnRecvData(void *pParam, void *pPacketBuffer, int nPacketSize,
-		const CPeerAddress& PeerAddr);
+	static void onRecvData(void *param, void *packetBuffer, int packetSize,
+		const InetAddress& peerAddr);
 public:
-	explicit CMainUdpServer();
-	virtual ~CMainUdpServer();
+	explicit MainUdpServer();
+	virtual ~MainUdpServer();
 
-	void Open();
-	void Close();
+	void open();
+	void close();
 
-	void SetLocalPort(int nValue) { m_UdpServer.SetLocalPort(nValue); }
-	void SetListenerThreadCount(int nValue) { m_UdpServer.SetListenerThreadCount(nValue); }
+	void setLocalPort(int value) { udpServer_.setLocalPort(value); }
+	void setListenerThreadCount(int value) { udpServer_.setListenerThreadCount(value); }
 
 	// 根据负载情况动态调整工作者线程数量
-	void AdjustWorkerThreadCount();
+	void adjustWorkerThreadCount();
 	// 通知所有工作者线程退出
-	void TerminateAllWorkerThreads();
+	void terminateAllWorkerThreads();
 	// 等待所有工作者线程退出
-	void WaitForAllWorkerThreads();
+	void waitForAllWorkerThreads();
 
-	CUdpServer& GetUdpServer() { return m_UdpServer; }
+	UdpServer& getUdpServer() { return udpServer_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

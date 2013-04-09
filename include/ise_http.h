@@ -39,15 +39,14 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // ÌáÇ°ÉùÃ÷
 
-class CUrl;
-class CHttpHeaderStrList;
-class CHttpEntityHeaderInfo;
-class CHttpRequestHeaderInfo;
-class CHttpResponseHeaderInfo;
-class CHttpRequest;
-class CHttpResponse;
-class CCustomHttpClient;
-class CHttpClient;
+class HttpHeaderStrList;
+class HttpEntityHeaderInfo;
+class HttpRequestHeaderInfo;
+class HttpResponseHeaderInfo;
+class HttpRequest;
+class HttpResponse;
+class CustomHttpClient;
+class HttpClient;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Type Definitions
@@ -104,364 +103,364 @@ const int EC_HTTP_CANNOT_RECV_CONTENT      = -9;
 const int EC_HTTP_IOCP_ERROR               = -10;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpClientOptions
+// class HttpClientOptions
 
-struct CHttpClientOptions
+struct HttpClientOptions
 {
 public:
-	int nTcpConnectTimeOut;                // TCP connect timeout (ms).
-	int nSendReqHeaderTimeOut;             // Send request header timeout.
-	int nSendReqContBlockTimeOut;          // Send request content block timeout.
-	int nRecvResHeaderTimeOut;             // Receive response header timeout.
-	int nRecvResContBlockTimeOut;          // Receive response content block timeout.
-	int nSocketOpTimeOut;                  // Socket operation (recv/send) timeout.
+	int tcpConnectTimeOut;                // TCP connect timeout (ms).
+	int sendReqHeaderTimeOut;             // Send request header timeout.
+	int sendReqContBlockTimeOut;          // Send request content block timeout.
+	int recvResHeaderTimeOut;             // Receive response header timeout.
+	int recvResContBlockTimeOut;          // Receive response content block timeout.
+	int socketOpTimeOut;                  // Socket operation (recv/send) timeout.
 public:
-	CHttpClientOptions()
+	HttpClientOptions()
 	{
-		nTcpConnectTimeOut = HTTP_TCP_CONNECT_TIMEOUT;
-		nSendReqHeaderTimeOut = HTTP_SEND_REQ_HEADER_TIMEOUT;
-		nSendReqContBlockTimeOut = HTTP_SEND_REQ_CONT_BLOCK_TIMEOUT;
-		nRecvResHeaderTimeOut = HTTP_RECV_RES_HEADER_TIMEOUT;
-		nRecvResContBlockTimeOut = HTTP_RECV_RES_CONT_BLOCK_TIMEOUT;
-		nSocketOpTimeOut = HTTP_SOCKET_OP_TIMEOUT;
+		tcpConnectTimeOut = HTTP_TCP_CONNECT_TIMEOUT;
+		sendReqHeaderTimeOut = HTTP_SEND_REQ_HEADER_TIMEOUT;
+		sendReqContBlockTimeOut = HTTP_SEND_REQ_CONT_BLOCK_TIMEOUT;
+		recvResHeaderTimeOut = HTTP_RECV_RES_HEADER_TIMEOUT;
+		recvResContBlockTimeOut = HTTP_RECV_RES_CONT_BLOCK_TIMEOUT;
+		socketOpTimeOut = HTTP_SOCKET_OP_TIMEOUT;
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpHeaderStrList
+// class HttpHeaderStrList
 
-class CHttpHeaderStrList
+class HttpHeaderStrList
 {
 private:
-	CStrList m_Items;
-	string m_strNameValueSep;
+	StrList items_;
+	string nameValueSep_;
 private:
-	string MakeLine(const string& strName, const string& strValue) const;
+	string makeLine(const string& name, const string& value) const;
 public:
-	CHttpHeaderStrList();
-	virtual ~CHttpHeaderStrList() {}
+	HttpHeaderStrList();
+	virtual ~HttpHeaderStrList() {}
 
-	int Add(const string& str);
-	void Delete(int nIndex);
-	void Clear();
-	void AddStrings(const CHttpHeaderStrList& Strings);
-	void MoveToTop(const CStrList& NameList);
-	int IndexOfName(const string& strName) const;
+	int add(const string& str);
+	void del(int index);
+	void clear();
+	void addStrings(const HttpHeaderStrList& strings);
+	void moveToTop(const StrList& nameList);
+	int indexOfName(const string& name) const;
 
-	int GetCount() const { return m_Items.GetCount(); }
-	string GetString(int nIndex) const { return m_Items[nIndex]; }
-	string GetText() const;
-	string GetName(int nIndex) const;
-	string GetValue(int nIndex) const;
-	string GetValue(const string& strName) const;
-	void SetValue(const string& strName, const string& strValue);
+	int getCount() const { return items_.getCount(); }
+	string getString(int index) const { return items_[index]; }
+	string getText() const;
+	string getName(int index) const;
+	string getValue(int index) const;
+	string getValue(const string& name) const;
+	void setValue(const string& name, const string& value);
 
-	string operator[] (int nIndex) const { return GetString(nIndex); }
+	string operator[] (int index) const { return getString(index); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpEntityHeaderInfo
+// class HttpEntityHeaderInfo
 
-class CHttpEntityHeaderInfo
+class HttpEntityHeaderInfo
 {
 protected:
-	CHttpHeaderStrList m_RawHeaders;
-	CHttpHeaderStrList m_CustomHeaders;
-	string m_strCacheControl;
-	string m_strConnection;
-	string m_strContentDisposition;
-	string m_strContentEncoding;
-	string m_strContentLanguage;
-	INT64 m_nContentLength;
-	INT64 m_nContentRangeStart;
-	INT64 m_nContentRangeEnd;
-	INT64 m_nContentRangeInstanceLength;
-	string m_strContentType;
-	string m_strContentVersion;
-	string m_strDate;
-	string m_strExpires;
-	string m_strETag;
-	string m_strLastModified;
-	string m_strPragma;
-	string m_strTransferEncoding;
+	HttpHeaderStrList rawHeaders_;
+	HttpHeaderStrList customHeaders_;
+	string cacheControl_;
+	string connection_;
+	string contentDisposition_;
+	string contentEncoding_;
+	string contentLanguage_;
+	INT64 contentLength_;
+	INT64 contentRangeStart_;
+	INT64 contentRangeEnd_;
+	INT64 contentRangeInstanceLength_;
+	string contentType_;
+	string contentVersion_;
+	string date_;
+	string expires_;
+	string eTag_;
+	string lastModified_;
+	string pragma_;
+	string transferEncoding_;
 protected:
-	void Init();
+	void init();
 public:
-	CHttpEntityHeaderInfo() { Init(); }
-	virtual ~CHttpEntityHeaderInfo() {}
+	HttpEntityHeaderInfo() { init(); }
+	virtual ~HttpEntityHeaderInfo() {}
 
-	virtual void Clear();
-	virtual void ParseHeaders();
-	virtual void BuildHeaders();
+	virtual void clear();
+	virtual void parseHeaders();
+	virtual void buildHeaders();
 
-	bool HasContentLength() { return m_nContentLength >= 0; }
-	bool HasContentRange() { return m_nContentRangeEnd > 0; }
-	bool HasContentRangeInstance() { return m_nContentRangeInstanceLength > 0; }
+	bool hasContentLength() { return contentLength_ >= 0; }
+	bool hasContentRange() { return contentRangeEnd_ > 0; }
+	bool hasContentRangeInstance() { return contentRangeInstanceLength_ > 0; }
 
-	CHttpHeaderStrList& GetRawHeaders() { return m_RawHeaders; }
-	CHttpHeaderStrList& GetCustomHeaders() { return m_CustomHeaders; }
+	HttpHeaderStrList& getRawHeaders() { return rawHeaders_; }
+	HttpHeaderStrList& getCustomHeaders() { return customHeaders_; }
 
-	const string& GetCacheControl() const { return m_strCacheControl; }
-	const string& GetConnection() const { return m_strConnection; }
-	const string& GetContentDisposition() const { return m_strContentDisposition; }
-	const string& GetContentEncoding() const { return m_strContentEncoding; }
-	const string& GetContentLanguage() const { return m_strContentLanguage; }
-	const INT64& GetContentLength() const { return m_nContentLength; }
-	const INT64& GetContentRangeStart() const { return m_nContentRangeStart; }
-	const INT64& GetContentRangeEnd() const { return m_nContentRangeEnd; }
-	const INT64& GetContentRangeInstanceLength() const { return m_nContentRangeInstanceLength; }
-	const string& GetContentType() const { return m_strContentType; }
-	const string& GetContentVersion() const { return m_strContentVersion; }
-	const string& GetDate() const { return m_strDate; }
-	const string& GetExpires() const { return m_strExpires; }
-	const string& GetETag() const { return m_strETag; }
-	const string& GetLastModified() const { return m_strLastModified; }
-	const string& GetPragma() const { return m_strPragma; }
-	const string& GetTransferEncoding() const { return m_strTransferEncoding; }
+	const string& getCacheControl() const { return cacheControl_; }
+	const string& getConnection() const { return connection_; }
+	const string& getContentDisposition() const { return contentDisposition_; }
+	const string& getContentEncoding() const { return contentEncoding_; }
+	const string& getContentLanguage() const { return contentLanguage_; }
+	const INT64& getContentLength() const { return contentLength_; }
+	const INT64& getContentRangeStart() const { return contentRangeStart_; }
+	const INT64& getContentRangeEnd() const { return contentRangeEnd_; }
+	const INT64& getContentRangeInstanceLength() const { return contentRangeInstanceLength_; }
+	const string& getContentType() const { return contentType_; }
+	const string& getContentVersion() const { return contentVersion_; }
+	const string& getDate() const { return date_; }
+	const string& getExpires() const { return expires_; }
+	const string& getETag() const { return eTag_; }
+	const string& getLastModified() const { return lastModified_; }
+	const string& getPragma() const { return pragma_; }
+	const string& getTransferEncoding() const { return transferEncoding_; }
 
-	void SetCustomHeaders(const CHttpHeaderStrList& val) { m_CustomHeaders = val; }
-	void SetCacheControl(const string& strValue) { m_strCacheControl = strValue; }
-	void SetConnection(const string& strValue) { m_strConnection = strValue; }
-	void SetConnection(bool bKeepAlive) { m_strConnection = (bKeepAlive? "keep-alive" : "close"); }
-	void SetContentDisposition(const string& strValue) { m_strContentDisposition = strValue; }
-	void SetContentEncoding(const string& strValue) { m_strContentEncoding = strValue; }
-	void SetContentLanguage(const string& strValue) { m_strContentLanguage = strValue; }
-	void SetContentLength(INT64 nValue) { m_nContentLength = nValue; }
-	void SetContentRangeStart(INT64 nValue) { m_nContentRangeStart = nValue; }
-	void SetContentRangeEnd(INT64 nValue) { m_nContentRangeEnd = nValue; }
-	void SetContentRangeInstanceLength(INT64 nValue) { m_nContentRangeInstanceLength = nValue; }
-	void SetContentType(const string& strValue) { m_strContentType = strValue; }
-	void SetContentVersion(const string& strValue) { m_strContentVersion = strValue; }
-	void SetDate(const string& strValue) { m_strDate = strValue; }
-	void SetExpires(const string& strValue) { m_strExpires = strValue; }
-	void SetETag(const string& strValue) { m_strETag = strValue; }
-	void SetLastModified(const string& strValue) { m_strLastModified = strValue; }
-	void SetPragma(const string& strValue) { m_strPragma = strValue; }
-	void SetTransferEncoding(const string& strValue) { m_strTransferEncoding = strValue; }
+	void setCustomHeaders(const HttpHeaderStrList& val) { customHeaders_ = val; }
+	void setCacheControl(const string& value) { cacheControl_ = value; }
+	void setConnection(const string& value) { connection_ = value; }
+	void setConnection(bool keepAlive) { connection_ = (keepAlive? "keep-alive" : "close"); }
+	void setContentDisposition(const string& value) { contentDisposition_ = value; }
+	void setContentEncoding(const string& value) { contentEncoding_ = value; }
+	void setContentLanguage(const string& value) { contentLanguage_ = value; }
+	void setContentLength(INT64 value) { contentLength_ = value; }
+	void setContentRangeStart(INT64 value) { contentRangeStart_ = value; }
+	void setContentRangeEnd(INT64 value) { contentRangeEnd_ = value; }
+	void setContentRangeInstanceLength(INT64 value) { contentRangeInstanceLength_ = value; }
+	void setContentType(const string& value) { contentType_ = value; }
+	void setContentVersion(const string& value) { contentVersion_ = value; }
+	void setDate(const string& value) { date_ = value; }
+	void setExpires(const string& value) { expires_ = value; }
+	void setETag(const string& value) { eTag_ = value; }
+	void setLastModified(const string& value) { lastModified_ = value; }
+	void setPragma(const string& value) { pragma_ = value; }
+	void setTransferEncoding(const string& value) { transferEncoding_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpRequestHeaderInfo
+// class HttpRequestHeaderInfo
 
-class CHttpRequestHeaderInfo : public CHttpEntityHeaderInfo
+class HttpRequestHeaderInfo : public HttpEntityHeaderInfo
 {
 protected:
-	string m_strAccept;
-	string m_strAcceptCharSet;
-	string m_strAcceptEncoding;
-	string m_strAcceptLanguage;
-	string m_strFrom;
-	string m_strReferer;
-	string m_strUserAgent;
-	string m_strHost;
-	string m_strRange;
+	string accept_;
+	string acceptCharSet_;
+	string acceptEncoding_;
+	string acceptLanguage_;
+	string from_;
+	string referer_;
+	string userAgent_;
+	string host_;
+	string range_;
 protected:
-	void Init();
+	void init();
 public:
-	CHttpRequestHeaderInfo() { Init(); }
+	HttpRequestHeaderInfo() { init(); }
 
-	virtual void Clear();
-	virtual void ParseHeaders();
-	virtual void BuildHeaders();
+	virtual void clear();
+	virtual void parseHeaders();
+	virtual void buildHeaders();
 
-	const string& GetAccept() const { return  m_strAccept; }
-	const string& GetAcceptCharSet() const { return  m_strAcceptCharSet; }
-	const string& GetAcceptEncoding() const { return  m_strAcceptEncoding; }
-	const string& GetAcceptLanguage() const { return  m_strAcceptLanguage; }
-	const string& GetFrom() const { return  m_strFrom; }
-	const string& GetReferer() const { return  m_strReferer; }
-	const string& GetUserAgent() const { return  m_strUserAgent; }
-	const string& GetHost() const { return  m_strHost; }
-	const string& GetRange() const { return  m_strRange; }
+	const string& getAccept() const { return  accept_; }
+	const string& getAcceptCharSet() const { return  acceptCharSet_; }
+	const string& getAcceptEncoding() const { return  acceptEncoding_; }
+	const string& getAcceptLanguage() const { return  acceptLanguage_; }
+	const string& getFrom() const { return  from_; }
+	const string& getReferer() const { return  referer_; }
+	const string& getUserAgent() const { return  userAgent_; }
+	const string& getHost() const { return  host_; }
+	const string& getRange() const { return  range_; }
 
-	void SetAccept(const string& strValue) { m_strAccept = strValue; }
-	void SetAcceptCharSet(const string& strValue) { m_strAcceptCharSet = strValue; }
-	void SetAcceptEncoding(const string& strValue) { m_strAcceptEncoding = strValue; }
-	void SetAcceptLanguage(const string& strValue) { m_strAcceptLanguage = strValue; }
-	void SetFrom(const string& strValue) { m_strFrom = strValue; }
-	void SetReferer(const string& strValue) { m_strReferer = strValue; }
-	void SetUserAgent(const string& strValue) { m_strUserAgent = strValue; }
-	void SetHost(const string& strValue) { m_strHost = strValue; }
-	void SetRange(const string& strValue) { m_strRange = strValue; }
-	void SetRange(INT64 nRangeStart, INT64 nRangeEnd = -1);
+	void setAccept(const string& value) { accept_ = value; }
+	void setAcceptCharSet(const string& value) { acceptCharSet_ = value; }
+	void setAcceptEncoding(const string& value) { acceptEncoding_ = value; }
+	void setAcceptLanguage(const string& value) { acceptLanguage_ = value; }
+	void setFrom(const string& value) { from_ = value; }
+	void setReferer(const string& value) { referer_ = value; }
+	void setUserAgent(const string& value) { userAgent_ = value; }
+	void setHost(const string& value) { host_ = value; }
+	void setRange(const string& value) { range_ = value; }
+	void setRange(INT64 rangeStart, INT64 rangeEnd = -1);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpResponseHeaderInfo
+// class HttpResponseHeaderInfo
 
-class CHttpResponseHeaderInfo : public CHttpEntityHeaderInfo
+class HttpResponseHeaderInfo : public HttpEntityHeaderInfo
 {
 protected:
-	string m_strAcceptRanges;
-	string m_strLocation;
-	string m_strServer;
+	string acceptRanges_;
+	string location_;
+	string server_;
 protected:
-	void Init();
+	void init();
 public:
-	CHttpResponseHeaderInfo() { Init(); }
+	HttpResponseHeaderInfo() { init(); }
 
-	virtual void Clear();
-	virtual void ParseHeaders();
-	virtual void BuildHeaders();
+	virtual void clear();
+	virtual void parseHeaders();
+	virtual void buildHeaders();
 
-	const string& GetAcceptRanges() const { return  m_strAcceptRanges; }
-	const string& GetLocation() const { return  m_strLocation; }
-	const string& GetServer() const { return  m_strServer; }
+	const string& getAcceptRanges() const { return  acceptRanges_; }
+	const string& getLocation() const { return  location_; }
+	const string& getServer() const { return  server_; }
 
-	void SetAcceptRanges(const string& strValue) { m_strAcceptRanges = strValue; }
-	void SetLocation(const string& strValue) { m_strLocation = strValue; }
-	void SetServer(const string& strValue) { m_strServer = strValue; }
+	void setAcceptRanges(const string& value) { acceptRanges_ = value; }
+	void setLocation(const string& value) { location_ = value; }
+	void setServer(const string& value) { server_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpRequest
+// class HttpRequest
 
-class CHttpRequest : public CHttpRequestHeaderInfo
+class HttpRequest : public HttpRequestHeaderInfo
 {
 protected:
-	CCustomHttpClient& m_HttpClient;
-	HTTP_PROTO_VER m_nProtocolVersion;
-	string m_strUrl;
-	string m_strMethod;
-	CStream *m_pContentStream;
+	CustomHttpClient& httpClient_;
+	HTTP_PROTO_VER protocolVersion_;
+	string url_;
+	string method_;
+	Stream *contentStream_;
 protected:
-	void Init();
+	void init();
 public:
-	CHttpRequest(CCustomHttpClient& HttpClient);
+	HttpRequest(CustomHttpClient& HttpClient);
 
-	virtual void Clear();
+	virtual void clear();
 
-	HTTP_PROTO_VER GetProtocolVersion() const { return m_nProtocolVersion; }
-	const string& GetUrl() const { return m_strUrl; }
-	const string& GetMethod() const { return m_strMethod; }
-	CStream* GetContentStream() const { return m_pContentStream; }
+	HTTP_PROTO_VER getProtocolVersion() const { return protocolVersion_; }
+	const string& getUrl() const { return url_; }
+	const string& getMethod() const { return method_; }
+	Stream* getContentStream() const { return contentStream_; }
 
-	void SetProtocolVersion(HTTP_PROTO_VER nValue) { m_nProtocolVersion = nValue; }
-	void SetUrl(const string& strValue) { m_strUrl = strValue; }
-	void SetMethod(const string& strValue) { m_strMethod = strValue; }
-	void SetContentStream(CStream *pValue) { m_pContentStream = pValue; }
+	void setProtocolVersion(HTTP_PROTO_VER value) { protocolVersion_ = value; }
+	void setUrl(const string& value) { url_ = value; }
+	void setMethod(const string& value) { method_ = value; }
+	void setContentStream(Stream *value) { contentStream_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpResponse
+// class HttpResponse
 
-class CHttpResponse : public CHttpResponseHeaderInfo
+class HttpResponse : public HttpResponseHeaderInfo
 {
 protected:
-	CCustomHttpClient& m_HttpClient;
-	string m_strResponseText;
-	CStream *m_pContentStream;
+	CustomHttpClient& httpClient_;
+	string responseText_;
+	Stream *contentStream_;
 protected:
-	void Init();
+	void init();
 public:
-	CHttpResponse(CCustomHttpClient& HttpClient);
+	HttpResponse(CustomHttpClient& httpClient);
 
-	virtual void Clear();
+	virtual void clear();
 
-	bool GetKeepAlive();
-	const string& GetResponseText() const { return m_strResponseText; }
-	int GetResponseCode() const;
-	HTTP_PROTO_VER GetResponseVersion() const;
-	CStream* GetContentStream() const { return m_pContentStream; }
+	bool getKeepAlive();
+	const string& getResponseText() const { return responseText_; }
+	int getResponseCode() const;
+	HTTP_PROTO_VER getResponseVersion() const;
+	Stream* getContentStream() const { return contentStream_; }
 
-	void SetResponseText(const string& strValue) { m_strResponseText = strValue; }
-	void SetContentStream(CStream *pValue) { m_pContentStream = pValue; }
+	void setResponseText(const string& value) { responseText_ = value; }
+	void setContentStream(Stream *value) { contentStream_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CCustomHttpClient - HTTP client base class.
+// class CustomHttpClient - HTTP client base class.
 
-class CCustomHttpClient
+class CustomHttpClient
 {
 public:
-	friend class CHttpRequest;
-	friend class CHttpResponse;
+	friend class HttpRequest;
+	friend class HttpResponse;
 protected:
-	CTcpClient m_TcpClient;
-	CHttpRequest m_Request;
-	CHttpResponse m_Response;
-	CHttpClientOptions m_Options;
-	CUrl m_Url;
-	bool m_bHandleRedirects;
-	int m_nRedirectCount;
-	bool m_bLastKeepAlive;
+	TcpClient tcpClient_;
+	HttpRequest request_;
+	HttpResponse response_;
+	HttpClientOptions options_;
+	Url url_;
+	bool handleRedirects_;
+	int redirectCount_;
+	bool lastKeepAlive_;
 protected:
-	CPeerAddress GetPeerAddrFromUrl(CUrl& Url);
-	void MakeRequestBuffer(CBuffer& Buffer);
-	int BeforeRequest(HTTP_METHOD_TYPE nHttpMethod, const string& strUrl, CStream *pRequestContent,
-		CStream *pResponseContent, INT64 nReqStreamPos, INT64 nResStreamPos);
-	void CheckResponseHeader(char *pBuffer, int nSize, bool& bFinished, bool& bError);
-	bool ParseResponseHeader(void *pBuffer, int nSize);
-	HTTP_NEXT_OP ProcessResponseHeader();
-	void TcpDisconnect(bool bForce = false);
+	InetAddress getInetAddrFromUrl(Url& url);
+	void makeRequestBuffer(Buffer& buffer);
+	int beforeRequest(HTTP_METHOD_TYPE httpMethod, const string& urlStr, Stream *requestContent,
+		Stream *responseContent, INT64 reqStreamPos, INT64 resStreamPos);
+	void checkResponseHeader(char *buffer, int size, bool& finished, bool& error);
+	bool parseResponseHeader(void *buffer, int size);
+	HTTP_NEXT_OP processResponseHeader();
+	void tcpDisconnect(bool force = false);
 public:
-	CCustomHttpClient();
-	virtual ~CCustomHttpClient();
+	CustomHttpClient();
+	virtual ~CustomHttpClient();
 
 	/// Force to disconnect the connection.
-	void Disconnect() { TcpDisconnect(true); }
+	void disconnect() { tcpDisconnect(true); }
 	/// Indicates whether the connection is currently connected or not.
-	bool IsConnected() { return m_TcpClient.IsConnected(); }
+	bool isConnected() { return tcpClient_.isConnected(); }
 
 	/// The http request info.
-	CHttpRequest& HttpRequest() { return m_Request; }
+	HttpRequest& httpRequest() { return request_; }
 	/// The http response info.
-	CHttpResponse& HttpResponse() { return m_Response; }
+	HttpResponse& httpResponse() { return response_; }
 	/// The http client options
-	CHttpClientOptions& Options() { return m_Options; }
+	HttpClientOptions& options() { return options_; }
 	/// Returns the response text.
-	string GetResponseText() { return m_Response.GetResponseText(); }
+	string getResponseText() { return response_.getResponseText(); }
 	/// Returns the response code.
-	int GetResponseCode() { return m_Response.GetResponseCode(); }
+	int getResponseCode() { return response_.getResponseCode(); }
 	/// Indicates if the http client can handle redirections.
-	bool GetHandleRedirects() { return m_bHandleRedirects; }
+	bool getHandleRedirects() { return handleRedirects_; }
 	/// Indicates the number of redirects encountered in the last request for the http client.
-	int GetRedirectCount() { return m_nRedirectCount; }
+	int getRedirectCount() { return redirectCount_; }
 	/// Returns the tcp client object.
-	CTcpClient& GetTcpClient() { return m_TcpClient; }
+	TcpClient& getTcpClient() { return tcpClient_; }
 
 	/// Determines if the http client can handle redirections.
-	void SetHandleRedirects(bool bValue) { m_bHandleRedirects = bValue; }
+	void setHandleRedirects(bool value) { handleRedirects_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CHttpClient - HTTP client class.
+// class HttpClient - HTTP client class.
 
-class CHttpClient : public CCustomHttpClient
+class HttpClient : public CustomHttpClient
 {
 public:
-	friend class CAutoFinalizer;
+	friend class AutoFinalizer;
 private:
-	int ReadLine(string& strLine, int nTimeOut);
-	int ReadChunkSize(UINT& nChunkSize, int nTimeOut);
-	int ReadStream(CStream& Stream, int nBytes, int nTimeOut);
+	int readLine(string& line, int timeout);
+	int readChunkSize(UINT& chunkSize, int timeout);
+	int readStream(Stream& stream, int bytes, int timeout);
 protected:
-	int ExecuteHttpAction(HTTP_METHOD_TYPE nHttpMethod, const string& strUrl,
-		CStream *pRequestContent, CStream *pResponseContent);
-	int ExecuteHttpRequest(HTTP_METHOD_TYPE nHttpMethod, const string& strUrl,
-		CStream *pRequestContent, CStream *pResponseContent,
-		bool bNeedRecvContent, bool& bCanRecvContent);
+	int executeHttpAction(HTTP_METHOD_TYPE httpMethod, const string& url,
+		Stream *requestContent, Stream *responseContent);
+	int executeHttpRequest(HTTP_METHOD_TYPE httpMethod, const string& url,
+		Stream *requestContent, Stream *responseContent,
+		bool needRecvContent, bool& canRecvContent);
 
-	int TcpConnect();
-	int SendRequestHeader();
-	int SendRequestContent();
-	int RecvResponseHeader();
-	int RecvResponseContent();
+	int tcpConnect();
+	int sendRequestHeader();
+	int sendRequestContent();
+	int recvResponseHeader();
+	int recvResponseContent();
 public:
-	CHttpClient();
-	virtual ~CHttpClient();
+	HttpClient();
+	virtual ~HttpClient();
 
 	/// Sends a "GET" request to http server, and receives the response content. Returns the error code (EC_HTTP_XXX).
-	int Get(const string& strUrl, CStream *pResponseContent);
+	int get(const string& url, Stream *responseContent);
 	/// Sends a "POST" request to http server with the specified request content, and receives the response content. Returns the error code (EC_HTTP_XXX).
-	int Post(const string& strUrl, CStream *pRequestContent, CStream *pResponseContent);
+	int post(const string& url, Stream *requestContent, Stream *responseContent);
 
 	/// Downloads the entire file from the specified url. Returns the error code (EC_HTTP_XXX).
-	int DownloadFile(const string& strUrl, const string& strLocalFileName);
+	int downloadFile(const string& url, const string& localFileName);
 	/// Sends the "GET" request to http server, and receives the response text and headers. Returns the error code (EC_HTTP_XXX).
-	int RequestFile(const string& strUrl);
+	int requestFile(const string& url);
 	/// Try to receive the response content from http server, returns the total number of bytes received actually, -1 if error.
-	int ReceiveFile(void *pBuffer, int nSize, int nTimeOutMSecs = -1);
+	int receiveFile(void *buffer, int size, int timeoutMSecs = -1);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -38,63 +38,63 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // classes
 
-class CSysThread;
-class CSysDaemonThread;
-class CSysSchedulerThread;
-class CSysThreadMgr;
+class SysThread;
+class SysDaemonThread;
+class SysSchedulerThread;
+class SysThreadMgr;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysThread
+// class SysThread
 
-class CSysThread : public CThread
+class SysThread : public Thread
 {
 protected:
-	CSysThreadMgr& m_ThreadMgr;
+	SysThreadMgr& threadMgr_;
 public:
-	CSysThread(CSysThreadMgr& ThreadMgr);
-	virtual ~CSysThread();
+	SysThread(SysThreadMgr& threadMgr);
+	virtual ~SysThread();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysDaemonThread
+// class SysDaemonThread
 
-class CSysDaemonThread : public CSysThread
+class SysDaemonThread : public SysThread
 {
 protected:
-	virtual void Execute();
+	virtual void execute();
 public:
-	CSysDaemonThread(CSysThreadMgr& ThreadMgr) : CSysThread(ThreadMgr) {}
+	SysDaemonThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysSchedulerThread
+// class SysSchedulerThread
 
-class CSysSchedulerThread : public CSysThread
+class SysSchedulerThread : public SysThread
 {
 protected:
-	virtual void Execute();
+	virtual void execute();
 public:
-	CSysSchedulerThread(CSysThreadMgr& ThreadMgr) : CSysThread(ThreadMgr) {}
+	SysSchedulerThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysThreadMgr
+// class SysThreadMgr
 
-class CSysThreadMgr
+class SysThreadMgr
 {
 private:
-	friend class CSysThread;
+	friend class SysThread;
 private:
-	CThreadList m_ThreadList;
+	ThreadList threadList_;
 private:
-	void RegisterThread(CSysThread *pThread);
-	void UnregisterThread(CSysThread *pThread);
+	void registerThread(SysThread *thread);
+	void unregisterThread(SysThread *thread);
 public:
-	CSysThreadMgr() {}
-	~CSysThreadMgr() {}
+	SysThreadMgr() {}
+	~SysThreadMgr() {}
 
-	void Initialize();
-	void Finalize();
+	void initialize();
+	void finalize();
 };
 
 ///////////////////////////////////////////////////////////////////////////////

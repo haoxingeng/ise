@@ -23,12 +23,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // ise_xml_doc.h
 // Classes:
-//   * CXmlNode
-//   * CXmlNodeProps
-//   * CXmlDocument
-//   * CXmlReader
-//   * CXmlWriter
-//   * CXmlDocParser
+//   * XmlNode
+//   * XmlNodeProps
+//   * XmlDocument
+//   * XmlReader
+//   * XmlWriter
+//   * XmlDocParser
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef _ISE_XML_DOC_H_
@@ -48,8 +48,8 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CXmlNode;
-class CXmlNodeProps;
+class XmlNode;
+class XmlNodeProps;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
@@ -72,169 +72,169 @@ const char* const S_DEF_XML_DOC_VER = "1.0";
 ///////////////////////////////////////////////////////////////////////////////
 // 杂项函数
 
-string StrToXml(const string& str);
-string XmlToStr(const string& str);
+string strToXml(const string& str);
+string xmlToStr(const string& str);
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlNode
+// class XmlNode
 
-class CXmlNode
+class XmlNode
 {
 private:
-	CXmlNode *m_pParentNode;    // 父节点
-	CList *m_pChildNodes;       // 子节点列表 (CXmlNode*)[]
-	CXmlNodeProps *m_pProps;    // 属性值列表
-	string m_strName;           // 节点名称
-	string m_strDataString;     // 节点数据(XmlToStr之后的数据)
+	XmlNode *parentNode_;       // 父节点
+	PointerList *childNodes_;   // 子节点列表 (XmlNode*)[]
+	XmlNodeProps *props_;       // 属性值列表
+	string name_;               // 节点名称
+	string dataString_;         // 节点数据(xmlToStr之后的数据)
 private:
-	void InitObject();
-	void AssignNode(CXmlNode& Src, CXmlNode& Dest);
+	void initObject();
+	void assignNode(XmlNode& src, XmlNode& dest);
 public:
-	CXmlNode();
-	CXmlNode(const CXmlNode& src);
-	virtual ~CXmlNode();
+	XmlNode();
+	XmlNode(const XmlNode& src);
+	virtual ~XmlNode();
 
-	CXmlNode& operator = (const CXmlNode& rhs);
+	XmlNode& operator = (const XmlNode& rhs);
 
-	void AddNode(CXmlNode *pNode);
-	CXmlNode* AddNode();
-	CXmlNode* AddNode(const string& strName, const string& strDataString);
-	void InsertNode(int nIndex, CXmlNode *pNode);
+	void addNode(XmlNode *node);
+	XmlNode* addNode();
+	XmlNode* addNode(const string& name, const string& dataString);
+	void insertNode(int index, XmlNode *node);
 
-	CXmlNode* FindChildNode(const string& strName);
-	int IndexOf(const string& strName);
-	void Clear();
+	XmlNode* findChildNode(const string& name);
+	int indexOf(const string& name);
+	void clear();
 
-	CXmlNode* GetRootNode() const;
-	CXmlNode* GetParentNode() const { return m_pParentNode; }
-	int GetChildCount() const;
-	CXmlNode* GetChildNodes(int nIndex) const;
-	CXmlNodeProps* GetProps() const { return m_pProps; }
-	string GetName() const { return m_strName; }
-	string GetDataString() const { return m_strDataString; }
+	XmlNode* getRootNode() const;
+	XmlNode* getParentNode() const { return parentNode_; }
+	int getChildCount() const;
+	XmlNode* getChildNodes(int index) const;
+	XmlNodeProps* getProps() const { return props_; }
+	string getName() const { return name_; }
+	string getDataString() const { return dataString_; }
 
-	void SetParentNode(CXmlNode *pNode);
-	void SetName(const string& strValue) { m_strName = strValue; }
-	void SetDataString(const string& strValue);
+	void setParentNode(XmlNode *node);
+	void setName(const string& value) { name_ = value; }
+	void setDataString(const string& value);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlNodeProps
+// class XmlNodeProps
 
-struct CXmlNodePropItem
+struct XmlNodePropItem
 {
-	string strName;
-	string strValue;
+	string name;
+	string value;
 };
 
-class CXmlNodeProps
+class XmlNodeProps
 {
 private:
-	CList m_Items;      // (CXmlNodePropItem*)[]
+	PointerList items_;      // (XmlNodePropItem*)[]
 private:
-	CXmlNodePropItem* GetItemPtr(int nIndex)
-		{ return (CXmlNodePropItem*)m_Items[nIndex]; }
-	void ParsePropString(const string& strPropStr);
+	XmlNodePropItem* getItemPtr(int index)
+		{ return (XmlNodePropItem*)items_[index]; }
+	void parsePropString(const string& propStr);
 public:
-	CXmlNodeProps();
-	CXmlNodeProps(const CXmlNodeProps& src);
-	virtual ~CXmlNodeProps();
+	XmlNodeProps();
+	XmlNodeProps(const XmlNodeProps& src);
+	virtual ~XmlNodeProps();
 
-	CXmlNodeProps& operator = (const CXmlNodeProps& rhs);
-	string& operator[](const string& strName) { return ValueOf(strName); }
+	XmlNodeProps& operator = (const XmlNodeProps& rhs);
+	string& operator[](const string& name) { return valueOf(name); }
 
-	bool Add(const string& strName, const string& strValue);
-	void Remove(const string& strName);
-	void Clear();
-	int IndexOf(const string& strName);
-	bool PropExists(const string& strName);
-	string& ValueOf(const string& strName);
+	bool add(const string& name, const string& value);
+	void remove(const string& name);
+	void clear();
+	int indexOf(const string& name);
+	bool propExists(const string& name);
+	string& valueOf(const string& name);
 
-	int GetCount() const { return m_Items.GetCount(); }
-	CXmlNodePropItem GetItems(int nIndex) const;
-	string GetPropString() const;
-	void SetPropString(const string& strPropString);
+	int getCount() const { return items_.getCount(); }
+	XmlNodePropItem getItems(int index) const;
+	string getPropString() const;
+	void setPropString(const string& propString);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlDocument
+// class XmlDocument
 
-class CXmlDocument
+class XmlDocument
 {
 private:
-	bool m_bAutoIndent;     // 是否自动缩进
-	int m_nIndentSpaces;    // 缩进空格数
-	CXmlNode m_RootNode;    // 根节点
-	string m_strEncoding;   // XML编码
+	bool autoIndent_;     // 是否自动缩进
+	int indentSpaces_;    // 缩进空格数
+	XmlNode rootNode_;    // 根节点
+	string encoding_;     // XML编码
 public:
-	CXmlDocument();
-	CXmlDocument(const CXmlDocument& src);
-	virtual ~CXmlDocument();
+	XmlDocument();
+	XmlDocument(const XmlDocument& src);
+	virtual ~XmlDocument();
 
-	CXmlDocument& operator = (const CXmlDocument& rhs);
+	XmlDocument& operator = (const XmlDocument& rhs);
 
-	bool SaveToStream(CStream& Stream);
-	bool LoadFromStream(CStream& Stream);
-	bool SaveToString(string& str);
-	bool LoadFromString(const string& str);
-	bool SaveToFile(const string& strFileName);
-	bool LoadFromFile(const string& strFileName);
-	void Clear();
+	bool saveToStream(Stream& stream);
+	bool loadFromStream(Stream& stream);
+	bool saveToString(string& str);
+	bool loadFromString(const string& str);
+	bool saveToFile(const string& fileName);
+	bool loadFromFile(const string& fileName);
+	void clear();
 
-	bool GetAutoIndent() const { return m_bAutoIndent; }
-	int GetIndentSpaces() const { return m_nIndentSpaces; }
-	string GetEncoding() const { return m_strEncoding; }
-	CXmlNode* GetRootNode() { return &m_RootNode; }
+	bool getAutoIndent() const { return autoIndent_; }
+	int getIndentSpaces() const { return indentSpaces_; }
+	string getEncoding() const { return encoding_; }
+	XmlNode* getRootNode() { return &rootNode_; }
 
-	void SetAutoIndent(bool bValue) { m_bAutoIndent = bValue; }
-	void SetIndentSpaces(int nValue) { m_nIndentSpaces = nValue; }
-	void SetEncoding(const string& strValue) { m_strEncoding = strValue; }
+	void setAutoIndent(bool value) { autoIndent_ = value; }
+	void setIndentSpaces(int value) { indentSpaces_ = value; }
+	void setEncoding(const string& value) { encoding_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlReader
+// class XmlReader
 
-class CXmlReader
+class XmlReader
 {
 private:
-	CXmlDocument *m_pOwner;
-	CStream *m_pStream;
-	CBuffer m_Buffer;
-	int m_nPosition;
+	XmlDocument *owner_;
+	Stream *stream_;
+	Buffer buffer_;
+	int position_;
 private:
-	XML_TAG_TYPES ReadXmlData(string& strName, string& strProp, string& strData);
-	XML_TAG_TYPES ReadNode(CXmlNode *pNode);
+	XML_TAG_TYPES readXmlData(string& name, string& prop, string& data);
+	XML_TAG_TYPES readNode(XmlNode *node);
 public:
-	CXmlReader(CXmlDocument *pOwner, CStream *pStream);
-	virtual ~CXmlReader();
+	XmlReader(XmlDocument *owner, Stream *stream);
+	virtual ~XmlReader();
 
-	void ReadHeader(string& strVersion, string& strEncoding);
-	void ReadRootNode(CXmlNode *pNode);
+	void readHeader(string& version, string& encoding);
+	void readRootNode(XmlNode *node);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlWriter
+// class XmlWriter
 
-class CXmlWriter
+class XmlWriter
 {
 private:
-	CXmlDocument *m_pOwner;
-	CStream *m_pStream;
-	string m_strBuffer;
+	XmlDocument *owner_;
+	Stream *stream_;
+	string buffer_;
 private:
-	void FlushBuffer();
-	void WriteLn(const string& str);
-	void WriteNode(CXmlNode *pNode, int nIndent);
+	void flushBuffer();
+	void writeLn(const string& str);
+	void writeNode(XmlNode *node, int indent);
 public:
-	CXmlWriter(CXmlDocument *pOwner, CStream *pStream);
-	virtual ~CXmlWriter();
+	XmlWriter(XmlDocument *owner, Stream *stream);
+	virtual ~XmlWriter();
 
-	void WriteHeader(const string& strVersion = S_DEF_XML_DOC_VER, const string& strEncoding = "");
-	void WriteRootNode(CXmlNode *pNode);
+	void writeHeader(const string& version = S_DEF_XML_DOC_VER, const string& encoding = "");
+	void writeRootNode(XmlNode *node);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlDocParser - XML文档解读器
+// class XmlDocParser - XML文档解读器
 //
 // 名词解释:
 //   NamePath: XML值的名称路径。它由一系列XML节点名组成，各名称之间用点号(.)分隔，最后
@@ -242,24 +242,24 @@ public:
 //   须注意的是，由于名称之间用点号分隔，所以各名称内部不应含有点号，以免混淆。
 //   示例: "Database.MainDb.HostName"
 
-class CXmlDocParser
+class XmlDocParser
 {
 private:
-	CXmlDocument m_XmlDoc;
+	XmlDocument xmlDoc_;
 private:
-	void SplitNamePath(const string& strNamePath, CStrList& Result);
+	void splitNamePath(const string& namePath, StrList& result);
 public:
-	CXmlDocParser();
-	virtual ~CXmlDocParser();
+	XmlDocParser();
+	virtual ~XmlDocParser();
 
-	bool LoadFromFile(const string& strFileName);
+	bool loadFromFile(const string& fileName);
 
-	string GetString(const string& strNamePath);
-	int GetInteger(const string& strNamePath, int nDefault = 0);
-	double GetFloat(const string& strNamePath, double fDefault = 0);
-	bool GetBoolean(const string& strNamePath, bool bDefault = 0);
+	string getString(const string& namePath);
+	int getInteger(const string& namePath, int defaultVal = 0);
+	double getFloat(const string& namePath, double defaultVal = 0);
+	bool getBoolean(const string& namePath, bool defaultVal = 0);
 
-	CXmlDocument& GetXmlDoc() { return m_XmlDoc; }
+	XmlDocument& getXmlDoc() { return xmlDoc_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -36,175 +36,175 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CException - 异常基类
+// class Exception - 异常基类
 
-class CException : std::exception
+class Exception : std::exception
 {
 private:
-	mutable string m_strWhat;
+	mutable string what_;
 public:
-	CException() {}
-	virtual ~CException() throw() {}
+	Exception() {}
+	virtual ~Exception() throw() {}
 
 	virtual const char* what() const throw();
-	virtual string GetErrorMessage() const { return ""; }
-	virtual string MakeLogStr() const;
+	virtual string getErrorMessage() const { return ""; }
+	virtual string makeLogStr() const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSimpleException - Simple exception
+// SimpleException - Simple exception
 
-class CSimpleException : public CException
+class SimpleException : public Exception
 {
 protected:
-	string m_strErrorMsg;
-	string m_strSrcFileName;
-	int m_nSrcLineNumber;
+	string errorMsg_;
+	string srcFileName_;
+	int srcLineNumber_;
 public:
-	CSimpleException() : m_nSrcLineNumber(-1) {}
-	CSimpleException(const char *lpszErrorMsg,
-		const char *lpszSrcFileName = NULL,
-		int nSrcLineNumber = -1);
-	virtual ~CSimpleException() throw() {}
+	SimpleException() : srcLineNumber_(-1) {}
+	SimpleException(const char *errorMsg,
+		const char *srcFileName = NULL,
+		int srcLineNumber = -1);
+	virtual ~SimpleException() throw() {}
 
-	virtual string GetErrorMessage() const { return m_strErrorMsg; }
-	virtual string MakeLogStr() const;
-	void SetErrorMesssage(const char *lpszMsg) { m_strErrorMsg = lpszMsg; }
+	virtual string getErrorMessage() const { return errorMsg_; }
+	virtual string makeLogStr() const;
+	void setErrorMesssage(const char *msg) { errorMsg_ = msg; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CMemoryException - Memory exception
+// MemoryException - Memory exception
 
-class CMemoryException : public CSimpleException
+class MemoryException : public SimpleException
 {
 public:
-	CMemoryException() {}
-	explicit CMemoryException(const char *lpszErrorMsg) : CSimpleException(lpszErrorMsg) {}
-	virtual ~CMemoryException() throw() {}
+	MemoryException() {}
+	explicit MemoryException(const char *errorMsg) : SimpleException(errorMsg) {}
+	virtual ~MemoryException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CStreamException - Stream exception
+// StreamException - Stream exception
 
-class CStreamException : public CSimpleException
+class StreamException : public SimpleException
 {
 public:
-	CStreamException() {}
-	explicit CStreamException(const char *lpszErrorMsg) : CSimpleException(lpszErrorMsg) {}
-	virtual ~CStreamException() throw() {}
+	StreamException() {}
+	explicit StreamException(const char *errorMsg) : SimpleException(errorMsg) {}
+	virtual ~StreamException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFileException - File exception
+// FileException - File exception
 
-class CFileException : public CSimpleException
+class FileException : public SimpleException
 {
 protected:
-	string m_strFileName;
-	int m_nErrorCode;
+	string fileName_;
+	int errorCode_;
 public:
-	CFileException() : m_nErrorCode(0) {}
-	CFileException(const char *lpszFileName, int nErrorCode, const char *lpszErrorMsg = NULL);
-	virtual ~CFileException() throw() {}
+	FileException() : errorCode_(0) {}
+	FileException(const char *fileName, int errorCode, const char *errorMsg = NULL);
+	virtual ~FileException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CThreadException - Thread exception
+// ThreadException - Thread exception
 
-class CThreadException : public CSimpleException
+class ThreadException : public SimpleException
 {
 public:
-	CThreadException() {}
-	explicit CThreadException(const char *lpszErrorMsg) : CSimpleException(lpszErrorMsg) {}
-	virtual ~CThreadException() throw() {}
+	ThreadException() {}
+	explicit ThreadException(const char *errorMsg) : SimpleException(errorMsg) {}
+	virtual ~ThreadException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CSocketException - Socket exception
+// SocketException - Socket exception
 
-class CSocketException : public CSimpleException
+class SocketException : public SimpleException
 {
 public:
-	CSocketException() {}
-	explicit CSocketException(const char *lpszErrorMsg) : CSimpleException(lpszErrorMsg) {}
-	virtual ~CSocketException() throw() {}
+	SocketException() {}
+	explicit SocketException(const char *errorMsg) : SimpleException(errorMsg) {}
+	virtual ~SocketException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CDbException - Database exception
+// DbException - Database exception
 
-class CDbException : public CSimpleException
+class DbException : public SimpleException
 {
 public:
-	CDbException() {}
-	explicit CDbException(const char *lpszErrorMsg) : CSimpleException(lpszErrorMsg) {}
-	virtual ~CDbException() throw() {}
+	DbException() {}
+	explicit DbException(const char *errorMsg) : SimpleException(errorMsg) {}
+	virtual ~DbException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// CDataAlgoException - DataAlgo exception
+// DataAlgoException - DataAlgo exception
 
-class CDataAlgoException : public CSimpleException
+class DataAlgoException : public SimpleException
 {
 public:
-	CDataAlgoException() {}
-	explicit CDataAlgoException(const char *lpszErrorMsg) : CSimpleException(lpszErrorMsg) {}
-	virtual ~CDataAlgoException() throw() {}
+	DataAlgoException() {}
+	explicit DataAlgoException(const char *errorMsg) : SimpleException(errorMsg) {}
+	virtual ~DataAlgoException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Exception throwing rountines.
 
-#define ISE_THROW_EXCEPTION(msg)  IseThrowException(msg, __FILE__, __LINE__)
+#define ISE_THROW_EXCEPTION(msg)  iseThrowException(msg, __FILE__, __LINE__)
 
-// Throws a CSimpleException exception.
-inline void IseThrowException(const char *lpszMsg,
-	const char *lpszSrcFileName = NULL, int nSrcLineNumber = -1)
+// Throws a SimpleException exception.
+inline void iseThrowException(const char *msg,
+	const char *srcFileName = NULL, int srcLineNumber = -1)
 {
-	throw CSimpleException(lpszMsg, lpszSrcFileName, nSrcLineNumber);
+	throw SimpleException(msg, srcFileName, srcLineNumber);
 }
 
-// Throws a CMemoryException exception.
-inline void IseThrowMemoryException()
+// Throws a MemoryException exception.
+inline void iseThrowMemoryException()
 {
-	throw CMemoryException(SEM_OUT_OF_MEMORY);
+	throw MemoryException(SEM_OUT_OF_MEMORY);
 }
 
-// Throws a CStreamException exception.
-inline void IseThrowStreamException(const char *lpszMsg)
+// Throws a StreamException exception.
+inline void iseThrowStreamException(const char *msg)
 {
-	throw CStreamException(lpszMsg);
+	throw StreamException(msg);
 }
 
-// Throws a CFileException exception.
-inline void IseThrowFileException(const char *lpszFileName, int nErrorCode,
-	const char *lpszErrorMsg = NULL)
+// Throws a FileException exception.
+inline void iseThrowFileException(const char *fileName, int errorCode,
+	const char *errorMsg = NULL)
 {
-	throw CFileException(lpszFileName, nErrorCode, lpszErrorMsg);
+	throw FileException(fileName, errorCode, errorMsg);
 }
 
-// Throws a CThreadException exception.
-inline void IseThrowThreadException(const char *lpszMsg)
+// Throws a ThreadException exception.
+inline void iseThrowThreadException(const char *msg)
 {
-	throw CThreadException(lpszMsg);
+	throw ThreadException(msg);
 }
 
-// Throws a CSocketException exception.
-inline void IseThrowSocketException(const char *lpszMsg)
+// Throws a SocketException exception.
+inline void iseThrowSocketException(const char *msg)
 {
-	throw CSocketException(lpszMsg);
+	throw SocketException(msg);
 }
 
-// Throws a CDbException exception.
-inline void IseThrowDbException(const char *lpszMsg)
+// Throws a DbException exception.
+inline void iseThrowDbException(const char *msg)
 {
-	throw CDbException(lpszMsg);
+	throw DbException(msg);
 }
 
-// Throws a CDataAlgoException exception.
-inline void IseThrowDataAlgoException(const char *lpszMsg)
+// Throws a DataAlgoException exception.
+inline void iseThrowDataAlgoException(const char *msg)
 {
-	throw new CDataAlgoException(lpszMsg);
+	throw new DataAlgoException(msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

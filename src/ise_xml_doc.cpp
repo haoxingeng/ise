@@ -37,7 +37,7 @@ namespace ise
 //-----------------------------------------------------------------------------
 // 描述: 任意字符串 -> 合法的XML字符串
 //-----------------------------------------------------------------------------
-string StrToXml(const string& str)
+string strToXml(const string& str)
 {
 	string s = str;
 
@@ -73,7 +73,7 @@ string StrToXml(const string& str)
 		case 10:
 		case 13:
 			string strRep;
-			strRep = string("#") + ise::IntToStr(s[i]) + ";";
+			strRep = string("#") + ise::intToStr(s[i]) + ";";
 			s.insert(i + 1, strRep);
 			s[i] = '&';
 			break;
@@ -91,7 +91,7 @@ string StrToXml(const string& str)
 //   &quot; -> '"'
 //   &#XXX; -> 十进制值所对应的ASCII字符
 //-----------------------------------------------------------------------------
-string XmlToStr(const string& str)
+string xmlToStr(const string& str)
 {
 	string s = str;
 	int i, j, h, n;
@@ -108,7 +108,7 @@ string XmlToStr(const string& str)
 				while (j < n && s[j] != ';') j++;
 				if (s[j] == ';')
 				{
-					h = StrToInt(s.substr(i + 2, j - i - 2).c_str());
+					h = strToInt(s.substr(i + 2, j - i - 2).c_str());
 					s.erase(i, j - i);
 					s[i] = h;
 					n -= (j - i);
@@ -155,496 +155,496 @@ string XmlToStr(const string& str)
 //-----------------------------------------------------------------------------
 // 描述: 在串s中查找 chars 中的任一字符，若找到则返回其位置(0-based)，否则返回-1。
 //-----------------------------------------------------------------------------
-int FindChars(const string& s, const string& chars)
+int findChars(const string& s, const string& chars)
 {
-	int nResult = -1;
-	int nLen = (int)s.length();
+	int result = -1;
+	int len = (int)s.length();
 
-	for (int i = 0; i < nLen; i++)
+	for (int i = 0; i < len; i++)
 		if (chars.find(s[i], 0) != string::npos)
 		{
-			nResult = i;
+			result = i;
 			break;
 		}
 
-	return nResult;
+	return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CXmlNode
+// XmlNode
 
-CXmlNode::CXmlNode() :
-	m_pParentNode(NULL),
-	m_pChildNodes(NULL),
-	m_pProps(NULL)
+XmlNode::XmlNode() :
+	parentNode_(NULL),
+	childNodes_(NULL),
+	props_(NULL)
 {
-	InitObject();
+	initObject();
 }
 
-CXmlNode::CXmlNode(const CXmlNode& src)
+XmlNode::XmlNode(const XmlNode& src)
 {
-	InitObject();
+	initObject();
 	*this = src;
 }
 
-CXmlNode::~CXmlNode()
+XmlNode::~XmlNode()
 {
-	Clear();
-	delete m_pProps;
-	if (m_pParentNode && m_pParentNode->m_pChildNodes)
-		m_pParentNode->m_pChildNodes->Remove(this);
+	clear();
+	delete props_;
+	if (parentNode_ && parentNode_->childNodes_)
+		parentNode_->childNodes_->remove(this);
 }
 
-void CXmlNode::InitObject()
+void XmlNode::initObject()
 {
-	m_pProps = new CXmlNodeProps();
+	props_ = new XmlNodeProps();
 }
 
-void CXmlNode::AssignNode(CXmlNode& Src, CXmlNode& Dest)
+void XmlNode::assignNode(XmlNode& src, XmlNode& dest)
 {
-	Dest.m_strName = Src.m_strName;
-	Dest.m_strDataString = Src.m_strDataString;
-	*(Dest.m_pProps) = *(Src.m_pProps);
-	for (int i = 0; i < Src.GetChildCount(); i++)
-		AssignNode(*(Src.GetChildNodes(i)), *(Dest.AddNode()));
+	dest.name_ = src.name_;
+	dest.dataString_ = src.dataString_;
+	*(dest.props_) = *(src.props_);
+	for (int i = 0; i < src.getChildCount(); i++)
+		assignNode(*(src.getChildNodes(i)), *(dest.addNode()));
 }
 
-CXmlNode& CXmlNode::operator = (const CXmlNode& rhs)
+XmlNode& XmlNode::operator = (const XmlNode& rhs)
 {
 	if (this == &rhs) return *this;
 
-	Clear();
-	AssignNode((CXmlNode&)rhs, *this);
+	clear();
+	assignNode((XmlNode&)rhs, *this);
 	return *this;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 在当前节点下添加子节点(Node)
 //-----------------------------------------------------------------------------
-void CXmlNode::AddNode(CXmlNode *pNode)
+void XmlNode::addNode(XmlNode *node)
 {
-	if (!m_pChildNodes)
-		m_pChildNodes = new CList();
+	if (!childNodes_)
+		childNodes_ = new PointerList();
 
-	m_pChildNodes->Add(pNode);
-	if (pNode->m_pParentNode != NULL)
-		pNode->m_pParentNode->m_pChildNodes->Remove(pNode);
-	pNode->m_pParentNode = this;
+	childNodes_->add(node);
+	if (node->parentNode_ != NULL)
+		node->parentNode_->childNodes_->remove(node);
+	node->parentNode_ = this;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 在当前节点下添加一个新的子节点
 //-----------------------------------------------------------------------------
-CXmlNode* CXmlNode::AddNode()
+XmlNode* XmlNode::addNode()
 {
-	CXmlNode *pNode = new CXmlNode();
-	AddNode(pNode);
-	return pNode;
+	XmlNode *node = new XmlNode();
+	addNode(node);
+	return node;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 在当前节点下添加一个新的子节点
 //-----------------------------------------------------------------------------
-CXmlNode* CXmlNode::AddNode(const string& strName, const string& strDataString)
+XmlNode* XmlNode::addNode(const string& name, const string& dataString)
 {
-	CXmlNode *pNode = AddNode();
-	pNode->SetName(strName);
-	pNode->SetDataString(strDataString);
-	return pNode;
+	XmlNode *node = addNode();
+	node->setName(name);
+	node->setDataString(dataString);
+	return node;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 在当前节点下插入子节点
 //-----------------------------------------------------------------------------
-void CXmlNode::InsertNode(int nIndex, CXmlNode *pNode)
+void XmlNode::insertNode(int index, XmlNode *node)
 {
-	AddNode(pNode);
-	m_pChildNodes->Delete(m_pChildNodes->GetCount() - 1);
-	m_pChildNodes->Insert(nIndex, pNode);
+	addNode(node);
+	childNodes_->del(childNodes_->getCount() - 1);
+	childNodes_->insert(index, node);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据子节点名称，查找子节点。若未找到则返回 NULL。
 //-----------------------------------------------------------------------------
-CXmlNode* CXmlNode::FindChildNode(const string& strName)
+XmlNode* XmlNode::findChildNode(const string& name)
 {
-	CXmlNode *pResult;
+	XmlNode *result;
 	int i;
 
-	i = IndexOf(strName);
+	i = indexOf(name);
 	if (i >= 0)
-		pResult = GetChildNodes(i);
+		result = getChildNodes(i);
 	else
-		pResult = NULL;
+		result = NULL;
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 在当前节点下查找名称为 strName 的节点，返回其序号(0-based)。若未找到则返回-1。
+// 描述: 在当前节点下查找名称为 name 的节点，返回其序号(0-based)。若未找到则返回-1。
 //-----------------------------------------------------------------------------
-int CXmlNode::IndexOf(const string& strName)
+int XmlNode::indexOf(const string& name)
 {
-	int nResult = -1;
+	int result = -1;
 
-	for (int i = 0; i < GetChildCount(); i++)
-		if (SameText(strName, GetChildNodes(i)->GetName()))
+	for (int i = 0; i < getChildCount(); i++)
+		if (sameText(name, getChildNodes(i)->getName()))
 		{
-			nResult = i;
+			result = i;
 			break;
 		}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 清空当前节点及其所有子节点的数据
 //-----------------------------------------------------------------------------
-void CXmlNode::Clear()
+void XmlNode::clear()
 {
-	if (m_pChildNodes)
+	if (childNodes_)
 	{
-		while (m_pChildNodes->GetCount() > 0)
-			delete (CXmlNode*)(*m_pChildNodes)[0];
-		delete m_pChildNodes;
-		m_pChildNodes = NULL;
+		while (childNodes_->getCount() > 0)
+			delete (XmlNode*)(*childNodes_)[0];
+		delete childNodes_;
+		childNodes_ = NULL;
 	}
 
-	m_strName.clear();
-	m_strDataString.clear();
-	m_pProps->Clear();
+	name_.clear();
+	dataString_.clear();
+	props_->clear();
 }
 
-CXmlNode* CXmlNode::GetRootNode() const
+XmlNode* XmlNode::getRootNode() const
 {
-	CXmlNode *pResult = (CXmlNode*)this;
+	XmlNode *result = (XmlNode*)this;
 
-	while (pResult->GetParentNode() != NULL)
-		pResult = pResult->GetParentNode();
+	while (result->getParentNode() != NULL)
+		result = result->getParentNode();
 
-	return pResult;
+	return result;
 }
 
-int CXmlNode::GetChildCount() const
+int XmlNode::getChildCount() const
 {
-	if (!m_pChildNodes)
+	if (!childNodes_)
 		return 0;
 	else
-		return m_pChildNodes->GetCount();
+		return childNodes_->getCount();
 }
 
-CXmlNode* CXmlNode::GetChildNodes(int nIndex) const
+XmlNode* XmlNode::getChildNodes(int index) const
 {
-	if (!m_pChildNodes)
+	if (!childNodes_)
 		return NULL;
 	else
-		return (CXmlNode*)(*m_pChildNodes)[nIndex];
+		return (XmlNode*)(*childNodes_)[index];
 }
 
-void CXmlNode::SetParentNode(CXmlNode *pNode)
+void XmlNode::setParentNode(XmlNode *node)
 {
-	if (m_pParentNode && m_pParentNode->m_pChildNodes)
-		m_pParentNode->m_pChildNodes->Remove(this);
-	m_pParentNode = pNode;
+	if (parentNode_ && parentNode_->childNodes_)
+		parentNode_->childNodes_->remove(this);
+	parentNode_ = node;
 }
 
-void CXmlNode::SetDataString(const string& strValue)
+void XmlNode::setDataString(const string& value)
 {
-	m_strDataString = XmlToStr(strValue);
+	dataString_ = xmlToStr(value);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CXmlNodeProps
+// XmlNodeProps
 
-CXmlNodeProps::CXmlNodeProps()
+XmlNodeProps::XmlNodeProps()
 {
 	// nothing
 }
 
-CXmlNodeProps::CXmlNodeProps(const CXmlNodeProps& src)
+XmlNodeProps::XmlNodeProps(const XmlNodeProps& src)
 {
 	*this = src;
 }
 
-CXmlNodeProps::~CXmlNodeProps()
+XmlNodeProps::~XmlNodeProps()
 {
-	Clear();
+	clear();
 }
 
-void CXmlNodeProps::ParsePropString(const string& strPropStr)
+void XmlNodeProps::parsePropString(const string& propStr)
 {
-	string s, strName, strValue;
+	string s, name, value;
 
-	Clear();
-	s = strPropStr;
+	clear();
+	s = propStr;
 	while (true)
 	{
 		string::size_type i = s.find('=', 0);
 		if (i != string::npos)
 		{
-			strName = TrimString(s.substr(0, i));
+			name = trimString(s.substr(0, i));
 			s.erase(0, i + 1);
-			s = TrimString(s);
+			s = trimString(s);
 			if (s.size() > 0 && s[0] == '\"')
 			{
 				s.erase(0, 1);
 				i = s.find('\"', 0);
 				if (i != string::npos)
 				{
-					strValue = XmlToStr(s.substr(0, i));
+					value = xmlToStr(s.substr(0, i));
 					s.erase(0, i + 1);
 				}
 				else
-					IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+					iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 			}
 			else
-				IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+				iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 
-			Add(strName, strValue);
+			add(name, value);
 		}
 		else
 		{
-			if (TrimString(s).size() > 0)
-				IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+			if (trimString(s).size() > 0)
+				iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 			else
 				break;
 		}
 	}
 }
 
-CXmlNodeProps& CXmlNodeProps::operator = (const CXmlNodeProps& rhs)
+XmlNodeProps& XmlNodeProps::operator = (const XmlNodeProps& rhs)
 {
 	if (this == &rhs) return *this;
 
-	Clear();
-	for (int i = 0; i < rhs.GetCount(); i++)
+	clear();
+	for (int i = 0; i < rhs.getCount(); i++)
 	{
-		CXmlNodePropItem Item = rhs.GetItems(i);
-		Add(Item.strName, Item.strValue);
+		XmlNodePropItem item = rhs.getItems(i);
+		add(item.name, item.value);
 	}
 
 	return *this;
 }
 
-bool CXmlNodeProps::Add(const string& strName, const string& strValue)
+bool XmlNodeProps::add(const string& name, const string& value)
 {
-	bool bResult;
+	bool result;
 
-	bResult = (IndexOf(strName) < 0);
-	if (bResult)
+	result = (indexOf(name) < 0);
+	if (result)
 	{
-		CXmlNodePropItem *pItem = new CXmlNodePropItem();
-		pItem->strName = strName;
-		pItem->strValue = strValue;
-		m_Items.Add(pItem);
+		XmlNodePropItem *item = new XmlNodePropItem();
+		item->name = name;
+		item->value = value;
+		items_.add(item);
 	}
 
-	return bResult;
+	return result;
 }
 
-void CXmlNodeProps::Remove(const string& strName)
+void XmlNodeProps::remove(const string& name)
 {
 	int i;
 
-	i = IndexOf(strName);
+	i = indexOf(name);
 	if (i >= 0)
 	{
-		delete GetItemPtr(i);
-		m_Items.Delete(i);
+		delete getItemPtr(i);
+		items_.del(i);
 	}
 }
 
-void CXmlNodeProps::Clear()
+void XmlNodeProps::clear()
 {
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		delete GetItemPtr(i);
-	m_Items.Clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		delete getItemPtr(i);
+	items_.clear();
 }
 
-int CXmlNodeProps::IndexOf(const string& strName)
+int XmlNodeProps::indexOf(const string& name)
 {
-	int nResult = -1;
+	int result = -1;
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		if (SameText(strName, GetItemPtr(i)->strName))
+	for (int i = 0; i < items_.getCount(); i++)
+		if (sameText(name, getItemPtr(i)->name))
 		{
-			nResult = i;
+			result = i;
 			break;
 		}
 
-	return nResult;
+	return result;
 }
 
-bool CXmlNodeProps::PropExists(const string& strName)
+bool XmlNodeProps::propExists(const string& name)
 {
-	return (IndexOf(strName) >= 0);
+	return (indexOf(name) >= 0);
 }
 
-string& CXmlNodeProps::ValueOf(const string& strName)
+string& XmlNodeProps::valueOf(const string& name)
 {
 	int i;
 
-	i = IndexOf(strName);
+	i = indexOf(name);
 	if (i >= 0)
-		return GetItemPtr(i)->strValue;
+		return getItemPtr(i)->value;
 	else
 	{
-		Add(strName, "");
-		return GetItemPtr(GetCount()-1)->strValue;
+		add(name, "");
+		return getItemPtr(getCount()-1)->value;
 	}
 }
 
-CXmlNodePropItem CXmlNodeProps::GetItems(int nIndex) const
+XmlNodePropItem XmlNodeProps::getItems(int index) const
 {
-	CXmlNodePropItem Result;
+	XmlNodePropItem result;
 
-	if (nIndex >= 0 && nIndex < m_Items.GetCount())
-		Result = *(((CXmlNodeProps*)this)->GetItemPtr(nIndex));
+	if (index >= 0 && index < items_.getCount())
+		result = *(((XmlNodeProps*)this)->getItemPtr(index));
 
-	return Result;
+	return result;
 }
 
-string CXmlNodeProps::GetPropString() const
+string XmlNodeProps::getPropString() const
 {
-	string strResult;
-	CXmlNodePropItem *pItem;
+	string result;
+	XmlNodePropItem *item;
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
+	for (int i = 0; i < items_.getCount(); i++)
 	{
-		pItem = ((CXmlNodeProps*)this)->GetItemPtr(i);
-		if (i > 0) strResult = strResult + " ";
-		strResult = strResult + FormatString("%s=\"%s\"", pItem->strName.c_str(), pItem->strValue.c_str());
+		item = ((XmlNodeProps*)this)->getItemPtr(i);
+		if (i > 0) result = result + " ";
+		result = result + formatString("%s=\"%s\"", item->name.c_str(), item->value.c_str());
 	}
 
-	return strResult;
+	return result;
 }
 
-void CXmlNodeProps::SetPropString(const string& strPropString)
+void XmlNodeProps::setPropString(const string& propString)
 {
-	ParsePropString(strPropString);
+	parsePropString(propString);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CXmlDocument
+// XmlDocument
 
-CXmlDocument::CXmlDocument() :
-	m_bAutoIndent(true),
-	m_nIndentSpaces(DEF_XML_INDENT_SPACES)
+XmlDocument::XmlDocument() :
+	autoIndent_(true),
+	indentSpaces_(DEF_XML_INDENT_SPACES)
 {
 	// nothing
 }
 
-CXmlDocument::CXmlDocument(const CXmlDocument& src)
+XmlDocument::XmlDocument(const XmlDocument& src)
 {
 	*this = src;
 }
 
-CXmlDocument::~CXmlDocument()
+XmlDocument::~XmlDocument()
 {
 	// nothing
 }
 
-CXmlDocument& CXmlDocument::operator = (const CXmlDocument& rhs)
+XmlDocument& XmlDocument::operator = (const XmlDocument& rhs)
 {
 	if (this == &rhs) return *this;
 
-	m_bAutoIndent = rhs.m_bAutoIndent;
-	m_nIndentSpaces = rhs.m_nIndentSpaces;
-	m_RootNode = rhs.m_RootNode;
+	autoIndent_ = rhs.autoIndent_;
+	indentSpaces_ = rhs.indentSpaces_;
+	rootNode_ = rhs.rootNode_;
 
 	return *this;
 }
 
-bool CXmlDocument::SaveToStream(CStream& Stream)
+bool XmlDocument::saveToStream(Stream& stream)
 {
 	try
 	{
-		CXmlWriter Writer(this, &Stream);
-		Writer.WriteHeader(S_DEF_XML_DOC_VER, m_strEncoding);
-		Writer.WriteRootNode(&m_RootNode);
+		XmlWriter writer(this, &stream);
+		writer.writeHeader(S_DEF_XML_DOC_VER, encoding_);
+		writer.writeRootNode(&rootNode_);
 		return true;
 	}
-	catch (CException&)
+	catch (Exception&)
 	{
 		return false;
 	}
 }
 
-bool CXmlDocument::LoadFromStream(CStream& Stream)
+bool XmlDocument::loadFromStream(Stream& stream)
 {
 	try
 	{
-		string strVersion, strEncoding;
-		CXmlReader Reader(this, &Stream);
+		string version, encoding;
+		XmlReader reader(this, &stream);
 
-		m_RootNode.Clear();
-		Reader.ReadHeader(strVersion, strEncoding);
-		Reader.ReadRootNode(&m_RootNode);
+		rootNode_.clear();
+		reader.readHeader(version, encoding);
+		reader.readRootNode(&rootNode_);
 
-		m_strEncoding = strEncoding;
+		encoding_ = encoding;
 		return true;
 	}
-	catch (CException&)
+	catch (Exception&)
 	{
 		return false;
 	}
 }
 
-bool CXmlDocument::SaveToString(string& str)
+bool XmlDocument::saveToString(string& str)
 {
-	CMemoryStream Stream;
-	bool bResult = SaveToStream(Stream);
-	str.assign(Stream.GetMemory(), (int)Stream.GetSize());
-	return bResult;
+	MemoryStream stream;
+	bool result = saveToStream(stream);
+	str.assign(stream.getMemory(), (int)stream.getSize());
+	return result;
 }
 
-bool CXmlDocument::LoadFromString(const string& str)
+bool XmlDocument::loadFromString(const string& str)
 {
-	CMemoryStream Stream;
-	Stream.Write(str.c_str(), (int)str.size());
-	Stream.SetPosition(0);
-	return LoadFromStream(Stream);
+	MemoryStream stream;
+	stream.write(str.c_str(), (int)str.size());
+	stream.setPosition(0);
+	return loadFromStream(stream);
 }
 
-bool CXmlDocument::SaveToFile(const string& strFileName)
+bool XmlDocument::saveToFile(const string& fileName)
 {
-	CFileStream fs;
-	bool bResult = fs.Open(strFileName, FM_CREATE | FM_SHARE_DENY_WRITE);
-	if (bResult)
-		bResult = SaveToStream(fs);
-	return bResult;
+	FileStream fs;
+	bool result = fs.open(fileName, FM_CREATE | FM_SHARE_DENY_WRITE);
+	if (result)
+		result = saveToStream(fs);
+	return result;
 }
 
-bool CXmlDocument::LoadFromFile(const string& strFileName)
+bool XmlDocument::loadFromFile(const string& fileName)
 {
-	CFileStream fs;
-	bool bResult = fs.Open(strFileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
-	if (bResult)
-		bResult = LoadFromStream(fs);
-	return bResult;
+	FileStream fs;
+	bool result = fs.open(fileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
+	if (result)
+		result = loadFromStream(fs);
+	return result;
 }
 
-void CXmlDocument::Clear()
+void XmlDocument::clear()
 {
-	m_RootNode.Clear();
+	rootNode_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CXmlReader
+// XmlReader
 
-CXmlReader::CXmlReader(CXmlDocument *pOwner, CStream *pStream)
+XmlReader::XmlReader(XmlDocument *owner, Stream *stream)
 {
-	m_pOwner = pOwner;
-	m_pStream = pStream;
+	owner_ = owner;
+	stream_ = stream;
 
-	m_Buffer.SetSize((int)pStream->GetSize());
-	pStream->SetPosition(0);
-	pStream->Read(m_Buffer.Data(), m_Buffer.GetSize());
+	buffer_.setSize((int)stream->getSize());
+	stream->setPosition(0);
+	stream->read(buffer_.data(), buffer_.getSize());
 
-	m_nPosition = 0;
+	position_ = 0;
 }
 
-CXmlReader::~CXmlReader()
+XmlReader::~XmlReader()
 {
 	// nothing
 }
@@ -652,44 +652,44 @@ CXmlReader::~CXmlReader()
 //-----------------------------------------------------------------------------
 // 描述: 读取 XML 标签
 //-----------------------------------------------------------------------------
-XML_TAG_TYPES CXmlReader::ReadXmlData(string& strName, string& strProp, string& strData)
+XML_TAG_TYPES XmlReader::readXmlData(string& name, string& prop, string& data)
 {
-	XML_TAG_TYPES nResult = XTT_START_TAG;
-	enum { FIND_LEFT, FIND_RIGHT, FIND_DATA, FIND_COMMENT, DONE } nState;
+	XML_TAG_TYPES result = XTT_START_TAG;
+	enum { FIND_LEFT, FIND_RIGHT, FIND_DATA, FIND_COMMENT, DONE } state;
 	char c;
-	int i, n, nBufferSize, nComment;
+	int i, n, bufferSize, comment;
 
-	strName = "";
-	strProp = "";
-	strData = "";
-	nComment = 0;
-	nBufferSize = m_Buffer.GetSize();
-	nState = FIND_LEFT;
+	name = "";
+	prop = "";
+	data = "";
+	comment = 0;
+	bufferSize = buffer_.getSize();
+	state = FIND_LEFT;
 
-	while (m_nPosition < nBufferSize && nState != DONE)
+	while (position_ < bufferSize && state != DONE)
 	{
-		c = m_Buffer[m_nPosition];
-		m_nPosition++;
+		c = buffer_[position_];
+		position_++;
 
-		switch (nState)
+		switch (state)
 		{
 		case FIND_LEFT:
-			if (c == '<') nState = FIND_RIGHT;
+			if (c == '<') state = FIND_RIGHT;
 			break;
 
 		case FIND_RIGHT:
 			if (c == '>')
-				nState = FIND_DATA;
+				state = FIND_DATA;
 			else if (c == '<')
-				IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+				iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 			else
 			{
-				strName += c;
-				if (strName == "!--")
+				name += c;
+				if (name == "!--")
 				{
-					nState = FIND_COMMENT;
-					nComment = 0;
-					strName.clear();
+					state = FIND_COMMENT;
+					comment = 0;
+					name.clear();
 				}
 			}
 			break;
@@ -697,23 +697,23 @@ XML_TAG_TYPES CXmlReader::ReadXmlData(string& strName, string& strProp, string& 
 		case FIND_DATA:
 			if (c == '<')
 			{
-				m_nPosition--;
-				nState = DONE;
+				position_--;
+				state = DONE;
 				break;
 			}
 			else
-				strData += c;
+				data += c;
 			break;
 
 		case FIND_COMMENT:
-			if (nComment == 2)
+			if (comment == 2)
 			{
-				if (c == '>') nState = FIND_LEFT;
+				if (c == '>') state = FIND_LEFT;
 			}
 			else if (c == '-')
-				nComment++;
+				comment++;
 			else
-				nComment = 0;
+				comment = 0;
 			break;
 
 		default:
@@ -721,221 +721,221 @@ XML_TAG_TYPES CXmlReader::ReadXmlData(string& strName, string& strProp, string& 
 		}
 	}
 
-	if (nState == FIND_RIGHT)
-		IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+	if (state == FIND_RIGHT)
+		iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 
-	strName = TrimString(strName);
-	n = (int)strName.size();
-	if (n > 0 && strName[n - 1] == '/')
+	name = trimString(name);
+	n = (int)name.size();
+	if (n > 0 && name[n - 1] == '/')
 	{
-		strName.resize(n - 1);
+		name.resize(n - 1);
 		n--;
-		nResult |= XTT_END_TAG;
+		result |= XTT_END_TAG;
 	}
-	if (n > 0 && strName[0] == '/')
+	if (n > 0 && name[0] == '/')
 	{
-		strName.erase(0, 1);
+		name.erase(0, 1);
 		n--;
-		nResult = XTT_END_TAG;
+		result = XTT_END_TAG;
 	}
 	if (n <= 0)
-		nResult = 0;
+		result = 0;
 
-	if (nResult != XTT_START_TAG)
-		strData.clear();
+	if (result != XTT_START_TAG)
+		data.clear();
 
-	if ((nResult & XTT_START_TAG) != 0)
+	if ((result & XTT_START_TAG) != 0)
 	{
-		i = FindChars(strName, " \t");
+		i = findChars(name, " \t");
 		if (i >= 0)
 		{
-			strProp = TrimString(strName.substr(i + 1));
-			if (!strProp.empty() && strProp[strProp.size()-1] == '?')
-				strProp.erase(strProp.size() - 1);
+			prop = trimString(name.substr(i + 1));
+			if (!prop.empty() && prop[prop.size()-1] == '?')
+				prop.erase(prop.size() - 1);
 
-			strName.erase(i);
-			strName = TrimString(strName);
-			if (!strName.empty() && strName[0] == '?')
-				strName.erase(0, 1);
+			name.erase(i);
+			name = trimString(name);
+			if (!name.empty() && name[0] == '?')
+				name.erase(0, 1);
 		}
-		strData = TrimString(strData);
+		data = trimString(data);
 	}
 
-	return nResult;
+	return result;
 }
 
-XML_TAG_TYPES CXmlReader::ReadNode(CXmlNode *pNode)
+XML_TAG_TYPES XmlReader::readNode(XmlNode *node)
 {
-	XML_TAG_TYPES nResult, TagTypes;
-	CXmlNode *pChildNode;
-	string strName, strProp, strData;
-	string strEndName;
+	XML_TAG_TYPES result, tagTypes;
+	XmlNode *childNode;
+	string name, prop, data;
+	string endName;
 
-	nResult = ReadXmlData(strName, strProp, strData);
+	result = readXmlData(name, prop, data);
 
-	pNode->SetName(strName);
-	if ((nResult & XTT_START_TAG) != 0)
+	node->setName(name);
+	if ((result & XTT_START_TAG) != 0)
 	{
-		pNode->GetProps()->SetPropString(strProp);
-		pNode->SetDataString(strData);
+		node->getProps()->setPropString(prop);
+		node->setDataString(data);
 	}
 	else
-		return nResult;
+		return result;
 
-	if ((nResult & XTT_END_TAG) != 0) return nResult;
+	if ((result & XTT_END_TAG) != 0) return result;
 
 	do
 	{
-		pChildNode = new CXmlNode();
+		childNode = new XmlNode();
 		try
 		{
-			TagTypes = 0;
-			TagTypes = ReadNode(pChildNode);
+			tagTypes = 0;
+			tagTypes = readNode(childNode);
 		}
-		catch (CException&)
+		catch (Exception&)
 		{
-			delete pChildNode;
+			delete childNode;
 			throw;
 		}
 
-		if ((TagTypes & XTT_START_TAG) != 0)
-			pNode->AddNode(pChildNode);
+		if ((tagTypes & XTT_START_TAG) != 0)
+			node->addNode(childNode);
 		else
 		{
-			strEndName = pChildNode->GetName();
-			delete pChildNode;
+			endName = childNode->getName();
+			delete childNode;
 		}
 	}
-	while ((TagTypes & XTT_START_TAG) != 0);
+	while ((tagTypes & XTT_START_TAG) != 0);
 
-	if (!SameText(strName, strEndName))
-		IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+	if (!sameText(name, endName))
+		iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 
-	return nResult;
+	return result;
 }
 
-void CXmlReader::ReadHeader(string& strVersion, string& strEncoding)
+void XmlReader::readHeader(string& version, string& encoding)
 {
 	string s1, s2, s3;
 
-	ReadXmlData(s1, s2, s3);
+	readXmlData(s1, s2, s3);
 	if (s1.find("xml", 0) != 0)
-		IseThrowException(SEM_INVALID_XML_FILE_FORMAT);
+		iseThrowException(SEM_INVALID_XML_FILE_FORMAT);
 
-	CXmlNode Node;
+	XmlNode Node;
 	const char* STR_VERSION = "version";
 	const char* STR_ENCODING = "encoding";
 
-	Node.GetProps()->SetPropString(s2);
-	if (Node.GetProps()->PropExists(STR_VERSION))
-		strVersion = Node.GetProps()->ValueOf(STR_VERSION);
-	if (Node.GetProps()->PropExists(STR_ENCODING))
-		strEncoding = Node.GetProps()->ValueOf(STR_ENCODING);
+	Node.getProps()->setPropString(s2);
+	if (Node.getProps()->propExists(STR_VERSION))
+		version = Node.getProps()->valueOf(STR_VERSION);
+	if (Node.getProps()->propExists(STR_ENCODING))
+		encoding = Node.getProps()->valueOf(STR_ENCODING);
 }
 
-void CXmlReader::ReadRootNode(CXmlNode *pNode)
+void XmlReader::readRootNode(XmlNode *node)
 {
-	ReadNode(pNode);
+	readNode(node);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CXmlWriter
+// XmlWriter
 
-CXmlWriter::CXmlWriter(CXmlDocument *pOwner, CStream *pStream)
+XmlWriter::XmlWriter(XmlDocument *owner, Stream *stream)
 {
-	m_pOwner = pOwner;
-	m_pStream = pStream;
+	owner_ = owner;
+	stream_ = stream;
 }
 
-CXmlWriter::~CXmlWriter()
+XmlWriter::~XmlWriter()
 {
 	// nothing
 }
 
-void CXmlWriter::FlushBuffer()
+void XmlWriter::flushBuffer()
 {
-	if (!m_strBuffer.empty())
-		m_pStream->WriteBuffer(m_strBuffer.c_str(), (int)m_strBuffer.size());
-	m_strBuffer.clear();
+	if (!buffer_.empty())
+		stream_->writeBuffer(buffer_.c_str(), (int)buffer_.size());
+	buffer_.clear();
 }
 
-void CXmlWriter::WriteLn(const string& str)
+void XmlWriter::writeLn(const string& str)
 {
 	string s = str;
 
-	m_strBuffer += s;
-	if (m_pOwner->GetAutoIndent())
-		m_strBuffer += S_CRLF;
-	FlushBuffer();
+	buffer_ += s;
+	if (owner_->getAutoIndent())
+		buffer_ += S_CRLF;
+	flushBuffer();
 }
 
-void CXmlWriter::WriteNode(CXmlNode *pNode, int nIndent)
+void XmlWriter::writeNode(XmlNode *node, int indent)
 {
 	string s;
 
-	if (!m_pOwner->GetAutoIndent())
-		nIndent = 0;
+	if (!owner_->getAutoIndent())
+		indent = 0;
 
-	if (pNode->GetProps()->GetCount() > 0)
+	if (node->getProps()->getCount() > 0)
 	{
-		s = pNode->GetProps()->GetPropString();
+		s = node->getProps()->getPropString();
 		if (s.empty() || s[0] != ' ')
 			s = string(" ") + s;
 	}
 
-	if (pNode->GetDataString().size() > 0 && pNode->GetChildCount() == 0)
-		s = s + ">" + StrToXml(pNode->GetDataString()) + "</" + pNode->GetName() + ">";
-	else if (pNode->GetChildCount() == 0)
+	if (node->getDataString().size() > 0 && node->getChildCount() == 0)
+		s = s + ">" + strToXml(node->getDataString()) + "</" + node->getName() + ">";
+	else if (node->getChildCount() == 0)
 		s = s + "/>";
 	else
 		s = s + ">";
 
-	s = string(nIndent, ' ') + "<" + pNode->GetName() + s;
-	WriteLn(s);
+	s = string(indent, ' ') + "<" + node->getName() + s;
+	writeLn(s);
 
-	for (int i = 0; i < pNode->GetChildCount(); i++)
-		WriteNode(pNode->GetChildNodes(i), nIndent + m_pOwner->GetIndentSpaces());
+	for (int i = 0; i < node->getChildCount(); i++)
+		writeNode(node->getChildNodes(i), indent + owner_->getIndentSpaces());
 
-	if (pNode->GetChildCount() > 0)
+	if (node->getChildCount() > 0)
 	{
-		s = string(nIndent, ' ') + "</" + pNode->GetName() + ">";
-		WriteLn(s);
+		s = string(indent, ' ') + "</" + node->getName() + ">";
+		writeLn(s);
 	}
 }
 
-void CXmlWriter::WriteHeader(const string& strVersion, const string& strEncoding)
+void XmlWriter::writeHeader(const string& version, const string& encoding)
 {
-	string strHeader, strVer, strEnc;
+	string header, ver, enc;
 
-	strVer = FormatString("version=\"%s\"", strVersion.c_str());
-	if (!strEncoding.empty())
-		strEnc = FormatString("encoding=\"%s\"", strEncoding.c_str());
+	ver = formatString("version=\"%s\"", version.c_str());
+	if (!encoding.empty())
+		enc = formatString("encoding=\"%s\"", encoding.c_str());
 
-	strHeader = "<?xml";
-	if (!strVer.empty()) strHeader += " ";
-	strHeader += strVer;
-	if (!strEnc.empty()) strHeader += " ";
-	strHeader += strEnc;
-	strHeader += "?>";
+	header = "<?xml";
+	if (!ver.empty()) header += " ";
+	header += ver;
+	if (!enc.empty()) header += " ";
+	header += enc;
+	header += "?>";
 
-	WriteLn(strHeader);
+	writeLn(header);
 }
 
-void CXmlWriter::WriteRootNode(CXmlNode *pNode)
+void XmlWriter::writeRootNode(XmlNode *node)
 {
-	WriteNode(pNode, 0);
-	FlushBuffer();
+	writeNode(node, 0);
+	flushBuffer();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CXmlDocParser
+// class XmlDocParser
 
-CXmlDocParser::CXmlDocParser()
+XmlDocParser::XmlDocParser()
 {
 	// nothing
 }
 
-CXmlDocParser::~CXmlDocParser()
+XmlDocParser::~XmlDocParser()
 {
 	// nothing
 }
@@ -943,79 +943,79 @@ CXmlDocParser::~CXmlDocParser()
 //-----------------------------------------------------------------------------
 // 描述: 拆分名称路径
 //-----------------------------------------------------------------------------
-void CXmlDocParser::SplitNamePath(const string& strNamePath, CStrList& Result)
+void XmlDocParser::splitNamePath(const string& namePath, StrList& result)
 {
 	const char NAME_PATH_SPLITTER = '.';
-	SplitString(strNamePath, NAME_PATH_SPLITTER, Result);
+	splitString(namePath, NAME_PATH_SPLITTER, result);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从外部配置文件载入配置信息
 // 参数:
-//   strFileName - 配置文件名(含路径)
+//   fileName - 配置文件名(含路径)
 //-----------------------------------------------------------------------------
-bool CXmlDocParser::LoadFromFile(const string& strFileName)
+bool XmlDocParser::loadFromFile(const string& fileName)
 {
-	CXmlDocument XmlDoc;
-	bool bResult = XmlDoc.LoadFromFile(strFileName);
-	if (bResult)
-		m_XmlDoc = XmlDoc;
-	return bResult;
+	XmlDocument xmlDoc;
+	bool result = xmlDoc.loadFromFile(fileName);
+	if (result)
+		xmlDoc_ = xmlDoc;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串
 //-----------------------------------------------------------------------------
-string CXmlDocParser::GetString(const string& strNamePath)
+string XmlDocParser::getString(const string& namePath)
 {
-	string strResult;
-	CStrList NameList;
-	CXmlNode *pNode, *pResultNode;
+	string result;
+	StrList nameList;
+	XmlNode *node, *resultNode;
 
-	SplitNamePath(strNamePath, NameList);
-	if (NameList.GetCount() == 0) return strResult;
+	splitNamePath(namePath, nameList);
+	if (nameList.getCount() == 0) return result;
 
-	pNode = m_XmlDoc.GetRootNode();
-	for (int i = 0; (i < NameList.GetCount() - 1) && pNode; i++)
-		pNode = pNode->FindChildNode(NameList[i]);
+	node = xmlDoc_.getRootNode();
+	for (int i = 0; (i < nameList.getCount() - 1) && node; i++)
+		node = node->findChildNode(nameList[i]);
 
-	if (pNode)
+	if (node)
 	{
-		string strLastName = NameList[NameList.GetCount() - 1];
+		string strLastName = nameList[nameList.getCount() - 1];
 
 		// 名称路径中的最后一个名称既可是节点名，也可以是属性名
-		pResultNode = pNode->FindChildNode(strLastName);
-		if (pResultNode)
-			strResult = pResultNode->GetDataString();
-		else if (pNode->GetProps()->PropExists(strLastName))
-			strResult = pNode->GetProps()->ValueOf(strLastName);
+		resultNode = node->findChildNode(strLastName);
+		if (resultNode)
+			result = resultNode->getDataString();
+		else if (node->getProps()->propExists(strLastName))
+			result = node->getProps()->valueOf(strLastName);
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串(以整型返回)
 //-----------------------------------------------------------------------------
-int CXmlDocParser::GetInteger(const string& strNamePath, int nDefault)
+int XmlDocParser::getInteger(const string& namePath, int defaultVal)
 {
-	return StrToInt(GetString(strNamePath), nDefault);
+	return strToInt(getString(namePath), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串(以浮点型返回)
 //-----------------------------------------------------------------------------
-double CXmlDocParser::GetFloat(const string& strNamePath, double fDefault)
+double XmlDocParser::getFloat(const string& namePath, double defaultVal)
 {
-	return StrToFloat(GetString(strNamePath), fDefault);
+	return strToFloat(getString(namePath), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串(以布尔型返回)
 //-----------------------------------------------------------------------------
-bool CXmlDocParser::GetBoolean(const string& strNamePath, bool bDefault)
+bool XmlDocParser::getBoolean(const string& namePath, bool defaultVal)
 {
-	return StrToBool(GetString(strNamePath), bDefault);
+	return strToBool(getString(namePath), defaultVal);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

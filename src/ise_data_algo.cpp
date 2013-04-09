@@ -421,9 +421,9 @@ const DWORD GOST_DATA[4][256] = {{
 
 //-----------------------------------------------------------------------------
 
-std::string GetCipherModeStr(CIPHER_MODE nMode)
+std::string GetCipherModeStr(CIPHER_MODE mode)
 {
-	switch (nMode)
+	switch (mode)
 	{
 	case CM_CTSx:  return "CM_CTSx";
 	case CM_CBCx:  return "CM_CBCx";
@@ -441,68 +441,68 @@ std::string GetCipherModeStr(CIPHER_MODE nMode)
 
 //-----------------------------------------------------------------------------
 
-void HashingOverflowError()
+void hashingOverflowError()
 {
-	IseThrowDataAlgoException(S_HASHING_OVERFLOW_ERROR);
+	iseThrowDataAlgoException(S_HASHING_OVERFLOW_ERROR);
 }
 
 //-----------------------------------------------------------------------------
 
-void InvalidMessageLength(CCipher *pCipher)
+void invalidMessageLength(Cipher *cipher)
 {
-	IseThrowDataAlgoException(FormatString(
+	iseThrowDataAlgoException(formatString(
 		S_INVALID_MESSAGE_LENGTH,
-		GetCipherModeStr(pCipher->GetMode()).c_str(), pCipher->Context().nBlockSize).c_str());
+		GetCipherModeStr(cipher->getMode()).c_str(), cipher->context().blockSize).c_str());
 }
 
 //-----------------------------------------------------------------------------
 
-int TableFind(char ch, const char *pTable, int nTableSize)
+int tableFind(char ch, const char *table, int tableSize)
 {
-	int nResult = -1;
-	for (int i = 0; i < nTableSize; i++)
-		if (pTable[i] == ch)
+	int result = -1;
+	for (int i = 0; i < tableSize; i++)
+		if (table[i] == ch)
 		{
-			nResult = i;
+			result = i;
 			break;
 		}
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-void ProtectBuffer(PVOID pBuffer, int nSize)
+void protectBuffer(PVOID buffer, int size)
 {
 	static const int WIPE_COUNT = 4;
 	static const BYTE WIPE_BYTES [WIPE_COUNT] = {0x55, 0xAA, 0xFF, 0x00};
 
-	if (nSize > 0)
+	if (size > 0)
 	{
 		for (int i = 0; i < WIPE_COUNT; i++)
-			memset(pBuffer, WIPE_BYTES[i], nSize);
+			memset(buffer, WIPE_BYTES[i], size);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void ProtectBinary(binary& strData)
+void protectBinary(binary& data)
 {
-	if (!strData.empty())
+	if (!data.empty())
 	{
-		ProtectBuffer((char*)strData.c_str(), (int)strData.length());
-		strData.clear();
+		protectBuffer((char*)data.c_str(), (int)data.length());
+		data.clear();
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void Increment8(PDWORD pValue, DWORD nAdd)
+void increment8(PDWORD value, DWORD addVal)
 {
 #ifdef ISE_WIN32
 	__asm
 	{
-		MOV  EAX, pValue
-		MOV  EDX, nAdd
+		MOV  EAX, value
+		MOV  EDX, addVal
 		MOV  ECX, EDX
 		LEA  EDX, [EDX * 8]
 		SHR  ECX, 25
@@ -517,7 +517,7 @@ void Increment8(PDWORD pValue, DWORD nAdd)
 		JC   _001
 		JMP  _002
 	_001:
-		CALL HashingOverflowError
+		CALL hashingOverflowError
 	_002:
 		NOP
 	}
@@ -548,163 +548,163 @@ void Increment8(PDWORD pValue, DWORD nAdd)
 		nop; \
 		"
 			: "=eax"(nOk)
-			: "eax"(pValue), "ecx"(nAdd), "edx"(nAdd*8)
+			: "eax"(value), "ecx"(addVal), "edx"(addVal*8)
 	);
 
 	if (!nOk)
-		HashingOverflowError();
+		hashingOverflowError();
 #endif
 }
 
 //-----------------------------------------------------------------------------
 
-DWORD SwapDWord(DWORD v)
+DWORD swapDWord(DWORD v)
 {
 	return v << 24 | v >> 24 | v << 8 & 0x00FF0000 | v >> 8 & 0x0000FF00;
 }
 
 //-----------------------------------------------------------------------------
 
-WORD SwapWord(WORD v)
+WORD swapWord(WORD v)
 {
 	return ((v << 8) & 0xFF00) | ((v >> 8) & 0x00FF);
 }
 
 //-----------------------------------------------------------------------------
 
-void SwapDWordBuffer(const PDWORD pSource, PDWORD pDest, int nCount)
+void swapDWordBuffer(const PDWORD source, PDWORD dest, int count)
 {
-	for (int i = 0; i < nCount; i++)
+	for (int i = 0; i < count; i++)
 	{
-		DWORD t = pSource[i];
-		pDest[i] = (t << 24) | (t >> 24) | ((t << 8) & 0x00FF0000) | ((t >> 8) & 0x0000FF00);
+		DWORD t = source[i];
+		dest[i] = (t << 24) | (t >> 24) | ((t << 8) & 0x00FF0000) | ((t >> 8) & 0x0000FF00);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void XorBuffer(PBYTE pSrc1, PBYTE pSrc2, int nSize, PBYTE pDest)
+void xorBuffer(PBYTE src1, PBYTE src2, int size, PBYTE dest)
 {
-	for (int i = 0; i < nSize; i++)
-		pDest[i] = (pSrc1[i] ^ pSrc2[i]);
+	for (int i = 0; i < size; i++)
+		dest[i] = (src1[i] ^ src2[i]);
 }
 
 //-----------------------------------------------------------------------------
 
-CFormat* CreateFormatObject(FORMAT_TYPE nFormatType)
+Format* createFormatObject(FORMAT_TYPE formatType)
 {
-	CFormat *pResult = NULL;
+	Format *result = NULL;
 
-	switch (nFormatType)
+	switch (formatType)
 	{
-	case FT_COPY:     pResult = new CFormat_Copy();    break;
-	case FT_HEX:      pResult = new CFormat_HEX();     break;
-	case FT_HEXL:     pResult = new CFormat_HEXL();    break;
-	case FT_MIME32:   pResult = new CFormat_MIME32();  break;
-	case FT_MIME64:   pResult = new CFormat_MIME64();  break;
+	case FT_COPY:     result = new Format_Copy();    break;
+	case FT_HEX:      result = new Format_HEX();     break;
+	case FT_HEXL:     result = new Format_HEXL();    break;
+	case FT_MIME32:   result = new Format_MIME32();  break;
+	case FT_MIME64:   result = new Format_MIME64();  break;
 	default:
-		IseThrowDataAlgoException(FormatString(S_INVALID_FORMAT_TYPE, nFormatType).c_str());
+		iseThrowDataAlgoException(formatString(S_INVALID_FORMAT_TYPE, formatType).c_str());
 		break;
 	}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-CHash* CreateHashObject(HASH_TYPE nHashType)
+Hash* createHashObject(HASH_TYPE hashType)
 {
-	CHash *pResult = NULL;
+	Hash *result = NULL;
 
-	switch (nHashType)
+	switch (hashType)
 	{
-	case HT_MD4:     pResult = new CHash_MD4();    break;
-	case HT_MD5:     pResult = new CHash_MD5();    break;
-	case HT_SHA:     pResult = new CHash_SHA();    break;
-	case HT_SHA1:    pResult = new CHash_SHA1();   break;
+	case HT_MD4:     result = new Hash_MD4();    break;
+	case HT_MD5:     result = new Hash_MD5();    break;
+	case HT_SHA:     result = new Hash_SHA();    break;
+	case HT_SHA1:    result = new Hash_SHA1();   break;
 	default:
-		IseThrowDataAlgoException(FormatString(S_INVALID_HASH_TYPE, nHashType).c_str());
+		iseThrowDataAlgoException(formatString(S_INVALID_HASH_TYPE, hashType).c_str());
 		break;
 	}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-CCipher* CreateCipherObject(CIPHER_TYPE nCipherType)
+Cipher* createCipherObject(CIPHER_TYPE cipherType)
 {
-	CCipher *pResult = NULL;
+	Cipher *result = NULL;
 
-	switch (nCipherType)
+	switch (cipherType)
 	{
-	case CT_NULL:     pResult = new CCipher_Null();        break;
-	case CT_BLOWFISH: pResult = new CCipher_Blowfish();    break;
-	case CT_IDEA:     pResult = new CCipher_IDEA();        break;
-	case CT_DES:      pResult = new CCipher_DES();         break;
-	case CT_GOST:     pResult = new CCipher_Gost();        break;
+	case CT_NULL:     result = new Cipher_Null();        break;
+	case CT_BLOWFISH: result = new Cipher_Blowfish();    break;
+	case CT_IDEA:     result = new Cipher_IDEA();        break;
+	case CT_DES:      result = new Cipher_DES();         break;
+	case CT_GOST:     result = new Cipher_Gost();        break;
 	default:
-		IseThrowDataAlgoException(FormatString(S_INVALID_CIPHER_TYPE, nCipherType).c_str());
+		iseThrowDataAlgoException(formatString(S_INVALID_CIPHER_TYPE, cipherType).c_str());
 		break;
 	}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-binary HashString(HASH_TYPE nHashType, const binary& strSource, PVOID pDigest)
+binary hashString(HASH_TYPE hashType, const binary& sourceStr, PVOID digest)
 {
-	return HashBuffer(nHashType, (char*)strSource.c_str(), (int)strSource.length(), pDigest);
+	return hashBuffer(hashType, (char*)sourceStr.c_str(), (int)sourceStr.length(), digest);
 }
 
 //-----------------------------------------------------------------------------
 
-binary HashBuffer(HASH_TYPE nHashType, PVOID pBuffer, int nDataSize, PVOID pDigest)
+binary hashBuffer(HASH_TYPE hashType, PVOID buffer, int dataSize, PVOID digest)
 {
-	std::auto_ptr<CHash> HashObj(CreateHashObject(nHashType));
+	std::auto_ptr<Hash> HashObj(createHashObject(hashType));
 
-	binary s = HashObj->CalcBuffer(pBuffer, nDataSize, FT_COPY);
-	if (pDigest)
-		memmove(pDigest, s.c_str(), HashObj->DigestSize());
+	binary s = HashObj->calcBuffer(buffer, dataSize, FT_COPY);
+	if (digest)
+		memmove(digest, s.c_str(), HashObj->digestSize());
 
-	CFormat_HEX FormatObj;
-	return FormatObj.Encode(s);
+	Format_HEX formatObj;
+	return formatObj.encode(s);
 }
 
 //-----------------------------------------------------------------------------
 
-binary HashStream(HASH_TYPE nHashType, CStream& Stream, PVOID pDigest)
+binary hashStream(HASH_TYPE hashType, Stream& stream, PVOID digest)
 {
-	std::auto_ptr<CHash> HashObj(CreateHashObject(nHashType));
+	std::auto_ptr<Hash> HashObj(createHashObject(hashType));
 
-	binary s = HashObj->CalcStream(Stream, -1, FT_COPY);
-	if (pDigest)
-		memmove(pDigest, s.c_str(), HashObj->DigestSize());
+	binary s = HashObj->calcStream(stream, -1, FT_COPY);
+	if (digest)
+		memmove(digest, s.c_str(), HashObj->digestSize());
 
-	CFormat_HEX FormatObj;
-	return FormatObj.Encode(s);
+	Format_HEX formatObj;
+	return formatObj.encode(s);
 }
 
 //-----------------------------------------------------------------------------
 
-binary HashFile(HASH_TYPE nHashType, char *lpszFileName, PVOID pDigest)
+binary hashFile(HASH_TYPE hashType, char *fileName, PVOID digest)
 {
-	std::auto_ptr<CHash> HashObj(CreateHashObject(nHashType));
+	std::auto_ptr<Hash> HashObj(createHashObject(hashType));
 
-	binary s = HashObj->CalcFile(lpszFileName, FT_COPY);
-	if (pDigest)
-		memmove(pDigest, s.c_str(), HashObj->DigestSize());
+	binary s = HashObj->calcFile(fileName, FT_COPY);
+	if (digest)
+		memmove(digest, s.c_str(), HashObj->digestSize());
 
-	CFormat_HEX FormatObj;
-	return FormatObj.Encode(s);
+	Format_HEX formatObj;
+	return formatObj.encode(s);
 }
 
 //-----------------------------------------------------------------------------
 
-static DWORD Crc32(DWORD Crc, PVOID pData, int nDataSize, CRC32_TYPE nCrc32Type)
+static DWORD crc32(DWORD Crc, PVOID data, int dataSize, CRC32_TYPE crc32Type)
 {
-	if (nCrc32Type == CRC32_STANDARD)
+	if (crc32Type == CRC32_STANDARD)
 	{
 		// This polynomial (0xedb88320)
 		static const DWORD CRC_TABLE[] = {
@@ -774,12 +774,12 @@ static DWORD Crc32(DWORD Crc, PVOID pData, int nDataSize, CRC32_TYPE nCrc32Type)
 			0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d 
 		};
 
-		PBYTE p = (PBYTE)pData;
-		for (int i = 0; i < nDataSize; i++)
+		PBYTE p = (PBYTE)data;
+		for (int i = 0; i < dataSize; i++)
 			Crc = CRC_TABLE[(Crc ^ p[i]) & 0xFF] ^ (Crc >> 8);
 		Crc ^= 0xFFFFFFFF;
 	}
-	else if (nCrc32Type == CRC32_SPECIAL)
+	else if (crc32Type == CRC32_SPECIAL)
 	{
 		// This polynomial (0x04c11db7)
 		static const DWORD CRC_TABLE[] = {
@@ -849,8 +849,8 @@ static DWORD Crc32(DWORD Crc, PVOID pData, int nDataSize, CRC32_TYPE nCrc32Type)
 			0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
 		};
 
-		PBYTE p = (PBYTE)pData;
-		for (int i = 0; i < nDataSize; i++)
+		PBYTE p = (PBYTE)data;
+		for (int i = 0; i < dataSize; i++)
 			Crc = (Crc << 8) ^ CRC_TABLE[((Crc >> 24) ^ *p++) & 0xFF];
 	}
 	else
@@ -865,283 +865,283 @@ static DWORD Crc32(DWORD Crc, PVOID pData, int nDataSize, CRC32_TYPE nCrc32Type)
 
 //-----------------------------------------------------------------------------
 
-DWORD CalcCrc32(PVOID pData, int nDataSize, DWORD nLastResult, CRC32_TYPE nCrc32Type)
+DWORD calcCrc32(PVOID data, int dataSize, DWORD lastResult, CRC32_TYPE crc32Type)
 {
-	return Crc32(nLastResult, pData, nDataSize, nCrc32Type);
+	return crc32(lastResult, data, dataSize, crc32Type);
 }
 
 //-----------------------------------------------------------------------------
 
-BYTE CalcCrc8(PVOID pData, int nDataSize)
+BYTE calcCrc8(PVOID data, int dataSize)
 {
-	char *p = (char*)pData;
-	BYTE nResult = 0;
+	char *p = (char*)data;
+	BYTE result = 0;
 
-	while (nDataSize--)
+	while (dataSize--)
 	{
-		nResult ^= *p++;
+		result ^= *p++;
 		for (int i = 0; i < 8; ++i)
 		{
-			if (nResult & 0x01)
-				nResult = (nResult >> 1) ^ 0x8C;
+			if (result & 0x01)
+				result = (result >> 1) ^ 0x8C;
 			else
-				nResult >>= 1;
+				result >>= 1;
 		}
 	}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-void EncryptBuffer(CIPHER_TYPE nCipherType, PVOID pSource, PVOID pDest, int nDataSize, char *lpszKey)
+void encryptBuffer(CIPHER_TYPE cipherType, PVOID source, PVOID dest, int dataSize, char *key)
 {
-	std::auto_ptr<CCipher> CipherObj(CreateCipherObject(nCipherType));
-	binary strKey = (lpszKey? lpszKey : "");
+	std::auto_ptr<Cipher> cipherObj(createCipherObject(cipherType));
+	binary keyStr = (key? key : "");
 
-	CipherObj->Init(strKey);
-	CipherObj->Encode(pSource, pDest, nDataSize);
-	CipherObj->Done();
+	cipherObj->init(keyStr);
+	cipherObj->encode(source, dest, dataSize);
+	cipherObj->done();
 }
 
 //-----------------------------------------------------------------------------
 
-void DecryptBuffer(CIPHER_TYPE nCipherType, PVOID pSource, PVOID pDest, int nDataSize, char *lpszKey)
+void decryptBuffer(CIPHER_TYPE cipherType, PVOID source, PVOID dest, int dataSize, char *key)
 {
-	std::auto_ptr<CCipher> CipherObj(CreateCipherObject(nCipherType));
-	binary strKey = (lpszKey? lpszKey : "");
+	std::auto_ptr<Cipher> cipherObj(createCipherObject(cipherType));
+	binary keyStr = (key? key : "");
 
-	CipherObj->Init(strKey);
-	CipherObj->Decode(pSource, pDest, nDataSize);
-	CipherObj->Done();
+	cipherObj->init(keyStr);
+	cipherObj->decode(source, dest, dataSize);
+	cipherObj->done();
 }
 
 //-----------------------------------------------------------------------------
 
-void EncryptStream(CIPHER_TYPE nCipherType, CStream& SrcStream, CStream& DestStream, char *lpszKey)
+void encryptStream(CIPHER_TYPE cipherType, Stream& srcStream, Stream& destStream, char *key)
 {
-	std::auto_ptr<CCipher> CipherObj(CreateCipherObject(nCipherType));
-	binary strKey = (lpszKey? lpszKey : "");
+	std::auto_ptr<Cipher> cipherObj(createCipherObject(cipherType));
+	binary keyStr = (key? key : "");
 
-	CipherObj->Init(strKey);
-	CipherObj->EncodeStream(SrcStream, DestStream, -1);
-	CipherObj->Done();
+	cipherObj->init(keyStr);
+	cipherObj->encodeStream(srcStream, destStream, -1);
+	cipherObj->done();
 }
 
 //-----------------------------------------------------------------------------
 
-void DecryptStream(CIPHER_TYPE nCipherType, CStream& SrcStream, CStream& DestStream, char *lpszKey)
+void decryptStream(CIPHER_TYPE cipherType, Stream& srcStream, Stream& destStream, char *key)
 {
-	std::auto_ptr<CCipher> CipherObj(CreateCipherObject(nCipherType));
-	binary strKey = (lpszKey? lpszKey : "");
+	std::auto_ptr<Cipher> cipherObj(createCipherObject(cipherType));
+	binary keyStr = (key? key : "");
 
-	CipherObj->Init(strKey);
-	CipherObj->DecodeStream(SrcStream, DestStream, -1);
-	CipherObj->Done();
+	cipherObj->init(keyStr);
+	cipherObj->decodeStream(srcStream, destStream, -1);
+	cipherObj->done();
 }
 
 //-----------------------------------------------------------------------------
 
-void EncryptFile(CIPHER_TYPE nCipherType, char *lpszSrcFileName, char *lpszDestFileName, char *lpszKey)
+void encryptFile(CIPHER_TYPE cipherType, char *srcFileName, char *destFileName, char *key)
 {
-	std::auto_ptr<CCipher> CipherObj(CreateCipherObject(nCipherType));
-	binary strKey = (lpszKey? lpszKey : "");
+	std::auto_ptr<Cipher> cipherObj(createCipherObject(cipherType));
+	binary keyStr = (key? key : "");
 
-	CipherObj->Init(strKey);
-	CipherObj->EncodeFile(lpszSrcFileName, lpszDestFileName);
-	CipherObj->Done();
+	cipherObj->init(keyStr);
+	cipherObj->encodeFile(srcFileName, destFileName);
+	cipherObj->done();
 }
 
 //-----------------------------------------------------------------------------
 
-void DecryptFile(CIPHER_TYPE nCipherType, char *lpszSrcFileName, char *lpszDestFileName, char *lpszKey)
+void decryptFile(CIPHER_TYPE cipherType, char *srcFileName, char *destFileName, char *key)
 {
-	std::auto_ptr<CCipher> CipherObj(CreateCipherObject(nCipherType));
-	binary strKey = (lpszKey? lpszKey : "");
+	std::auto_ptr<Cipher> cipherObj(createCipherObject(cipherType));
+	binary keyStr = (key? key : "");
 
-	CipherObj->Init(strKey);
-	CipherObj->DecodeFile(lpszSrcFileName, lpszDestFileName);
-	CipherObj->Done();
+	cipherObj->init(keyStr);
+	cipherObj->decodeFile(srcFileName, destFileName);
+	cipherObj->done();
 }
 
 //-----------------------------------------------------------------------------
 
-binary Base64Encode(PVOID pData, int nDataSize)
+binary base64Encode(PVOID data, int dataSize)
 {
-	if (nDataSize < 0)
-		nDataSize = (int)strlen((char*)pData);
+	if (dataSize < 0)
+		dataSize = (int)strlen((char*)data);
 
-	CFormat_MIME64 FormatObj;
-	return FormatObj.Encode(pData, nDataSize);
+	Format_MIME64 formatObj;
+	return formatObj.encode(data, dataSize);
 }
 
 //-----------------------------------------------------------------------------
 
-binary Base64Decode(PVOID pData, int nDataSize)
+binary base64Decode(PVOID data, int dataSize)
 {
-	if (nDataSize < 0)
-		nDataSize = (int)strlen((char*)pData);
+	if (dataSize < 0)
+		dataSize = (int)strlen((char*)data);
 
-	CFormat_MIME64 FormatObj;
-	return FormatObj.Decode(pData, nDataSize);
+	Format_MIME64 formatObj;
+	return formatObj.decode(data, dataSize);
 }
 
 //-----------------------------------------------------------------------------
 
-binary Base16Encode(PVOID pData, int nDataSize)
+binary base16Encode(PVOID data, int dataSize)
 {
-	if (nDataSize < 0)
-		nDataSize = (int)strlen((char*)pData);
+	if (dataSize < 0)
+		dataSize = (int)strlen((char*)data);
 
-	CFormat_HEX FormatObj;
-	return FormatObj.Encode(pData, nDataSize);
+	Format_HEX formatObj;
+	return formatObj.encode(data, dataSize);
 }
 
 //-----------------------------------------------------------------------------
 
-binary Base16Decode(PVOID pData, int nDataSize)
+binary base16Decode(PVOID data, int dataSize)
 {
-	if (nDataSize < 0)
-		nDataSize = (int)strlen((char*)pData);
+	if (dataSize < 0)
+		dataSize = (int)strlen((char*)data);
 
-	CFormat_HEX FormatObj;
-	return FormatObj.Decode(pData, nDataSize);
+	Format_HEX formatObj;
+	return formatObj.decode(data, dataSize);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFormat
+// Format
 
-binary CFormat::Encode(const binary& strValue)
+binary Format::encode(const binary& value)
 {
-	return DoEncode((PVOID)strValue.c_str(), (int)strValue.size());
+	return doEncode((PVOID)value.c_str(), (int)value.size());
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat::Encode(PVOID pData, int nSize)
+binary Format::encode(PVOID data, int size)
 {
-	return DoEncode(pData, nSize);
+	return doEncode(data, size);
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat::Decode(const binary& strValue)
+binary Format::decode(const binary& value)
 {
-	return DoDecode((PVOID)strValue.c_str(), (int)strValue.size());
+	return doDecode((PVOID)value.c_str(), (int)value.size());
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat::Decode(PVOID pData, int nSize)
+binary Format::decode(PVOID data, int size)
 {
-	return DoDecode(pData, nSize);
+	return doDecode(data, size);
 }
 
 //-----------------------------------------------------------------------------
 
-bool CFormat::IsValid(const binary& strValue)
+bool Format::isValid(const binary& value)
 {
-	return DoIsValid((PVOID)strValue.c_str(), (int)strValue.size());
+	return doIsValid((PVOID)value.c_str(), (int)value.size());
 }
 
 //-----------------------------------------------------------------------------
 
-bool CFormat::IsValid(PVOID pData, int nSize)
+bool Format::isValid(PVOID data, int size)
 {
-	return DoIsValid(pData, nSize);
+	return doIsValid(data, size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFormat_Copy
+// Format_Copy
 
-binary CFormat_Copy::DoEncode(PVOID pData, int nSize)
+binary Format_Copy::doEncode(PVOID data, int size)
 {
-	binary strResult((const char*)pData, nSize);
-	return strResult;
+	binary result((const char*)data, size);
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat_Copy::DoDecode(PVOID pData, int nSize)
+binary Format_Copy::doDecode(PVOID data, int size)
 {
-	binary strResult((const char*)pData, nSize);
-	return strResult;
+	binary result((const char*)data, size);
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-bool CFormat_Copy::DoIsValid(PVOID pData, int nSize)
+bool Format_Copy::doIsValid(PVOID data, int size)
 {
-	return (nSize >= 0);
+	return (size >= 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFormat_HEX
+// Format_HEX
 
-binary CFormat_HEX::DoEncode(PVOID pData, int nSize)
+binary Format_HEX::doEncode(PVOID data, int size)
 {
-	binary strResult;
-	const char *t = CharTable();
+	binary result;
+	const char *t = charTable();
 	unsigned char *s;
 	char *d;
 
-	if (nSize <= 0)
-		return strResult;
+	if (size <= 0)
+		return result;
 
-	strResult.resize(nSize * 2);
-	d = (char*)strResult.c_str();
-	s = (unsigned char*)pData;
+	result.resize(size * 2);
+	d = (char*)result.c_str();
+	s = (unsigned char*)data;
 
-	while (nSize > 0)
+	while (size > 0)
 	{
 		d[0] = t[*s >> 4];
 		d[1] = t[*s & 0x0F];
 		d += 2;
 		s++;
-		nSize--;
+		size--;
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat_HEX::DoDecode(PVOID pData, int nSize)
+binary Format_HEX::doDecode(PVOID data, int size)
 {
-	binary strResult;
-	const char *t = CharTable();
+	binary result;
+	const char *t = charTable();
 	char *s;
 	unsigned char *d;
 	int i, p;
-	bool bHasIdent;
+	bool hasIdent;
 
-	if (nSize <= 0)
-		return strResult;
+	if (size <= 0)
+		return result;
 
-	strResult.resize(nSize / 2 + 1);
-	d = (unsigned char*)strResult.c_str();
-	s = (char*)pData;
+	result.resize(size / 2 + 1);
+	d = (unsigned char*)result.c_str();
+	s = (char*)data;
 	i = 0;
-	bHasIdent = false;
+	hasIdent = false;
 
-	while (nSize > 0)
+	while (size > 0)
 	{
-		p = TableFind(*s, t, 18);
+		p = tableFind(*s, t, 18);
 		if (p < 0)
-			p = TableFind(toupper(*s), t, 16);
+			p = tableFind(toupper(*s), t, 16);
 		if (p < 0)
-			IseThrowDataAlgoException(FormatString(S_INVALID_STRING_FORMAT, "CFormat_HEX").c_str());
+			iseThrowDataAlgoException(formatString(S_INVALID_STRING_FORMAT, "Format_HEX").c_str());
 
 		s++;
 		if (p >= 0)
 		{
 			if (p > 16)
 			{
-				if (!bHasIdent)
+				if (!hasIdent)
 				{
-					bHasIdent = true;
+					hasIdent = true;
 					i = 0;
-					d = (unsigned char*)strResult.c_str();
+					d = (unsigned char*)result.c_str();
 				}
 			}
 			else
@@ -1156,39 +1156,39 @@ binary CFormat_HEX::DoDecode(PVOID pData, int nSize)
 				i++;
 			}
 		}
-		nSize--;
+		size--;
 	}
 
-	strResult.resize((char*)d - (char*)strResult.c_str());
-	return strResult;
+	result.resize((char*)d - (char*)result.c_str());
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-bool CFormat_HEX::DoIsValid(PVOID pData, int nSize)
+bool Format_HEX::doIsValid(PVOID data, int size)
 {
-	bool bResult = true;
-	const char *t = CharTable();
+	bool result = true;
+	const char *t = charTable();
 	int l = (int)strlen(t);
-	char *s = (char*)pData;
+	char *s = (char*)data;
 
-	while (bResult && (nSize > 0))
+	while (result && (size > 0))
 	{
-		if (TableFind(*s, t, l) >= 0)
+		if (tableFind(*s, t, l) >= 0)
 		{
-			nSize--;
+			size--;
 			s++;
 		}
 		else
-			bResult = false;
+			result = false;
 	}
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-const char* CFormat_HEX::CharTable()
+const char* Format_HEX::charTable()
 {
 	// Table must be >= 18 Chars
 	return
@@ -1197,9 +1197,9 @@ const char* CFormat_HEX::CharTable()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFormat_HEXL
+// Format_HEXL
 
-const char* CFormat_HEXL::CharTable()
+const char* Format_HEXL::charTable()
 {
 	// Table must be >= 18 Chars
 	return
@@ -1208,77 +1208,77 @@ const char* CFormat_HEXL::CharTable()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFormat_MIME32
+// Format_MIME32
 
-binary CFormat_MIME32::DoEncode(PVOID pData, int nSize)
+binary Format_MIME32::doEncode(PVOID data, int size)
 {
-	binary strResult;
-	const char *t = CharTable();
+	binary result;
+	const char *t = charTable();
 	unsigned char *s;
 	char *d;
 	int i;
 
-	if (nSize <= 0)
-		return strResult;
+	if (size <= 0)
+		return result;
 
-	nSize = nSize * 8;
-	strResult.resize(nSize / 5 + 5);
-	d = (char*)strResult.c_str();
-	s = (unsigned char*)pData;
+	size = size * 8;
+	result.resize(size / 5 + 5);
+	d = (char*)result.c_str();
+	s = (unsigned char*)data;
 	i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
 		*d = t[ *((PWORD)(&s[i>>3])) >> (i&0x7) & 0x1F ];
 		d++;
 		i += 5;
 	}
 
-	strResult.resize((char*)d - (char*)strResult.c_str());
-	return strResult;
+	result.resize((char*)d - (char*)result.c_str());
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat_MIME32::DoDecode(PVOID pData, int nSize)
+binary Format_MIME32::doDecode(PVOID data, int size)
 {
-	binary strResult;
-	const char *t = CharTable();
+	binary result;
+	const char *t = charTable();
 	char *s, *d;
 	int i, v;
 
-	if (nSize <= 0)
-		return strResult;
+	if (size <= 0)
+		return result;
 
-	strResult.resize(nSize * 5 / 8);
-	d = (char*)strResult.c_str();
-	memset(d, 0, strResult.length());
-	s = (char*)pData;
-	nSize = nSize * 5;
+	result.resize(size * 5 / 8);
+	d = (char*)result.c_str();
+	memset(d, 0, result.length());
+	s = (char*)data;
+	size = size * 5;
 	i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		v = TableFind(*s, t, 32);
+		v = tableFind(*s, t, 32);
 		if (v < 0)
-			v = TableFind(toupper(*s), t, 32);
+			v = tableFind(toupper(*s), t, 32);
 		if (v >= 0)
 		{
 			*((PWORD)(&d[i>>3])) |= (v << (i & 0x7));
 			i += 5;
 		}
 		else
-			nSize -= 5;
+			size -= 5;
 		s++;
 	}
 
-	strResult.resize(nSize / 8);
-	return strResult;
+	result.resize(size / 8);
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-const char* CFormat_MIME32::CharTable()
+const char* Format_MIME32::charTable()
 {
 	// Table must be >= 32 Chars
 	return
@@ -1287,27 +1287,27 @@ const char* CFormat_MIME32::CharTable()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CFormat_MIME64
+// Format_MIME64
 
-binary CFormat_MIME64::DoEncode(PVOID pData, int nSize)
+binary Format_MIME64::doEncode(PVOID data, int size)
 {
-	binary strResult;
-	const char *t = CharTable();
+	binary result;
+	const char *t = charTable();
 	char *d;
 	unsigned char *s;
 	DWORD b;
 	int i;
 
-	if (nSize <= 0)
-		return strResult;
+	if (size <= 0)
+		return result;
 
-	strResult.resize(nSize * 4 / 3 + 4);
-	d = (char*)strResult.c_str();
-	s = (unsigned char*)pData;
+	result.resize(size * 4 / 3 + 4);
+	d = (char*)result.c_str();
+	s = (unsigned char*)data;
 
-	while (nSize >= 3)
+	while (size >= 3)
 	{
-		nSize -= 3;
+		size -= 3;
 		b = (s[0] << 16) | (s[1] << 8) | s[2];
 		d[0] = t[ b >> 18 & 0x3F ];
 		d[1] = t[ b >> 12 & 0x3F ];
@@ -1317,25 +1317,25 @@ binary CFormat_MIME64::DoEncode(PVOID pData, int nSize)
 		s = &s[3];
 	}
 
-	while (nSize > 0)
+	while (size > 0)
 	{
 		b = 0;
 		for (i = 0; i <= 2; i++)
 		{
 			b = b << 8;
-			if (nSize > 0)
+			if (size > 0)
 			{
 				b |= s[0];
 				s = &s[1];
 			}
-			nSize--;
+			size--;
 		}
 		for (i = 3; i >= 0; i--)
 		{
-			if (nSize < 0)
+			if (size < 0)
 			{
 				d[i] = t[64];
-				nSize++;
+				size++;
 			}
 			else
 				d[i] = t[ b & 0x3F ];
@@ -1344,27 +1344,27 @@ binary CFormat_MIME64::DoEncode(PVOID pData, int nSize)
 		d += 4;
 	}
 
-	strResult.resize((char*)d - (char*)strResult.c_str());
-	return strResult;
+	result.resize((char*)d - (char*)result.c_str());
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-binary CFormat_MIME64::DoDecode(PVOID pData, int nSize)
+binary Format_MIME64::doDecode(PVOID data, int size)
 {
-	binary strResult;
-	const char *t = CharTable();
+	binary result;
+	const char *t = charTable();
 	char *s, *d, *l;
 	int i, j;
 	DWORD b;
 
-	if (nSize <= 0)
-		return strResult;
+	if (size <= 0)
+		return result;
 
-	strResult.assign((char*)pData, nSize);
-	d = (char*)strResult.c_str();
+	result.assign((char*)data, size);
+	d = (char*)result.c_str();
 	s = d;
-	l = s + nSize;
+	l = s + size;
 	j = 0;
 
 	while (s < l)
@@ -1373,7 +1373,7 @@ binary CFormat_MIME64::DoDecode(PVOID pData, int nSize)
 		j = 4;
 		while (j > 0 && s < l)
 		{
-			i = TableFind(*s, t, 65);
+			i = tableFind(*s, t, 65);
 			s++;
 			if (i >= 0)
 			{
@@ -1407,13 +1407,13 @@ binary CFormat_MIME64::DoDecode(PVOID pData, int nSize)
 		d += 3;
 	}
 
-	strResult.resize((char*)d - (char*)strResult.c_str() - j);
-	return strResult;
+	result.resize((char*)d - (char*)result.c_str() - j);
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-const char* CFormat_MIME64::CharTable()
+const char* Format_MIME64::charTable()
 {
 	// Table must be >= 65 Chars
 	return
@@ -1422,387 +1422,387 @@ const char* CFormat_MIME64::CharTable()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHash
+// Hash
 
-CHash::CHash() :
-	m_pBuffer(NULL),
-	m_nBufferSize(0),
-	m_nBufferIndex(0),
-	m_nPaddingByte(0)
+Hash::Hash() :
+	buffer_(NULL),
+	bufferSize_(0),
+	bufferIndex_(0),
+	paddingByte_(0)
 {
-	memset(m_nCount, 0, sizeof(m_nCount));
+	memset(count_, 0, sizeof(count_));
 }
 
 //-----------------------------------------------------------------------------
 
-CHash::~CHash()
+Hash::~Hash()
 {
-	delete[] m_pBuffer;
-	m_pBuffer = NULL;
+	delete[] buffer_;
+	buffer_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
 
-void CHash::Init()
+void Hash::init()
 {
-	m_nBufferIndex = 0;
-	m_nBufferSize = BlockSize();
-	m_pBuffer = new BYTE[m_nBufferSize];
-	memset(m_pBuffer, 0, m_nBufferSize);
-	memset(m_nCount, 0, sizeof(m_nCount));
-	DoInit();
+	bufferIndex_ = 0;
+	bufferSize_ = blockSize();
+	buffer_ = new BYTE[bufferSize_];
+	memset(buffer_, 0, bufferSize_);
+	memset(count_, 0, sizeof(count_));
+	doInit();
 }
 
 //-----------------------------------------------------------------------------
 
-void CHash::Calc(PVOID pData, int nDataSize)
+void Hash::calc(PVOID data, int dataSize)
 {
-	int nRemain;
-	PBYTE pSource;
+	int remain;
+	PBYTE source;
 
-	if (nDataSize <= 0) return;
-	if (m_pBuffer == NULL)
-		IseThrowDataAlgoException(S_HASH_NOT_INITIALIZED);
+	if (dataSize <= 0) return;
+	if (buffer_ == NULL)
+		iseThrowDataAlgoException(S_HASH_NOT_INITIALIZED);
 
-	Increment8(m_nCount, nDataSize);
-	pSource = (PBYTE)pData;
+	increment8(count_, dataSize);
+	source = (PBYTE)data;
 
-	if (m_nBufferIndex > 0)
+	if (bufferIndex_ > 0)
 	{
-		nRemain = m_nBufferSize - m_nBufferIndex;
-		if (nDataSize < nRemain)
+		remain = bufferSize_ - bufferIndex_;
+		if (dataSize < remain)
 		{
-			memmove(m_pBuffer + m_nBufferIndex, pSource, nDataSize);
-			m_nBufferIndex += nDataSize;
+			memmove(buffer_ + bufferIndex_, source, dataSize);
+			bufferIndex_ += dataSize;
 			return;
 		}
-		memmove(m_pBuffer + m_nBufferIndex, pSource, nRemain);
-		DoTransform((DWORD*)m_pBuffer);
-		nDataSize -= nRemain;
-		pSource += nRemain;
+		memmove(buffer_ + bufferIndex_, source, remain);
+		doTransform((DWORD*)buffer_);
+		dataSize -= remain;
+		source += remain;
 	}
 
-	while (nDataSize >= m_nBufferSize)
+	while (dataSize >= bufferSize_)
 	{
-		DoTransform((DWORD*)pSource);
-		pSource += m_nBufferSize;
-		nDataSize -= m_nBufferSize;
+		doTransform((DWORD*)source);
+		source += bufferSize_;
+		dataSize -= bufferSize_;
 	}
 
-	memmove(m_pBuffer, pSource, nDataSize);
-	m_nBufferIndex = nDataSize;
+	memmove(buffer_, source, dataSize);
+	bufferIndex_ = dataSize;
 }
 
 //-----------------------------------------------------------------------------
 
-void CHash::Done()
+void Hash::done()
 {
-	DoDone();
-	ProtectBuffer(m_pBuffer, m_nBufferSize);
-	m_nBufferSize = 0;
-	delete[] m_pBuffer;
-	m_pBuffer = NULL;
+	doDone();
+	protectBuffer(buffer_, bufferSize_);
+	bufferSize_ = 0;
+	delete[] buffer_;
+	buffer_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
 
-binary CHash::DigestStr(FORMAT_TYPE nFormatType)
+binary Hash::digestStr(FORMAT_TYPE formatType)
 {
-	std::auto_ptr<CFormat> FormatObj(CreateFormatObject(nFormatType));
-	return FormatObj->Encode(&Digest()[0], DigestSize());
+	std::auto_ptr<Format> formatObj(createFormatObject(formatType));
+	return formatObj->encode(&digest()[0], digestSize());
 }
 
 //-----------------------------------------------------------------------------
 
-binary CHash::CalcBuffer(PVOID pBuffer, int nBufferSize, FORMAT_TYPE nFormatType)
+binary Hash::calcBuffer(PVOID buffer, int bufferSize, FORMAT_TYPE formatType)
 {
-	Init();
-	Calc(pBuffer, nBufferSize);
-	Done();
-	return DigestStr(nFormatType);
+	init();
+	calc(buffer, bufferSize);
+	done();
+	return digestStr(formatType);
 }
 
 //-----------------------------------------------------------------------------
 
-binary CHash::CalcStream(CStream& Stream, INT64 nSize, FORMAT_TYPE nFormatType, IDataAlgoProgress *pProgress)
+binary Hash::calcStream(Stream& stream, INT64 size, FORMAT_TYPE formatType, DataAlgoProgress *progress)
 {
-	binary strResult;
-	binary strBuffer;
-	int nBytes;
-	INT64 nMin = 0, nMax = 0, nPos;
+	binary result;
+	binary buffer;
+	int bytes;
+	INT64 min = 0, max = 0, pos;
 
-	Init();
-	if (nSize < 0)
+	init();
+	if (size < 0)
 	{
-		Stream.SetPosition(0);
-		nSize = Stream.GetSize();
-		nPos = 0;
+		stream.setPosition(0);
+		size = stream.getSize();
+		pos = 0;
 	}
 	else
-		nPos = Stream.GetPosition();
+		pos = stream.getPosition();
 
-	nBytes = STREAM_BUF_SIZE % m_nBufferSize;
-	nBytes = (nBytes == 0 ? STREAM_BUF_SIZE : (STREAM_BUF_SIZE + m_nBufferSize - nBytes));
-	strBuffer.resize((int)(nBytes > nSize ? nSize : nBytes));
-	nMin = nPos;
-	nMax = nPos + nSize;
+	bytes = STREAM_BUF_SIZE % bufferSize_;
+	bytes = (bytes == 0 ? STREAM_BUF_SIZE : (STREAM_BUF_SIZE + bufferSize_ - bytes));
+	buffer.resize((int)(bytes > size ? size : bytes));
+	min = pos;
+	max = pos + size;
 
-	while (nSize > 0)
+	while (size > 0)
 	{
-		if (pProgress) pProgress->Progress(nMin, nMax, nPos);
-		nBytes = (int)strBuffer.length();
-		if (nBytes > nSize) nBytes = (int)nSize;
-		Stream.ReadBuffer((char*)strBuffer.c_str(), nBytes);
-		Calc((char*)strBuffer.c_str(), nBytes);
-		nSize -= nBytes;
-		nPos += nBytes;
+		if (progress) progress->progress(min, max, pos);
+		bytes = (int)buffer.length();
+		if (bytes > size) bytes = (int)size;
+		stream.readBuffer((char*)buffer.c_str(), bytes);
+		calc((char*)buffer.c_str(), bytes);
+		size -= bytes;
+		pos += bytes;
 	}
-	Done();
-	if (pProgress) pProgress->Progress(nMin, nMax, nMax);
-	ProtectBinary(strBuffer);
-	strResult = DigestStr(nFormatType);
+	done();
+	if (progress) progress->progress(min, max, max);
+	protectBinary(buffer);
+	result = digestStr(formatType);
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-binary CHash::CalcBinary(const binary& strData, FORMAT_TYPE nFormatType)
+binary Hash::calcBinary(const binary& data, FORMAT_TYPE formatType)
 {
-	return CalcBuffer((char*)strData.c_str(), (int)strData.length(), nFormatType);
+	return calcBuffer((char*)data.c_str(), (int)data.length(), formatType);
 }
 
 //-----------------------------------------------------------------------------
 
-binary CHash::CalcFile(char *lpszFileName, FORMAT_TYPE nFormatType, IDataAlgoProgress *pProgress)
+binary Hash::calcFile(char *fileName, FORMAT_TYPE formatType, DataAlgoProgress *progress)
 {
-	CFileStream FileStream(lpszFileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
-	return CalcStream(FileStream, FileStream.GetSize(), nFormatType, pProgress);
+	FileStream fileStream(fileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
+	return calcStream(fileStream, fileStream.getSize(), formatType, progress);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHashBaseMD4
+// HashBaseMD4
 
-CHashBaseMD4::CHashBaseMD4()
+HashBaseMD4::HashBaseMD4()
 {
-	memset(m_nDigest, 0, sizeof(m_nDigest));
+	memset(digest_, 0, sizeof(digest_));
 }
 
 //-----------------------------------------------------------------------------
 
-void CHashBaseMD4::DoInit()
+void HashBaseMD4::doInit()
 {
-	m_nDigest[0] = 0x67452301;
-	m_nDigest[1] = 0xEFCDAB89;
-	m_nDigest[2] = 0x98BADCFE;
-	m_nDigest[3] = 0x10325476;
-	m_nDigest[4] = 0xC3D2E1F0;
-	m_nDigest[5] = 0x76543210;
-	m_nDigest[6] = 0xFEDCBA98;
-	m_nDigest[7] = 0x89ABCDEF;
-	m_nDigest[8] = 0x01234567;
-	m_nDigest[9] = 0x3C2D1E0F;
+	digest_[0] = 0x67452301;
+	digest_[1] = 0xEFCDAB89;
+	digest_[2] = 0x98BADCFE;
+	digest_[3] = 0x10325476;
+	digest_[4] = 0xC3D2E1F0;
+	digest_[5] = 0x76543210;
+	digest_[6] = 0xFEDCBA98;
+	digest_[7] = 0x89ABCDEF;
+	digest_[8] = 0x01234567;
+	digest_[9] = 0x3C2D1E0F;
 }
 
 //-----------------------------------------------------------------------------
 
-void CHashBaseMD4::DoDone()
+void HashBaseMD4::doDone()
 {
-	if (m_nCount[2] | m_nCount[3])
-		HashingOverflowError();
+	if (count_[2] | count_[3])
+		hashingOverflowError();
 
-	if (m_nPaddingByte == 0)
-		m_nPaddingByte = 0x80;
-	m_pBuffer[m_nBufferIndex] = m_nPaddingByte;
-	m_nBufferIndex++;
-	if (m_nBufferIndex > m_nBufferSize - 8)
+	if (paddingByte_ == 0)
+		paddingByte_ = 0x80;
+	buffer_[bufferIndex_] = paddingByte_;
+	bufferIndex_++;
+	if (bufferIndex_ > bufferSize_ - 8)
 	{
-		memset(m_pBuffer + m_nBufferIndex, 0, m_nBufferSize - m_nBufferIndex);
-		DoTransform((DWORD*)m_pBuffer);
-		m_nBufferIndex = 0;
+		memset(buffer_ + bufferIndex_, 0, bufferSize_ - bufferIndex_);
+		doTransform((DWORD*)buffer_);
+		bufferIndex_ = 0;
 	}
-	memset(m_pBuffer + m_nBufferIndex, 0, m_nBufferSize - m_nBufferIndex);
-	memmove(m_pBuffer + m_nBufferSize - 8, m_nCount, 8);
-	DoTransform((DWORD*)m_pBuffer);
+	memset(buffer_ + bufferIndex_, 0, bufferSize_ - bufferIndex_);
+	memmove(buffer_ + bufferSize_ - 8, count_, 8);
+	doTransform((DWORD*)buffer_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHash_MD4
+// Hash_MD4
 
-void CHash_MD4::DoTransform(DWORD *pBuffer)
+void Hash_MD4::doTransform(DWORD *buffer)
 {
 	const DWORD S1 = 0x5A827999;
 	const DWORD S2 = 0x6ED9EBA1;
 
 	DWORD a, b, c, d;
 
-	a = m_nDigest[0];
-	b = m_nDigest[1];
-	c = m_nDigest[2];
-	d = m_nDigest[3];
+	a = digest_[0];
+	b = digest_[1];
+	c = digest_[2];
+	d = digest_[3];
 
-	a += ((b & c | ~ b & d) + pBuffer[ 0]); a = a <<  3 | a >> 29;
-	d += ((a & b | ~ a & c) + pBuffer[ 1]); d = d <<  7 | d >> 25;
-	c += ((d & a | ~ d & b) + pBuffer[ 2]); c = c << 11 | c >> 21;
-	b += ((c & d | ~ c & a) + pBuffer[ 3]); b = b << 19 | b >> 13;
-	a += ((b & c | ~ b & d) + pBuffer[ 4]); a = a <<  3 | a >> 29;
-	d += ((a & b | ~ a & c) + pBuffer[ 5]); d = d <<  7 | d >> 25;
-	c += ((d & a | ~ d & b) + pBuffer[ 6]); c = c << 11 | c >> 21;
-	b += ((c & d | ~ c & a) + pBuffer[ 7]); b = b << 19 | b >> 13;
-	a += ((b & c | ~ b & d) + pBuffer[ 8]); a = a <<  3 | a >> 29;
-	d += ((a & b | ~ a & c) + pBuffer[ 9]); d = d <<  7 | d >> 25;
-	c += ((d & a | ~ d & b) + pBuffer[10]); c = c << 11 | c >> 21;
-	b += ((c & d | ~ c & a) + pBuffer[11]); b = b << 19 | b >> 13;
-	a += ((b & c | ~ b & d) + pBuffer[12]); a = a <<  3 | a >> 29;
-	d += ((a & b | ~ a & c) + pBuffer[13]); d = d <<  7 | d >> 25;
-	c += ((d & a | ~ d & b) + pBuffer[14]); c = c << 11 | c >> 21;
-	b += ((c & d | ~ c & a) + pBuffer[15]); b = b << 19 | b >> 13;
+	a += ((b & c | ~ b & d) + buffer[ 0]); a = a <<  3 | a >> 29;
+	d += ((a & b | ~ a & c) + buffer[ 1]); d = d <<  7 | d >> 25;
+	c += ((d & a | ~ d & b) + buffer[ 2]); c = c << 11 | c >> 21;
+	b += ((c & d | ~ c & a) + buffer[ 3]); b = b << 19 | b >> 13;
+	a += ((b & c | ~ b & d) + buffer[ 4]); a = a <<  3 | a >> 29;
+	d += ((a & b | ~ a & c) + buffer[ 5]); d = d <<  7 | d >> 25;
+	c += ((d & a | ~ d & b) + buffer[ 6]); c = c << 11 | c >> 21;
+	b += ((c & d | ~ c & a) + buffer[ 7]); b = b << 19 | b >> 13;
+	a += ((b & c | ~ b & d) + buffer[ 8]); a = a <<  3 | a >> 29;
+	d += ((a & b | ~ a & c) + buffer[ 9]); d = d <<  7 | d >> 25;
+	c += ((d & a | ~ d & b) + buffer[10]); c = c << 11 | c >> 21;
+	b += ((c & d | ~ c & a) + buffer[11]); b = b << 19 | b >> 13;
+	a += ((b & c | ~ b & d) + buffer[12]); a = a <<  3 | a >> 29;
+	d += ((a & b | ~ a & c) + buffer[13]); d = d <<  7 | d >> 25;
+	c += ((d & a | ~ d & b) + buffer[14]); c = c << 11 | c >> 21;
+	b += ((c & d | ~ c & a) + buffer[15]); b = b << 19 | b >> 13;
 
-	a += ((b & c | b & d | c & d) + pBuffer[ 0] + S1); a = a <<  3 | a >> 29;
-	d += ((a & b | a & c | b & c) + pBuffer[ 4] + S1); d = d <<  5 | d >> 27;
-	c += ((d & a | d & b | a & b) + pBuffer[ 8] + S1); c = c <<  9 | c >> 23;
-	b += ((c & d | c & a | d & a) + pBuffer[12] + S1); b = b << 13 | b >> 19;
-	a += ((b & c | b & d | c & d) + pBuffer[ 1] + S1); a = a <<  3 | a >> 29;
-	d += ((a & b | a & c | b & c) + pBuffer[ 5] + S1); d = d <<  5 | d >> 27;
-	c += ((d & a | d & b | a & b) + pBuffer[ 9] + S1); c = c <<  9 | c >> 23;
-	b += ((c & d | c & a | d & a) + pBuffer[13] + S1); b = b << 13 | b >> 19;
-	a += ((b & c | b & d | c & d) + pBuffer[ 2] + S1); a = a <<  3 | a >> 29;
-	d += ((a & b | a & c | b & c) + pBuffer[ 6] + S1); d = d <<  5 | d >> 27;
-	c += ((d & a | d & b | a & b) + pBuffer[10] + S1); c = c <<  9 | c >> 23;
-	b += ((c & d | c & a | d & a) + pBuffer[14] + S1); b = b << 13 | b >> 19;
-	a += ((b & c | b & d | c & d) + pBuffer[ 3] + S1); a = a <<  3 | a >> 29;
-	d += ((a & b | a & c | b & c) + pBuffer[ 7] + S1); d = d <<  5 | d >> 27;
-	c += ((d & a | d & b | a & b) + pBuffer[11] + S1); c = c <<  9 | c >> 23;
-	b += ((c & d | c & a | d & a) + pBuffer[15] + S1); b = b << 13 | b >> 19;
+	a += ((b & c | b & d | c & d) + buffer[ 0] + S1); a = a <<  3 | a >> 29;
+	d += ((a & b | a & c | b & c) + buffer[ 4] + S1); d = d <<  5 | d >> 27;
+	c += ((d & a | d & b | a & b) + buffer[ 8] + S1); c = c <<  9 | c >> 23;
+	b += ((c & d | c & a | d & a) + buffer[12] + S1); b = b << 13 | b >> 19;
+	a += ((b & c | b & d | c & d) + buffer[ 1] + S1); a = a <<  3 | a >> 29;
+	d += ((a & b | a & c | b & c) + buffer[ 5] + S1); d = d <<  5 | d >> 27;
+	c += ((d & a | d & b | a & b) + buffer[ 9] + S1); c = c <<  9 | c >> 23;
+	b += ((c & d | c & a | d & a) + buffer[13] + S1); b = b << 13 | b >> 19;
+	a += ((b & c | b & d | c & d) + buffer[ 2] + S1); a = a <<  3 | a >> 29;
+	d += ((a & b | a & c | b & c) + buffer[ 6] + S1); d = d <<  5 | d >> 27;
+	c += ((d & a | d & b | a & b) + buffer[10] + S1); c = c <<  9 | c >> 23;
+	b += ((c & d | c & a | d & a) + buffer[14] + S1); b = b << 13 | b >> 19;
+	a += ((b & c | b & d | c & d) + buffer[ 3] + S1); a = a <<  3 | a >> 29;
+	d += ((a & b | a & c | b & c) + buffer[ 7] + S1); d = d <<  5 | d >> 27;
+	c += ((d & a | d & b | a & b) + buffer[11] + S1); c = c <<  9 | c >> 23;
+	b += ((c & d | c & a | d & a) + buffer[15] + S1); b = b << 13 | b >> 19;
 
-	a += ((b ^ c ^ d) + pBuffer[ 0] + S2); a = a <<  3 | a >> 29;
-	d += ((a ^ b ^ c) + pBuffer[ 8] + S2); d = d <<  9 | d >> 23;
-	c += ((d ^ a ^ b) + pBuffer[ 4] + S2); c = c << 11 | c >> 21;
-	b += ((c ^ d ^ a) + pBuffer[12] + S2); b = b << 15 | b >> 17;
-	a += ((b ^ c ^ d) + pBuffer[ 2] + S2); a = a <<  3 | a >> 29;
-	d += ((a ^ b ^ c) + pBuffer[10] + S2); d = d <<  9 | d >> 23;
-	c += ((d ^ a ^ b) + pBuffer[ 6] + S2); c = c << 11 | c >> 21;
-	b += ((c ^ d ^ a) + pBuffer[14] + S2); b = b << 15 | b >> 17;
-	a += ((b ^ c ^ d) + pBuffer[ 1] + S2); a = a <<  3 | a >> 29;
-	d += ((a ^ b ^ c) + pBuffer[ 9] + S2); d = d <<  9 | d >> 23;
-	c += ((d ^ a ^ b) + pBuffer[ 5] + S2); c = c << 11 | c >> 21;
-	b += ((c ^ d ^ a) + pBuffer[13] + S2); b = b << 15 | b >> 17;
-	a += ((b ^ c ^ d) + pBuffer[ 3] + S2); a = a <<  3 | a >> 29;
-	d += ((a ^ b ^ c) + pBuffer[11] + S2); d = d <<  9 | d >> 23;
-	c += ((d ^ a ^ b) + pBuffer[ 7] + S2); c = c << 11 | c >> 21;
-	b += ((c ^ d ^ a) + pBuffer[15] + S2); b = b << 15 | b >> 17;
+	a += ((b ^ c ^ d) + buffer[ 0] + S2); a = a <<  3 | a >> 29;
+	d += ((a ^ b ^ c) + buffer[ 8] + S2); d = d <<  9 | d >> 23;
+	c += ((d ^ a ^ b) + buffer[ 4] + S2); c = c << 11 | c >> 21;
+	b += ((c ^ d ^ a) + buffer[12] + S2); b = b << 15 | b >> 17;
+	a += ((b ^ c ^ d) + buffer[ 2] + S2); a = a <<  3 | a >> 29;
+	d += ((a ^ b ^ c) + buffer[10] + S2); d = d <<  9 | d >> 23;
+	c += ((d ^ a ^ b) + buffer[ 6] + S2); c = c << 11 | c >> 21;
+	b += ((c ^ d ^ a) + buffer[14] + S2); b = b << 15 | b >> 17;
+	a += ((b ^ c ^ d) + buffer[ 1] + S2); a = a <<  3 | a >> 29;
+	d += ((a ^ b ^ c) + buffer[ 9] + S2); d = d <<  9 | d >> 23;
+	c += ((d ^ a ^ b) + buffer[ 5] + S2); c = c << 11 | c >> 21;
+	b += ((c ^ d ^ a) + buffer[13] + S2); b = b << 15 | b >> 17;
+	a += ((b ^ c ^ d) + buffer[ 3] + S2); a = a <<  3 | a >> 29;
+	d += ((a ^ b ^ c) + buffer[11] + S2); d = d <<  9 | d >> 23;
+	c += ((d ^ a ^ b) + buffer[ 7] + S2); c = c << 11 | c >> 21;
+	b += ((c ^ d ^ a) + buffer[15] + S2); b = b << 15 | b >> 17;
 
-	m_nDigest[0] += a;
-	m_nDigest[1] += b;
-	m_nDigest[2] += c;
-	m_nDigest[3] += d;
+	digest_[0] += a;
+	digest_[1] += b;
+	digest_[2] += c;
+	digest_[3] += d;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHash_MD5
+// Hash_MD5
 
-void CHash_MD5::DoTransform(DWORD *pBuffer)
+void Hash_MD5::doTransform(DWORD *buffer)
 {
 	DWORD a, b, c, d;
 
-	a = m_nDigest[0];
-	b = m_nDigest[1];
-	c = m_nDigest[2];
-	d = m_nDigest[3];
+	a = digest_[0];
+	b = digest_[1];
+	c = digest_[2];
+	d = digest_[3];
 
-	a += (pBuffer[ 0] + 0xD76AA478 + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
-	d += (pBuffer[ 1] + 0xE8C7B756 + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
-	c += (pBuffer[ 2] + 0x242070DB + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
-	b += (pBuffer[ 3] + 0xC1BDCEEE + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
-	a += (pBuffer[ 4] + 0xF57C0FAF + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
-	d += (pBuffer[ 5] + 0x4787C62A + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
-	c += (pBuffer[ 6] + 0xA8304613 + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
-	b += (pBuffer[ 7] + 0xFD469501 + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
-	a += (pBuffer[ 8] + 0x698098D8 + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
-	d += (pBuffer[ 9] + 0x8B44F7AF + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
-	c += (pBuffer[10] + 0xFFFF5BB1 + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
-	b += (pBuffer[11] + 0x895CD7BE + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
-	a += (pBuffer[12] + 0x6B901122 + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
-	d += (pBuffer[13] + 0xFD987193 + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
-	c += (pBuffer[14] + 0xA679438E + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
-	b += (pBuffer[15] + 0x49B40821 + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
+	a += (buffer[ 0] + 0xD76AA478 + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
+	d += (buffer[ 1] + 0xE8C7B756 + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
+	c += (buffer[ 2] + 0x242070DB + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
+	b += (buffer[ 3] + 0xC1BDCEEE + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
+	a += (buffer[ 4] + 0xF57C0FAF + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
+	d += (buffer[ 5] + 0x4787C62A + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
+	c += (buffer[ 6] + 0xA8304613 + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
+	b += (buffer[ 7] + 0xFD469501 + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
+	a += (buffer[ 8] + 0x698098D8 + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
+	d += (buffer[ 9] + 0x8B44F7AF + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
+	c += (buffer[10] + 0xFFFF5BB1 + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
+	b += (buffer[11] + 0x895CD7BE + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
+	a += (buffer[12] + 0x6B901122 + (d ^ (b & (c ^ d))));   a = (a <<  7 | a >> 25) + b;
+	d += (buffer[13] + 0xFD987193 + (c ^ (a & (b ^ c))));   d = (d << 12 | d >> 20) + a;
+	c += (buffer[14] + 0xA679438E + (b ^ (d & (a ^ b))));   c = (c << 17 | c >> 15) + d;
+	b += (buffer[15] + 0x49B40821 + (a ^ (c & (d ^ a))));   b = (b << 22 | b >> 10) + c;
 
-	a += (pBuffer[ 1] + 0xF61E2562 + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
-	d += (pBuffer[ 6] + 0xC040B340 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
-	c += (pBuffer[11] + 0x265E5A51 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
-	b += (pBuffer[ 0] + 0xE9B6C7Aa + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
-	a += (pBuffer[ 5] + 0xD62F105D + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
-	d += (pBuffer[10] + 0x02441453 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
-	c += (pBuffer[15] + 0xD8A1E681 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
-	b += (pBuffer[ 4] + 0xE7D3FBC8 + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
-	a += (pBuffer[ 9] + 0x21E1CDE6 + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
-	d += (pBuffer[14] + 0xC33707D6 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
-	c += (pBuffer[ 3] + 0xF4D50D87 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
-	b += (pBuffer[ 8] + 0x455A14ED + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
-	a += (pBuffer[13] + 0xA9E3E905 + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
-	d += (pBuffer[ 2] + 0xFCEFA3F8 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
-	c += (pBuffer[ 7] + 0x676F02D9 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
-	b += (pBuffer[12] + 0x8D2A4C8A + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
+	a += (buffer[ 1] + 0xF61E2562 + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
+	d += (buffer[ 6] + 0xC040B340 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
+	c += (buffer[11] + 0x265E5A51 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
+	b += (buffer[ 0] + 0xE9B6C7Aa + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
+	a += (buffer[ 5] + 0xD62F105D + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
+	d += (buffer[10] + 0x02441453 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
+	c += (buffer[15] + 0xD8A1E681 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
+	b += (buffer[ 4] + 0xE7D3FBC8 + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
+	a += (buffer[ 9] + 0x21E1CDE6 + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
+	d += (buffer[14] + 0xC33707D6 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
+	c += (buffer[ 3] + 0xF4D50D87 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
+	b += (buffer[ 8] + 0x455A14ED + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
+	a += (buffer[13] + 0xA9E3E905 + (c ^ (d & (b ^ c))));   a = (a <<  5 | a >> 27) + b;
+	d += (buffer[ 2] + 0xFCEFA3F8 + (b ^ (c & (a ^ b))));   d = (d <<  9 | d >> 23) + a;
+	c += (buffer[ 7] + 0x676F02D9 + (a ^ (b & (d ^ a))));   c = (c << 14 | c >> 18) + d;
+	b += (buffer[12] + 0x8D2A4C8A + (d ^ (a & (c ^ d))));   b = (b << 20 | b >> 12) + c;
 
-	a += (pBuffer[ 5] + 0xFFFA3942 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
-	d += (pBuffer[ 8] + 0x8771F681 + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
-	c += (pBuffer[11] + 0x6D9D6122 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
-	b += (pBuffer[14] + 0xFDE5380C + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
-	a += (pBuffer[ 1] + 0xA4BEEA44 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
-	d += (pBuffer[ 4] + 0x4BDECFA9 + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
-	c += (pBuffer[ 7] + 0xF6BB4B60 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
-	b += (pBuffer[10] + 0xBEBFBC70 + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
-	a += (pBuffer[13] + 0x289B7EC6 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
-	d += (pBuffer[ 0] + 0xEAA127FA + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
-	c += (pBuffer[ 3] + 0xD4EF3085 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
-	b += (pBuffer[ 6] + 0x04881D05 + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
-	a += (pBuffer[ 9] + 0xD9D4D039 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
-	d += (pBuffer[12] + 0xE6DB99E5 + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
-	c += (pBuffer[15] + 0x1FA27CF8 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
-	b += (pBuffer[ 2] + 0xC4AC5665 + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
+	a += (buffer[ 5] + 0xFFFA3942 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
+	d += (buffer[ 8] + 0x8771F681 + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
+	c += (buffer[11] + 0x6D9D6122 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
+	b += (buffer[14] + 0xFDE5380C + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
+	a += (buffer[ 1] + 0xA4BEEA44 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
+	d += (buffer[ 4] + 0x4BDECFA9 + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
+	c += (buffer[ 7] + 0xF6BB4B60 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
+	b += (buffer[10] + 0xBEBFBC70 + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
+	a += (buffer[13] + 0x289B7EC6 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
+	d += (buffer[ 0] + 0xEAA127FA + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
+	c += (buffer[ 3] + 0xD4EF3085 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
+	b += (buffer[ 6] + 0x04881D05 + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
+	a += (buffer[ 9] + 0xD9D4D039 + (b ^ c ^ d));   a = (a <<  4 | a >> 28) + b;
+	d += (buffer[12] + 0xE6DB99E5 + (a ^ b ^ c));   d = (d << 11 | d >> 21) + a;
+	c += (buffer[15] + 0x1FA27CF8 + (d ^ a ^ b));   c = (c << 16 | c >> 16) + d;
+	b += (buffer[ 2] + 0xC4AC5665 + (c ^ d ^ a));   b = (b << 23 | b >>  9) + c;
 
-	a += (pBuffer[ 0] + 0xF4292244 + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
-	d += (pBuffer[ 7] + 0x432AFF97 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
-	c += (pBuffer[14] + 0xAB9423A7 + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
-	b += (pBuffer[ 5] + 0xFC93A039 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
-	a += (pBuffer[12] + 0x655B59C3 + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
-	d += (pBuffer[ 3] + 0x8F0CCC92 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
-	c += (pBuffer[10] + 0xFFEFF47D + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
-	b += (pBuffer[ 1] + 0x85845DD1 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
-	a += (pBuffer[ 8] + 0x6FA87E4F + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
-	d += (pBuffer[15] + 0xFE2CE6E0 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
-	c += (pBuffer[ 6] + 0xA3014314 + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
-	b += (pBuffer[13] + 0x4E0811A1 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
-	a += (pBuffer[ 4] + 0xF7537E82 + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
-	d += (pBuffer[11] + 0xBD3AF235 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
-	c += (pBuffer[ 2] + 0x2AD7D2Bb + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
-	b += (pBuffer[ 9] + 0xEB86D391 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
+	a += (buffer[ 0] + 0xF4292244 + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
+	d += (buffer[ 7] + 0x432AFF97 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
+	c += (buffer[14] + 0xAB9423A7 + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
+	b += (buffer[ 5] + 0xFC93A039 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
+	a += (buffer[12] + 0x655B59C3 + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
+	d += (buffer[ 3] + 0x8F0CCC92 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
+	c += (buffer[10] + 0xFFEFF47D + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
+	b += (buffer[ 1] + 0x85845DD1 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
+	a += (buffer[ 8] + 0x6FA87E4F + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
+	d += (buffer[15] + 0xFE2CE6E0 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
+	c += (buffer[ 6] + 0xA3014314 + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
+	b += (buffer[13] + 0x4E0811A1 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
+	a += (buffer[ 4] + 0xF7537E82 + (c ^ (b | ~ d)));   a = (a <<  6 | a >> 26) + b;
+	d += (buffer[11] + 0xBD3AF235 + (b ^ (a | ~ c)));   d = (d << 10 | d >> 22) + a;
+	c += (buffer[ 2] + 0x2AD7D2Bb + (a ^ (d | ~ b)));   c = (c << 15 | c >> 17) + d;
+	b += (buffer[ 9] + 0xEB86D391 + (d ^ (c | ~ a)));   b = (b << 21 | b >> 11) + c;
 
-	m_nDigest[0] += a;
-	m_nDigest[1] += b;
-	m_nDigest[2] += c;
-	m_nDigest[3] += d;
+	digest_[0] += a;
+	digest_[1] += b;
+	digest_[2] += c;
+	digest_[3] += d;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHash_SHA
+// Hash_SHA
 
-CHash_SHA::CHash_SHA() :
-	m_bRotate(false)
+Hash_SHA::Hash_SHA() :
+	rotate_(false)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-void CHash_SHA::DoTransform(DWORD *pBuffer)
+void Hash_SHA::doTransform(DWORD *buffer)
 {
 	DWORD a, b, c, d, e, t;
 	DWORD w[80];
 	int i;
 
-	SwapDWordBuffer(pBuffer, w, 16);
-	if (!m_bRotate)
+	swapDWordBuffer(buffer, w, 16);
+	if (!rotate_)
 	{
 		for (i = 16; i < 80; i++)
 		{
@@ -1819,11 +1819,11 @@ void CHash_SHA::DoTransform(DWORD *pBuffer)
 		}
 	}
 
-	a = m_nDigest[0];
-	b = m_nDigest[1];
-	c = m_nDigest[2];
-	d = m_nDigest[3];
-	e = m_nDigest[4];
+	a = digest_[0];
+	b = digest_[1];
+	c = digest_[2];
+	d = digest_[3];
+	e = digest_[4];
 
 	e += ((a << 5 | a >> 27) + (d ^ (b & (c ^ d))) + w[ 0] + 0x5A827999); b = b >> 2 | b << 30;
 	d += ((e << 5 | e >> 27) + (c ^ (a & (b ^ c))) + w[ 1] + 0x5A827999); a = a >> 2 | a << 30;
@@ -1909,155 +1909,155 @@ void CHash_SHA::DoTransform(DWORD *pBuffer)
 	b += ((c << 5 | c >> 27) + (a ^ d ^ e) + w[78] + 0xCA62C1D6); d = d >> 2 | d << 30;
 	a += ((b << 5 | b >> 27) + (e ^ c ^ d) + w[79] + 0xCA62C1D6); c = c >> 2 | c << 30;
 
-	m_nDigest[0] += a;
-	m_nDigest[1] += b;
-	m_nDigest[2] += c;
-	m_nDigest[3] += d;
-	m_nDigest[4] += e;
+	digest_[0] += a;
+	digest_[1] += b;
+	digest_[2] += c;
+	digest_[3] += d;
+	digest_[4] += e;
 }
 
 //-----------------------------------------------------------------------------
 
-void CHash_SHA::DoDone()
+void Hash_SHA::doDone()
 {
-	if (m_nCount[2] | m_nCount[3])
-		HashingOverflowError();
+	if (count_[2] | count_[3])
+		hashingOverflowError();
 
-	if (m_nPaddingByte == 0)
-		m_nPaddingByte = 0x80;
-	m_pBuffer[m_nBufferIndex] = m_nPaddingByte;
-	m_nBufferIndex++;
-	if (m_nBufferIndex > m_nBufferSize - 8)
+	if (paddingByte_ == 0)
+		paddingByte_ = 0x80;
+	buffer_[bufferIndex_] = paddingByte_;
+	bufferIndex_++;
+	if (bufferIndex_ > bufferSize_ - 8)
 	{
-		memset(m_pBuffer + m_nBufferIndex, 0, m_nBufferSize - m_nBufferIndex);
-		DoTransform((DWORD*)m_pBuffer);
-		m_nBufferIndex = 0;
+		memset(buffer_ + bufferIndex_, 0, bufferSize_ - bufferIndex_);
+		doTransform((DWORD*)buffer_);
+		bufferIndex_ = 0;
 	}
-	memset(m_pBuffer + m_nBufferIndex, 0, m_nBufferSize - m_nBufferIndex);
-	*((PDWORD)(&m_pBuffer[m_nBufferSize - 8])) = SwapDWord(m_nCount[1]);
-	*((PDWORD)(&m_pBuffer[m_nBufferSize - 4])) = SwapDWord(m_nCount[0]);
-	DoTransform((DWORD*)m_pBuffer);
-	SwapDWordBuffer(m_nDigest, m_nDigest, sizeof(m_nDigest) / sizeof(DWORD));
+	memset(buffer_ + bufferIndex_, 0, bufferSize_ - bufferIndex_);
+	*((PDWORD)(&buffer_[bufferSize_ - 8])) = swapDWord(count_[1]);
+	*((PDWORD)(&buffer_[bufferSize_ - 4])) = swapDWord(count_[0]);
+	doTransform((DWORD*)buffer_);
+	swapDWordBuffer(digest_, digest_, sizeof(digest_) / sizeof(DWORD));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHash_SHA1
+// Hash_SHA1
 
-void CHash_SHA1::DoTransform(DWORD *pBuffer)
+void Hash_SHA1::doTransform(DWORD *buffer)
 {
-	m_bRotate = true;
-	CHash_SHA::DoTransform(pBuffer);
+	rotate_ = true;
+	Hash_SHA::doTransform(buffer);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CCipher
+// Cipher
 
-CCipher::CCipher() :
-	m_nState(CS_NEW),
-	m_nMode(CM_CTSx),
-	m_pData(NULL),
-	m_nDataSize(0),
-	m_nBufferSize(0),
-	m_nBufferIndex(0),
-	m_nUserSize(0),
-	m_pBuffer(NULL),
-	m_pVector(NULL),
-	m_pFeedback(NULL),
-	m_pUser(NULL),
-	m_pUserSave(NULL)
+Cipher::Cipher() :
+	state_(CS_NEW),
+	mode_(CM_CTSx),
+	data_(NULL),
+	dataSize_(0),
+	bufferSize_(0),
+	bufferIndex_(0),
+	userSize_(0),
+	buffer_(NULL),
+	vector_(NULL),
+	feedback_(NULL),
+	user_(NULL),
+	userSave_(NULL)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-CCipher::~CCipher()
+Cipher::~Cipher()
 {
-	delete[] m_pData;
-	m_pData = NULL;
-	m_pVector = NULL;
-	m_pFeedback = NULL;
-	m_pBuffer = NULL;
-	m_pUser = NULL;
-	m_pUserSave = NULL;
+	delete[] data_;
+	data_ = NULL;
+	vector_ = NULL;
+	feedback_ = NULL;
+	buffer_ = NULL;
+	user_ = NULL;
+	userSave_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::CheckState(DWORD nStates)
+void Cipher::checkState(DWORD states)
 {
-	if ((m_nState & nStates) == 0)
+	if ((state_ & states) == 0)
 	{
-		if (m_nState == CS_PADDED)
-			IseThrowDataAlgoException(S_ALREADY_PADDED);
+		if (state_ == CS_PADDED)
+			iseThrowDataAlgoException(S_ALREADY_PADDED);
 		else
-			IseThrowDataAlgoException(S_INVALID_STATE);
+			iseThrowDataAlgoException(S_INVALID_STATE);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EnsureInternalInit()
+void Cipher::ensureInternalInit()
 {
-	if (m_pData == NULL)
+	if (data_ == NULL)
 	{
-		bool bMustUserSaved;
-		CCipherContext context = Context();
+		bool mustUserSaved;
+		CCipherContext context = this->context();
 
-		m_nBufferSize = context.nBufferSize;
-		m_nUserSize = context.nUserSize;
-		bMustUserSaved = context.bUserSave;
+		bufferSize_ = context.bufferSize;
+		userSize_ = context.userSize;
+		mustUserSaved = context.userSave;
 
-		m_nDataSize = m_nBufferSize * 3 + m_nUserSize;
-		if (bMustUserSaved) m_nDataSize += m_nUserSize;
+		dataSize_ = bufferSize_ * 3 + userSize_;
+		if (mustUserSaved) dataSize_ += userSize_;
 
-		m_pData = new BYTE[m_nDataSize];
-		if (m_pData)
+		data_ = new BYTE[dataSize_];
+		if (data_)
 		{
-			memset(m_pData, 0, m_nDataSize);
-			m_pVector = m_pData;
-			m_pFeedback = m_pVector + m_nBufferSize;
-			m_pBuffer = m_pFeedback + m_nBufferSize;
-			m_pUser = m_pBuffer + m_nBufferSize;
-			m_nMode = DEFAULT_CIPHER_MODE;
-			m_pUserSave = (bMustUserSaved ? m_pUser + m_nUserSize : NULL);
-			Protect();
+			memset(data_, 0, dataSize_);
+			vector_ = data_;
+			feedback_ = vector_ + bufferSize_;
+			buffer_ = feedback_ + bufferSize_;
+			user_ = buffer_ + bufferSize_;
+			mode_ = DEFAULT_CIPHER_MODE;
+			userSave_ = (mustUserSaved ? user_ + userSize_ : NULL);
+			protect();
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeECBx(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeECBx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	if (Context().nBlockSize == 1)
+	if (context().blockSize == 1)
 	{
-		DoEncode(s, d, nSize);
-		m_nState = CS_ENCODE;
+		doEncode(s, d, size);
+		state_ = CS_ENCODE;
 	}
 	else
 	{
-		nSize -= m_nBufferSize;
+		size -= bufferSize_;
 		i = 0;
-		while (i <= nSize)
+		while (i <= size)
 		{
-			DoEncode(s + i, d + i, m_nBufferSize);
-			i += m_nBufferSize;
+			doEncode(s + i, d + i, bufferSize_);
+			i += bufferSize_;
 		}
-		nSize -= (i - m_nBufferSize);
-		if (nSize > 0)
+		size -= (i - bufferSize_);
+		if (size > 0)
 		{
-			if (nSize % Context().nBlockSize == 0)
+			if (size % context().blockSize == 0)
 			{
-				DoEncode(s + i, d + i, nSize);
-				m_nState = CS_ENCODE;
+				doEncode(s + i, d + i, size);
+				state_ = CS_ENCODE;
 			}
 			else
 			{
-				m_nState = CS_PADDED;
-				InvalidMessageLength(this);
+				state_ = CS_PADDED;
+				invalidMessageLength(this);
 			}
 		}
 	}
@@ -2065,263 +2065,263 @@ void CCipher::EncodeECBx(PBYTE s, PBYTE d, int nSize)
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeCBCx(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeCBCx(PBYTE s, PBYTE d, int size)
 {
 	PBYTE f;
 	int i;
 
-	nSize -= m_nBufferSize;
-	f = m_pFeedback;
+	size -= bufferSize_;
+	f = feedback_;
 	i = 0;
-	while (i <= nSize)
+	while (i <= size)
 	{
-		XorBuffer(s + i, f, m_nBufferSize, d + i);
+		xorBuffer(s + i, f, bufferSize_, d + i);
 		f = d + i;
-		DoEncode(f, f, m_nBufferSize);
-		i += m_nBufferSize;
+		doEncode(f, f, bufferSize_);
+		i += bufferSize_;
 	}
-	if (f != m_pFeedback)
-		memmove(m_pFeedback, f, m_nBufferSize);
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	if (f != feedback_)
+		memmove(feedback_, f, bufferSize_);
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{	// padding
-		EncodeCFB8(s + i, d + i, nSize);
-		m_nState = CS_PADDED;
+		encodeCFB8(s + i, d + i, size);
+		state_ = CS_PADDED;
 	}
 	else
-		m_nState = CS_ENCODE;
+		state_ = CS_ENCODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeCTSx(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeCTSx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	nSize -= m_nBufferSize;
+	size -= bufferSize_;
 	i = 0;
-	while (i <= nSize)
+	while (i <= size)
 	{
-		XorBuffer(s + i, m_pFeedback, m_nBufferSize, d + i);
-		DoEncode(d + i, d + i, m_nBufferSize);
-		XorBuffer(d + i, m_pFeedback, m_nBufferSize, m_pFeedback);
-		i += m_nBufferSize;
+		xorBuffer(s + i, feedback_, bufferSize_, d + i);
+		doEncode(d + i, d + i, bufferSize_);
+		xorBuffer(d + i, feedback_, bufferSize_, feedback_);
+		i += bufferSize_;
 	}
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{	// padding
-		EncodeCFS8(s + i, d + i, nSize);
-		m_nState = CS_PADDED;
+		encodeCFS8(s + i, d + i, size);
+		state_ = CS_PADDED;
 	}
 	else
-		m_nState = CS_ENCODE;
+		state_ = CS_ENCODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeCFB8(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeCFB8(PBYTE s, PBYTE d, int size)
 {
 	int i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, m_pFeedback + 1, m_nBufferSize - 1);
-		d[i] = s[i] ^ m_pBuffer[0];
-		m_pFeedback[m_nBufferSize - 1] = d[i];
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, feedback_ + 1, bufferSize_ - 1);
+		d[i] = s[i] ^ buffer_[0];
+		feedback_[bufferSize_ - 1] = d[i];
 		i++;
 	}
-	m_nState = CS_ENCODE;
+	state_ = CS_ENCODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeCFBx(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeCFBx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 	PBYTE f;
 
-	m_nState = CS_ENCODE;
-	if (m_nBufferIndex > 0)
+	state_ = CS_ENCODE;
+	if (bufferIndex_ > 0)
 	{
-		i = m_nBufferSize - m_nBufferIndex;
-		if (i > nSize) i = nSize;
-		XorBuffer(s, m_pBuffer + m_nBufferIndex, i, d);
-		memmove(m_pFeedback + m_nBufferIndex, d, i);
-		m_nBufferIndex += i;
-		if (m_nBufferIndex < m_nBufferSize) return;
+		i = bufferSize_ - bufferIndex_;
+		if (i > size) i = size;
+		xorBuffer(s, buffer_ + bufferIndex_, i, d);
+		memmove(feedback_ + bufferIndex_, d, i);
+		bufferIndex_ += i;
+		if (bufferIndex_ < bufferSize_) return;
 
-		nSize -= i;
+		size -= i;
 		s = &s[i];
 		d = &d[i];
-		m_nBufferIndex = 0;
+		bufferIndex_ = 0;
 	}
 
-	nSize -= m_nBufferSize;
-	f = m_pFeedback;
+	size -= bufferSize_;
+	f = feedback_;
 	i = 0;
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(f, m_pBuffer, m_nBufferSize);
-		XorBuffer(s + i, m_pBuffer, m_nBufferSize, d + i);
+		doEncode(f, buffer_, bufferSize_);
+		xorBuffer(s + i, buffer_, bufferSize_, d + i);
 		f = &d[i];
-		i += m_nBufferSize;
+		i += bufferSize_;
 	}
-	if (f != m_pFeedback)
-		memmove(m_pFeedback, f, m_nBufferSize);
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	if (f != feedback_)
+		memmove(feedback_, f, bufferSize_);
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		XorBuffer(s + i, m_pBuffer, nSize, d + i);
-		memmove(m_pFeedback, d + i, nSize);
-		m_nBufferIndex = nSize;
+		doEncode(feedback_, buffer_, bufferSize_);
+		xorBuffer(s + i, buffer_, size, d + i);
+		memmove(feedback_, d + i, size);
+		bufferIndex_ = size;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeOFB8(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeOFB8(PBYTE s, PBYTE d, int size)
 {
 	int i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, m_pFeedback + 1, m_nBufferSize - 1);
-		m_pFeedback[m_nBufferSize - 1] = m_pBuffer[0];
-		d[i] = s[i] ^ m_pBuffer[0];
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, feedback_ + 1, bufferSize_ - 1);
+		feedback_[bufferSize_ - 1] = buffer_[0];
+		d[i] = s[i] ^ buffer_[0];
 		i++;
 	}
-	m_nState = CS_ENCODE;
+	state_ = CS_ENCODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeOFBx(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeOFBx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	m_nState = CS_ENCODE;
-	if (m_nBufferIndex > 0)
+	state_ = CS_ENCODE;
+	if (bufferIndex_ > 0)
 	{
-		i = m_nBufferSize - m_nBufferIndex;
-		if (i > nSize) i = nSize;
-		XorBuffer(s, m_pFeedback + m_nBufferIndex, i, d);
-		m_nBufferIndex += i;
-		if (m_nBufferIndex < m_nBufferSize) return;
+		i = bufferSize_ - bufferIndex_;
+		if (i > size) i = size;
+		xorBuffer(s, feedback_ + bufferIndex_, i, d);
+		bufferIndex_ += i;
+		if (bufferIndex_ < bufferSize_) return;
 
-		nSize -= i;
+		size -= i;
 		s = &s[i];
 		d = &d[i];
-		m_nBufferIndex = 0;
+		bufferIndex_ = 0;
 	}
-	nSize -= m_nBufferSize;
+	size -= bufferSize_;
 	i = 0;
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pFeedback, m_nBufferSize);
-		XorBuffer(s + i, m_pFeedback, m_nBufferSize, d + i);
-		i += m_nBufferSize;
+		doEncode(feedback_, feedback_, bufferSize_);
+		xorBuffer(s + i, feedback_, bufferSize_, d + i);
+		i += bufferSize_;
 	}
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{
-		DoEncode(m_pFeedback, m_pFeedback, m_nBufferSize);
-		XorBuffer(s + i, m_pFeedback, nSize, d + i);
-		m_nBufferIndex = nSize;
+		doEncode(feedback_, feedback_, bufferSize_);
+		xorBuffer(s + i, feedback_, size, d + i);
+		bufferIndex_ = size;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeCFS8(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeCFS8(PBYTE s, PBYTE d, int size)
 {
 	int i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		d[i] = s[i] ^ m_pBuffer[0];
-		memmove(m_pFeedback, m_pFeedback + 1, m_nBufferSize - 1);
-		m_pFeedback[m_nBufferSize - 1] ^= d[i];
+		doEncode(feedback_, buffer_, bufferSize_);
+		d[i] = s[i] ^ buffer_[0];
+		memmove(feedback_, feedback_ + 1, bufferSize_ - 1);
+		feedback_[bufferSize_ - 1] ^= d[i];
 		i++;
 	}
-	m_nState = CS_ENCODE;
+	state_ = CS_ENCODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeCFSx(PBYTE s, PBYTE d, int nSize)
+void Cipher::encodeCFSx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	m_nState = CS_ENCODE;
-	if (m_nBufferIndex > 0)
+	state_ = CS_ENCODE;
+	if (bufferIndex_ > 0)
 	{
-		i = m_nBufferSize - m_nBufferIndex;
-		if (i > nSize) i = nSize;
-		XorBuffer(s, m_pBuffer + m_nBufferIndex, i, d);
-		XorBuffer(d, m_pFeedback + m_nBufferIndex, i, m_pFeedback + m_nBufferIndex);
-		m_nBufferIndex += i;
-		if (m_nBufferIndex < m_nBufferSize) return;
+		i = bufferSize_ - bufferIndex_;
+		if (i > size) i = size;
+		xorBuffer(s, buffer_ + bufferIndex_, i, d);
+		xorBuffer(d, feedback_ + bufferIndex_, i, feedback_ + bufferIndex_);
+		bufferIndex_ += i;
+		if (bufferIndex_ < bufferSize_) return;
 
-		nSize -= i;
+		size -= i;
 		s = &s[i];
 		d = &d[i];
-		m_nBufferIndex = 0;
+		bufferIndex_ = 0;
 	}
-	nSize -= m_nBufferSize;
+	size -= bufferSize_;
 	i = 0;
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		XorBuffer(s + i, m_pBuffer, m_nBufferSize, d + i);
-		XorBuffer(d + i, m_pFeedback, m_nBufferSize, m_pFeedback);
-		i += m_nBufferSize;
+		doEncode(feedback_, buffer_, bufferSize_);
+		xorBuffer(s + i, buffer_, bufferSize_, d + i);
+		xorBuffer(d + i, feedback_, bufferSize_, feedback_);
+		i += bufferSize_;
 	}
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		XorBuffer(s + i, m_pBuffer, nSize, d + i);
-		XorBuffer(d + i, m_pFeedback, nSize, m_pFeedback);
-		m_nBufferIndex = nSize;
+		doEncode(feedback_, buffer_, bufferSize_);
+		xorBuffer(s + i, buffer_, size, d + i);
+		xorBuffer(d + i, feedback_, size, feedback_);
+		bufferIndex_ = size;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeECBx(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeECBx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	if (Context().nBlockSize == 1)
+	if (context().blockSize == 1)
 	{
-		DoDecode(s, d, nSize);
-		m_nState = CS_DECODE;
+		doDecode(s, d, size);
+		state_ = CS_DECODE;
 	}
 	else
 	{
-		nSize -= m_nBufferSize;
+		size -= bufferSize_;
 		i = 0;
-		while (i <= nSize)
+		while (i <= size)
 		{
-			DoDecode(s + i, d + i, m_nBufferSize);
-			i += m_nBufferSize;
+			doDecode(s + i, d + i, bufferSize_);
+			i += bufferSize_;
 		}
-		nSize -= (i - m_nBufferSize);
-		if (nSize > 0)
+		size -= (i - bufferSize_);
+		if (size > 0)
 		{
-			if (nSize % Context().nBlockSize == 0)
+			if (size % context().blockSize == 0)
 			{
-				DoDecode(s + i, d + i, nSize);
-				m_nState = CS_DECODE;
+				doDecode(s + i, d + i, size);
+				state_ = CS_DECODE;
 			}
 			else
 			{
-				m_nState = CS_PADDED;
-				InvalidMessageLength(this);
+				state_ = CS_PADDED;
+				invalidMessageLength(this);
 			}
 		}
 	}
@@ -2329,544 +2329,544 @@ void CCipher::DecodeECBx(PBYTE s, PBYTE d, int nSize)
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeCBCx(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeCBCx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 	PBYTE f, b, t;
 
-	nSize -= m_nBufferSize;
-	f = m_pFeedback;
+	size -= bufferSize_;
+	f = feedback_;
 	i = 0;
 	if (s == d)
 	{
-		b = m_pBuffer;
-		while (i <= nSize)
+		b = buffer_;
+		while (i <= size)
 		{
-			memmove(b, s + i, m_nBufferSize);
-			DoDecode(s + i, s + i, m_nBufferSize);
-			XorBuffer(s + i, f, m_nBufferSize, s + i);
+			memmove(b, s + i, bufferSize_);
+			doDecode(s + i, s + i, bufferSize_);
+			xorBuffer(s + i, f, bufferSize_, s + i);
 			t = f;
 			f = b;
 			b = t;
-			i += m_nBufferSize;
+			i += bufferSize_;
 		}
 	}
 	else
 	{
-		while (i <= nSize)
+		while (i <= size)
 		{
-			DoDecode(s + i, d + i, m_nBufferSize);
-			XorBuffer(f, d + i, m_nBufferSize, d + i);
+			doDecode(s + i, d + i, bufferSize_);
+			xorBuffer(f, d + i, bufferSize_, d + i);
 			f = &s[i];
-			i += m_nBufferSize;
+			i += bufferSize_;
 		}
 	}
 
-	if (f != m_pFeedback)
-		memmove(m_pFeedback, f, m_nBufferSize);
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	if (f != feedback_)
+		memmove(feedback_, f, bufferSize_);
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{
-		DecodeCFB8(s + i, d + i, nSize);
-		m_nState = CS_PADDED;
+		decodeCFB8(s + i, d + i, size);
+		state_ = CS_PADDED;
 	}
 	else
-		m_nState = CS_DECODE;
+		state_ = CS_DECODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeCTSx(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeCTSx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 	PBYTE f, b, t;
 
-	nSize -= m_nBufferSize;
-	f = m_pFeedback;
-	b = m_pBuffer;
+	size -= bufferSize_;
+	f = feedback_;
+	b = buffer_;
 	i = 0;
-	while (i <= nSize)
+	while (i <= size)
 	{
-		XorBuffer(s + i, f, m_nBufferSize, b);
-		DoDecode(s + i, d + i, m_nBufferSize);
-		XorBuffer(d + i, f, m_nBufferSize, d + i);
+		xorBuffer(s + i, f, bufferSize_, b);
+		doDecode(s + i, d + i, bufferSize_);
+		xorBuffer(d + i, f, bufferSize_, d + i);
 		t = b;
 		b = f;
 		f = t;
-		i += m_nBufferSize;
+		i += bufferSize_;
 	}
-	if (f != m_pFeedback)
-		memmove(m_pFeedback, f, m_nBufferSize);
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	if (f != feedback_)
+		memmove(feedback_, f, bufferSize_);
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{
-		DecodeCFS8(s + i, d + i, nSize);
-		m_nState = CS_PADDED;
+		decodeCFS8(s + i, d + i, size);
+		state_ = CS_PADDED;
 	}
 	else
-		m_nState = CS_DECODE;
+		state_ = CS_DECODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeCFB8(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeCFB8(PBYTE s, PBYTE d, int size)
 {
 	int i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, m_pFeedback + 1, m_nBufferSize - 1);
-		m_pFeedback[m_nBufferSize - 1] = s[i];
-		d[i] = s[i] ^ m_pBuffer[0];
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, feedback_ + 1, bufferSize_ - 1);
+		feedback_[bufferSize_ - 1] = s[i];
+		d[i] = s[i] ^ buffer_[0];
 		i++;
 	}
-	m_nState = CS_DECODE;
+	state_ = CS_DECODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeCFBx(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeCFBx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 	PBYTE f;
 
-	m_nState = CS_DECODE;
-	if (m_nBufferIndex > 0)
+	state_ = CS_DECODE;
+	if (bufferIndex_ > 0)
 	{	// remain bytes of last decode
-		i = m_nBufferSize - m_nBufferIndex;
-		if (i > nSize) i = nSize;
-		memmove(m_pFeedback + m_nBufferIndex, s, i);
-		XorBuffer(s, m_pBuffer + m_nBufferIndex, i, d);
-		m_nBufferIndex += i;
-		if (m_nBufferIndex < m_nBufferSize) return;
+		i = bufferSize_ - bufferIndex_;
+		if (i > size) i = size;
+		memmove(feedback_ + bufferIndex_, s, i);
+		xorBuffer(s, buffer_ + bufferIndex_, i, d);
+		bufferIndex_ += i;
+		if (bufferIndex_ < bufferSize_) return;
 
-		nSize -= i;
+		size -= i;
 		s = &s[i];
 		d = &d[i];
-		m_nBufferIndex = 0;
+		bufferIndex_ = 0;
 	}
 
-	// process chunks of m_nBufferSize bytes
-	nSize -= m_nBufferSize;
+	// process chunks of bufferSize_ bytes
+	size -= bufferSize_;
 	i = 0;
 	if (s != d)
 	{
-		f = m_pFeedback;
-		while (i < nSize)
+		f = feedback_;
+		while (i < size)
 		{
-			DoEncode(f, m_pBuffer, m_nBufferSize);
-			XorBuffer(s + i, m_pBuffer, m_nBufferSize, d + i);
+			doEncode(f, buffer_, bufferSize_);
+			xorBuffer(s + i, buffer_, bufferSize_, d + i);
 			f = &s[i];
-			i += m_nBufferSize;
+			i += bufferSize_;
 		}
-		if (f != m_pFeedback)
-			memmove(m_pFeedback, f, m_nBufferSize);
+		if (f != feedback_)
+			memmove(feedback_, f, bufferSize_);
 	}
 	else
 	{
-		while (i < nSize)
+		while (i < size)
 		{
-			DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-			memmove(m_pFeedback, s + i, m_nBufferSize);
-			XorBuffer(s + i, m_pBuffer, m_nBufferSize, d + i);
-			i += m_nBufferSize;
+			doEncode(feedback_, buffer_, bufferSize_);
+			memmove(feedback_, s + i, bufferSize_);
+			xorBuffer(s + i, buffer_, bufferSize_, d + i);
+			i += bufferSize_;
 		}
 	}
 
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{	// remain bytes
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, s + i, nSize);
-		XorBuffer(s + i, m_pBuffer, nSize, d + i);
-		m_nBufferIndex = nSize;
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, s + i, size);
+		xorBuffer(s + i, buffer_, size, d + i);
+		bufferIndex_ = size;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeOFB8(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeOFB8(PBYTE s, PBYTE d, int size)
 {
 	int i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, m_pFeedback + 1, m_nBufferSize - 1);
-		m_pFeedback[m_nBufferSize - 1] = m_pBuffer[0];
-		d[i] = s[i] ^ m_pBuffer[0];
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, feedback_ + 1, bufferSize_ - 1);
+		feedback_[bufferSize_ - 1] = buffer_[0];
+		d[i] = s[i] ^ buffer_[0];
 		i++;
 	}
-	m_nState = CS_DECODE;
+	state_ = CS_DECODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeOFBx(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeOFBx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	m_nState = CS_DECODE;
-	if (m_nBufferIndex > 0)
+	state_ = CS_DECODE;
+	if (bufferIndex_ > 0)
 	{
-		i = m_nBufferSize - m_nBufferIndex;
-		if (i > nSize) i = nSize;
-		XorBuffer(s, m_pFeedback + m_nBufferIndex, i, d);
-		m_nBufferIndex += i;
-		if (m_nBufferIndex < m_nBufferSize) return;
+		i = bufferSize_ - bufferIndex_;
+		if (i > size) i = size;
+		xorBuffer(s, feedback_ + bufferIndex_, i, d);
+		bufferIndex_ += i;
+		if (bufferIndex_ < bufferSize_) return;
 
-		nSize -= i;
+		size -= i;
 		s = &s[i];
 		d = &d[i];
-		m_nBufferIndex = 0;
+		bufferIndex_ = 0;
 	}
-	nSize -= m_nBufferSize;
+	size -= bufferSize_;
 	i = 0;
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pFeedback, m_nBufferSize);
-		XorBuffer(s + i, m_pFeedback, m_nBufferSize, d + i);
-		i += m_nBufferSize;
+		doEncode(feedback_, feedback_, bufferSize_);
+		xorBuffer(s + i, feedback_, bufferSize_, d + i);
+		i += bufferSize_;
 	}
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{
-		DoEncode(m_pFeedback, m_pFeedback, m_nBufferSize);
-		XorBuffer(s + i, m_pFeedback, nSize, d + i);
-		m_nBufferIndex = nSize;
+		doEncode(feedback_, feedback_, bufferSize_);
+		xorBuffer(s + i, feedback_, size, d + i);
+		bufferIndex_ = size;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeCFS8(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeCFS8(PBYTE s, PBYTE d, int size)
 {
 	int i = 0;
 
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, m_pFeedback + 1, m_nBufferSize - 1);
-		m_pFeedback[m_nBufferSize - 1] ^= s[i];
-		d[i] = s[i] ^ m_pBuffer[0];
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, feedback_ + 1, bufferSize_ - 1);
+		feedback_[bufferSize_ - 1] ^= s[i];
+		d[i] = s[i] ^ buffer_[0];
 		i++;
 	}
-	m_nState = CS_DECODE;
+	state_ = CS_DECODE;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeCFSx(PBYTE s, PBYTE d, int nSize)
+void Cipher::decodeCFSx(PBYTE s, PBYTE d, int size)
 {
 	int i;
 
-	m_nState = CS_DECODE;
-	if (m_nBufferIndex > 0)
+	state_ = CS_DECODE;
+	if (bufferIndex_ > 0)
 	{	// remain bytes of last decode
-		i = m_nBufferSize - m_nBufferIndex;
-		if (i > nSize) i = nSize;
-		XorBuffer(s, m_pFeedback + m_nBufferIndex, i, m_pFeedback + m_nBufferIndex);
-		XorBuffer(s, m_pBuffer + m_nBufferIndex, i, d);
-		m_nBufferIndex += i;
-		if (m_nBufferIndex < m_nBufferSize) return;
+		i = bufferSize_ - bufferIndex_;
+		if (i > size) i = size;
+		xorBuffer(s, feedback_ + bufferIndex_, i, feedback_ + bufferIndex_);
+		xorBuffer(s, buffer_ + bufferIndex_, i, d);
+		bufferIndex_ += i;
+		if (bufferIndex_ < bufferSize_) return;
 
-		nSize -= i;
+		size -= i;
 		s = &s[i];
 		d = &d[i];
-		m_nBufferIndex = 0;
+		bufferIndex_ = 0;
 	}
-	// process chunks of m_nBufferSize bytes
-	nSize -= m_nBufferSize;
+	// process chunks of bufferSize_ bytes
+	size -= bufferSize_;
 	i = 0;
-	while (i < nSize)
+	while (i < size)
 	{
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		XorBuffer(s + i, m_pFeedback, m_nBufferSize, m_pFeedback);
-		XorBuffer(s + i, m_pBuffer, m_nBufferSize, d + i);
-		i += m_nBufferSize;
+		doEncode(feedback_, buffer_, bufferSize_);
+		xorBuffer(s + i, feedback_, bufferSize_, feedback_);
+		xorBuffer(s + i, buffer_, bufferSize_, d + i);
+		i += bufferSize_;
 	}
-	nSize -= (i - m_nBufferSize);
-	if (nSize > 0)
+	size -= (i - bufferSize_);
+	if (size > 0)
 	{	// remain bytes
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		XorBuffer(s + i, m_pFeedback, nSize, m_pFeedback);
-		XorBuffer(s + i, m_pBuffer, nSize, d + i);
-		m_nBufferIndex = nSize;
+		doEncode(feedback_, buffer_, bufferSize_);
+		xorBuffer(s + i, feedback_, size, feedback_);
+		xorBuffer(s + i, buffer_, size, d + i);
+		bufferIndex_ = size;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DoCodeStream(CStream& SrcStream, CStream& DestStream, INT64 nSize,
-	int nBlockSize, CIPHER_KIND nCipherKind, IDataAlgoProgress *pProgress)
+void Cipher::doCodeStream(Stream& srcStream, Stream& destStream, INT64 size,
+	int blockSize, CIPHER_KIND cipherKind, DataAlgoProgress *progress)
 {
-	binary strBuffer;
-	int nBufferSize, nBytes;
-	INT64 nMin, nMax, nPos;
+	binary buffer;
+	int bufferSize, bytes;
+	INT64 min, max, pos;
 
-	nPos = SrcStream.GetPosition();
-	if (nSize < 0)
-		nSize = SrcStream.GetSize() - nPos;
-	nMin = nPos;
-	nMax = nPos + nSize;
-	if (nSize > 0)
+	pos = srcStream.getPosition();
+	if (size < 0)
+		size = srcStream.getSize() - pos;
+	min = pos;
+	max = pos + size;
+	if (size > 0)
 	{
-		nBufferSize = STREAM_BUF_SIZE % nBlockSize;
-		nBufferSize = (nBufferSize == 0 ? STREAM_BUF_SIZE : STREAM_BUF_SIZE + nBlockSize - nBufferSize);
-		strBuffer.resize((int)(nSize > nBufferSize ? nBufferSize : nSize));
+		bufferSize = STREAM_BUF_SIZE % blockSize;
+		bufferSize = (bufferSize == 0 ? STREAM_BUF_SIZE : STREAM_BUF_SIZE + blockSize - bufferSize);
+		buffer.resize((int)(size > bufferSize ? bufferSize : size));
 
-		while (nSize > 0)
+		while (size > 0)
 		{
-			if (pProgress) pProgress->Progress(nMin, nMax, nPos);
-			nBytes = nBufferSize;
-			if (nBytes > nSize) nBytes = (int)nSize;
-			SrcStream.ReadBuffer((char*)strBuffer.c_str(), nBytes);
+			if (progress) progress->progress(min, max, pos);
+			bytes = bufferSize;
+			if (bytes > size) bytes = (int)size;
+			srcStream.readBuffer((char*)buffer.c_str(), bytes);
 
-			if (nCipherKind == CK_ENCODE)
-				Encode((char*)strBuffer.c_str(), (char*)strBuffer.c_str(), nBytes);
+			if (cipherKind == CK_ENCODE)
+				encode((char*)buffer.c_str(), (char*)buffer.c_str(), bytes);
 			else
-				Decode((char*)strBuffer.c_str(), (char*)strBuffer.c_str(), nBytes);
+				decode((char*)buffer.c_str(), (char*)buffer.c_str(), bytes);
 
-			DestStream.WriteBuffer((char*)strBuffer.c_str(), nBytes);
-			nSize -= nBytes;
-			nPos += nBytes;
+			destStream.writeBuffer((char*)buffer.c_str(), bytes);
+			size -= bytes;
+			pos += bytes;
 		}
 	}
 
-	ProtectBinary(strBuffer);
-	if (pProgress) pProgress->Progress(nMin, nMax, nMax);
+	protectBinary(buffer);
+	if (progress) progress->progress(min, max, max);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DoCodeFile(char *lpszSrcFileName, char *lpszDestFileName,
-	int nBlockSize, CIPHER_KIND nCipherKind, IDataAlgoProgress *pProgress)
+void Cipher::doCodeFile(char *srcFileName, char *destFileName,
+	int blockSize, CIPHER_KIND cipherKind, DataAlgoProgress *progress)
 {
-	CFileStream SrcStream(lpszSrcFileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
-	CFileStream DestStream(lpszDestFileName, FM_CREATE | FM_SHARE_DENY_WRITE);
+	FileStream srcStream(srcFileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
+	FileStream destStream(destFileName, FM_CREATE | FM_SHARE_DENY_WRITE);
 
-	DoCodeStream(SrcStream, DestStream, SrcStream.GetSize(), nBlockSize, nCipherKind, pProgress);
+	doCodeStream(srcStream, destStream, srcStream.getSize(), blockSize, cipherKind, progress);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::Init(PVOID pKey, int nSize, PVOID pIVector, int nIVectorSize, BYTE nIFiller)
+void Cipher::init(PVOID key, int size, PVOID iVector, int iVectorSize, BYTE iFiller)
 {
-	EnsureInternalInit();
-	Protect();
+	ensureInternalInit();
+	protect();
 
-	if (nSize > Context().nKeySize)
-		IseThrowDataAlgoException(S_KEY_MATERIAL_TOO_LARGE);
-	if (nIVectorSize > m_nBufferSize)
-		IseThrowDataAlgoException(S_IVMATERIAL_TOO_LARGE);
+	if (size > context().keySize)
+		iseThrowDataAlgoException(S_KEY_MATERIAL_TOO_LARGE);
+	if (iVectorSize > bufferSize_)
+		iseThrowDataAlgoException(S_IVMATERIAL_TOO_LARGE);
 
-	DoInit(pKey, nSize);
-	if (m_pUserSave != NULL)
-		memmove(m_pUserSave, m_pUser, m_nUserSize);
+	doInit(key, size);
+	if (userSave_ != NULL)
+		memmove(userSave_, user_, userSize_);
 
-	memset(m_pVector, nIFiller, m_nBufferSize);
-	if (nIVectorSize == 0)
+	memset(vector_, iFiller, bufferSize_);
+	if (iVectorSize == 0)
 	{
-		DoEncode(m_pVector, m_pVector, m_nBufferSize);
-		if (m_pUserSave != NULL)
-			memmove(m_pUser, m_pUserSave, m_nUserSize);
+		doEncode(vector_, vector_, bufferSize_);
+		if (userSave_ != NULL)
+			memmove(user_, userSave_, userSize_);
 	}
 	else
-		memmove(m_pVector, pIVector, nIVectorSize);
+		memmove(vector_, iVector, iVectorSize);
 
-	memmove(m_pFeedback, m_pVector, m_nBufferSize);
-	m_nState = CS_INITIALIZED;
+	memmove(feedback_, vector_, bufferSize_);
+	state_ = CS_INITIALIZED;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::Init(const binary& strKey, const binary& strIVector, BYTE nIFiller)
+void Cipher::init(const binary& key, const binary& iVector, BYTE iFiller)
 {
-	Init((char*)strKey.c_str(), (int)strKey.length(), (char*)strIVector.c_str(), (int)strIVector.length(), nIFiller);
+	init((char*)key.c_str(), (int)key.length(), (char*)iVector.c_str(), (int)iVector.length(), iFiller);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::Done()
+void Cipher::done()
 {
-	EnsureInternalInit();
+	ensureInternalInit();
 
-	if (m_nState != CS_DONE)
+	if (state_ != CS_DONE)
 	{
-		m_nState = CS_DONE;
-		m_nBufferIndex = 0;
-		DoEncode(m_pFeedback, m_pBuffer, m_nBufferSize);
-		memmove(m_pFeedback, m_pVector, m_nBufferSize);
-		if (m_pUserSave != NULL)
-			memmove(m_pUser, m_pUserSave, m_nUserSize);
+		state_ = CS_DONE;
+		bufferIndex_ = 0;
+		doEncode(feedback_, buffer_, bufferSize_);
+		memmove(feedback_, vector_, bufferSize_);
+		if (userSave_ != NULL)
+			memmove(user_, userSave_, userSize_);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::Protect()
+void Cipher::protect()
 {
-	m_nState = CS_NEW;
-	if (m_pData)
-		ProtectBuffer(m_pData, m_nDataSize);
+	state_ = CS_NEW;
+	if (data_)
+		protectBuffer(data_, dataSize_);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::Encode(PVOID pSource, PVOID pDest, int nDataSize)
+void Cipher::encode(PVOID source, PVOID dest, int dataSize)
 {
-	EnsureInternalInit();
-	CheckState(CS_INITIALIZED | CS_ENCODE | CS_DONE);
+	ensureInternalInit();
+	checkState(CS_INITIALIZED | CS_ENCODE | CS_DONE);
 
-	switch (m_nMode)
+	switch (mode_)
 	{
-	case CM_ECBx: EncodeECBx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CBCx: EncodeCBCx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CTSx: EncodeCTSx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFB8: EncodeCFB8((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFBx: EncodeCFBx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_OFB8: EncodeOFB8((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_OFBx: EncodeOFBx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFS8: EncodeCFS8((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFSx: EncodeCFSx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
+	case CM_ECBx: encodeECBx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CBCx: encodeCBCx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CTSx: encodeCTSx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFB8: encodeCFB8((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFBx: encodeCFBx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_OFB8: encodeOFB8((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_OFBx: encodeOFBx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFS8: encodeCFS8((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFSx: encodeCFSx((PBYTE)source, (PBYTE)dest, dataSize); break;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::Decode(PVOID pSource, PVOID pDest, int nDataSize)
+void Cipher::decode(PVOID source, PVOID dest, int dataSize)
 {
-	EnsureInternalInit();
-	CheckState(CS_INITIALIZED | CS_DECODE | CS_DONE);
+	ensureInternalInit();
+	checkState(CS_INITIALIZED | CS_DECODE | CS_DONE);
 
-	switch (m_nMode)
+	switch (mode_)
 	{
-	case CM_ECBx: DecodeECBx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CBCx: DecodeCBCx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CTSx: DecodeCTSx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFB8: DecodeCFB8((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFBx: DecodeCFBx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_OFB8: DecodeOFB8((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_OFBx: DecodeOFBx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFS8: DecodeCFS8((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
-	case CM_CFSx: DecodeCFSx((PBYTE)pSource, (PBYTE)pDest, nDataSize); break;
+	case CM_ECBx: decodeECBx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CBCx: decodeCBCx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CTSx: decodeCTSx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFB8: decodeCFB8((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFBx: decodeCFBx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_OFB8: decodeOFB8((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_OFBx: decodeOFBx((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFS8: decodeCFS8((PBYTE)source, (PBYTE)dest, dataSize); break;
+	case CM_CFSx: decodeCFSx((PBYTE)source, (PBYTE)dest, dataSize); break;
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-binary CCipher::EncodeBinary(const binary& strSource, FORMAT_TYPE nFormatType)
+binary Cipher::encodeBinary(const binary& sourceStr, FORMAT_TYPE formatType)
 {
 	binary str;
-	str.resize(strSource.length());
-	Encode((char*)strSource.c_str(), (char*)str.c_str(), (int)strSource.length());
+	str.resize(sourceStr.length());
+	encode((char*)sourceStr.c_str(), (char*)str.c_str(), (int)sourceStr.length());
 
-	std::auto_ptr<CFormat> FormatObj(CreateFormatObject(nFormatType));
-	return FormatObj->Encode(str);
+	std::auto_ptr<Format> formatObj(createFormatObject(formatType));
+	return formatObj->encode(str);
 }
 
 //-----------------------------------------------------------------------------
 
-binary CCipher::DecodeBinary(const binary& strSource, FORMAT_TYPE nFormatType)
+binary Cipher::decodeBinary(const binary& sourceStr, FORMAT_TYPE formatType)
 {
 	binary str;
 
-	std::auto_ptr<CFormat> FormatObj(CreateFormatObject(nFormatType));
-	str = FormatObj->Decode(strSource);
-	Decode((char*)str.c_str(), (char*)str.c_str(), (int)str.length());
+	std::auto_ptr<Format> formatObj(createFormatObject(formatType));
+	str = formatObj->decode(sourceStr);
+	decode((char*)str.c_str(), (char*)str.c_str(), (int)str.length());
 
 	return str;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeFile(char *lpszSrcFileName, char *lpszDestFileName, IDataAlgoProgress *pProgress)
+void Cipher::encodeFile(char *srcFileName, char *destFileName, DataAlgoProgress *progress)
 {
-	DoCodeFile(lpszSrcFileName, lpszDestFileName, Context().nBlockSize, CK_ENCODE, pProgress);
+	doCodeFile(srcFileName, destFileName, context().blockSize, CK_ENCODE, progress);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeFile(char *lpszSrcFileName, char *lpszDestFileName, IDataAlgoProgress *pProgress)
+void Cipher::decodeFile(char *srcFileName, char *destFileName, DataAlgoProgress *progress)
 {
-	DoCodeFile(lpszSrcFileName, lpszDestFileName, Context().nBlockSize, CK_DECODE, pProgress);
+	doCodeFile(srcFileName, destFileName, context().blockSize, CK_DECODE, progress);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::EncodeStream(CStream& SrcStream, CStream& DestStream, INT64 nDataSize, IDataAlgoProgress *pProgress)
+void Cipher::encodeStream(Stream& srcStream, Stream& destStream, INT64 dataSize, DataAlgoProgress *progress)
 {
-	DoCodeStream(SrcStream, DestStream, nDataSize, Context().nBlockSize, CK_ENCODE, pProgress);
+	doCodeStream(srcStream, destStream, dataSize, context().blockSize, CK_ENCODE, progress);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::DecodeStream(CStream& SrcStream, CStream& DestStream, INT64 nDataSize, IDataAlgoProgress *pProgress)
+void Cipher::decodeStream(Stream& srcStream, Stream& destStream, INT64 dataSize, DataAlgoProgress *progress)
 {
-	DoCodeStream(SrcStream, DestStream, nDataSize, Context().nBlockSize, CK_DECODE, pProgress);
+	doCodeStream(srcStream, destStream, dataSize, context().blockSize, CK_DECODE, progress);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher::SetMode(CIPHER_MODE nValue)
+void Cipher::setMode(CIPHER_MODE value)
 {
-	if (m_nMode != nValue)
+	if (mode_ != value)
 	{
-		if ((m_nState & (CS_NEW | CS_INITIALIZED | CS_DONE)) == 0)
-			Done();
-		m_nMode = nValue;
+		if ((state_ & (CS_NEW | CS_INITIALIZED | CS_DONE)) == 0)
+			done();
+		mode_ = value;
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CCipher_Null
+// Cipher_Null
 
-void CCipher_Null::DoInit(PVOID pKey, int nSize)
+void Cipher_Null::doInit(PVOID key, int size)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Null::DoEncode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_Null::doEncode(PVOID source, PVOID dest, int size)
 {
-	if (pSource != pDest)
-		memmove(pDest, pSource, nSize);
+	if (source != dest)
+		memmove(dest, source, size);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Null::DoDecode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_Null::doDecode(PVOID source, PVOID dest, int size)
 {
-	if (pSource != pDest)
-		memmove(pDest, pSource, nSize);
+	if (source != dest)
+		memmove(dest, source, size);
 }
 
 //-----------------------------------------------------------------------------
 
-CCipherContext CCipher_Null::Context()
+CCipherContext Cipher_Null::context()
 {
 	CCipherContext context;
 
-	context.nKeySize = 0;
-	context.nBlockSize = 1;
-	context.nBufferSize = 32;
-	context.nUserSize = 0;
-	context.bUserSave = false;
+	context.keySize = 0;
+	context.blockSize = 1;
+	context.bufferSize = 32;
+	context.userSize = 0;
+	context.userSave = false;
 
 	return context;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CCipher_Blowfish
+// Cipher_Blowfish
 
 typedef DWORD BLOWFISH[4][256];
 typedef BLOWFISH* PBLOWFISH;
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Blowfish::DoInit(PVOID pKey, int nSize)
+void Cipher_Blowfish::doInit(PVOID key, int size)
 {
 	int i, j;
 	DWORD b[2];
@@ -2874,58 +2874,58 @@ void CCipher_Blowfish::DoInit(PVOID pKey, int nSize)
 	PDWORD p;
 	PBLOWFISH s;
 
-	k = (PBYTE)pKey;
-	s = (PBLOWFISH)m_pUser;
-	p = (PDWORD)((PBYTE)m_pUser + sizeof(BLOWFISH_DATA));
+	k = (PBYTE)key;
+	s = (PBLOWFISH)user_;
+	p = (PDWORD)((PBYTE)user_ + sizeof(BLOWFISH_DATA));
 
 	memmove(s, BLOWFISH_DATA, sizeof(BLOWFISH_DATA));
 	memmove(p, BLOWFISH_KEY, sizeof(BLOWFISH_KEY));
 
 	j = 0;
-	if (nSize > 0)
+	if (size > 0)
 	{
 		for (i = 0; i < 18; i++)
 		{
 			p[i] ^=
-				(k[(j + 0) % nSize] << 24) +
-				(k[(j + 1) % nSize] << 16) +
-				(k[(j + 2) % nSize] <<  8) +
-				(k[(j + 3) % nSize] <<  0);
-			j = (j + 4) % nSize;
+				(k[(j + 0) % size] << 24) +
+				(k[(j + 1) % size] << 16) +
+				(k[(j + 2) % size] <<  8) +
+				(k[(j + 3) % size] <<  0);
+			j = (j + 4) % size;
 		}
 	}
 	memset(b, 0, sizeof(b));
 	for (i = 0; i < 9; i++)
 	{
-		DoEncode(b, b, sizeof(b));
-		p[i*2 + 0] = SwapDWord(b[0]);
-		p[i*2 + 1] = SwapDWord(b[1]);
+		doEncode(b, b, sizeof(b));
+		p[i*2 + 0] = swapDWord(b[0]);
+		p[i*2 + 1] = swapDWord(b[1]);
 	}
 	for (i = 0; i < 4; i++)
 		for (j = 0; j < 128; j++)
 		{
-			DoEncode(b, b, sizeof(b));
-			(*s)[i][j*2 + 0] = SwapDWord(b[0]);
-			(*s)[i][j*2 + 1] = SwapDWord(b[1]);
+			doEncode(b, b, sizeof(b));
+			(*s)[i][j*2 + 0] = swapDWord(b[0]);
+			(*s)[i][j*2 + 1] = swapDWord(b[1]);
 		}
 	memset(b, 0, sizeof(b));
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Blowfish::DoEncode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_Blowfish::doEncode(PVOID source, PVOID dest, int size)
 {
 	DWORD i, a, b;
 	PDWORD p;
 	PBLOWFISH d;
 
-	ISE_ASSERT(nSize == Context().nBlockSize);
+	ISE_ASSERT(size == context().blockSize);
 
-	d = (PBLOWFISH)m_pUser;
-	p = (PDWORD)((PBYTE)m_pUser + sizeof(BLOWFISH_DATA));
-	a = SwapDWord(((PDWORD)pSource)[0]) ^ p[0];
+	d = (PBLOWFISH)user_;
+	p = (PDWORD)((PBYTE)user_ + sizeof(BLOWFISH_DATA));
+	a = swapDWord(((PDWORD)source)[0]) ^ p[0];
 	p = &p[1];
-	b = SwapDWord(((PDWORD)pSource)[1]);
+	b = swapDWord(((PDWORD)source)[1]);
 
 	for (i = 0; i < 8; i++)
 	{
@@ -2938,24 +2938,24 @@ void CCipher_Blowfish::DoEncode(PVOID pSource, PVOID pDest, int nSize)
 		p = &p[2];
 	}
 
-	((PDWORD)pDest)[0] = SwapDWord(b ^ p[0]);
-	((PDWORD)pDest)[1] = SwapDWord(a);
+	((PDWORD)dest)[0] = swapDWord(b ^ p[0]);
+	((PDWORD)dest)[1] = swapDWord(a);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Blowfish::DoDecode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_Blowfish::doDecode(PVOID source, PVOID dest, int size)
 {
 	DWORD i, a, b;
 	PDWORD p;
 	PBLOWFISH d;
 
-	ISE_ASSERT(nSize == Context().nBlockSize);
+	ISE_ASSERT(size == context().blockSize);
 
-	d = (PBLOWFISH)m_pUser;
-	p = (PDWORD)((PBYTE)m_pUser + sizeof(BLOWFISH_DATA) + sizeof(BLOWFISH_KEY) - sizeof(DWORD));
-	a = SwapDWord(((PDWORD)pSource)[0]) ^ p[0];
-	b = SwapDWord(((PDWORD)pSource)[1]);
+	d = (PBLOWFISH)user_;
+	p = (PDWORD)((PBYTE)user_ + sizeof(BLOWFISH_DATA) + sizeof(BLOWFISH_KEY) - sizeof(DWORD));
+	a = swapDWord(((PDWORD)source)[0]) ^ p[0];
+	b = swapDWord(((PDWORD)source)[1]);
 
 	for (i = 0; i < 8; i++)
 	{
@@ -2968,27 +2968,27 @@ void CCipher_Blowfish::DoDecode(PVOID pSource, PVOID pDest, int nSize)
 	}
 
 	p--;
-	((PDWORD)pDest)[0] = SwapDWord(b ^ p[0]);
-	((PDWORD)pDest)[1] = SwapDWord(a);
+	((PDWORD)dest)[0] = swapDWord(b ^ p[0]);
+	((PDWORD)dest)[1] = swapDWord(a);
 }
 
 //-----------------------------------------------------------------------------
 
-CCipherContext CCipher_Blowfish::Context()
+CCipherContext Cipher_Blowfish::context()
 {
 	CCipherContext context;
 
-	context.nKeySize = 56;
-	context.nBlockSize = 8;
-	context.nBufferSize = 8;
-	context.nUserSize = sizeof(BLOWFISH_DATA) + sizeof(BLOWFISH_KEY);
-	context.bUserSave = false;
+	context.keySize = 56;
+	context.blockSize = 8;
+	context.bufferSize = 8;
+	context.userSize = sizeof(BLOWFISH_DATA) + sizeof(BLOWFISH_KEY);
+	context.userSave = false;
 
 	return context;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CCipher_IDEA
+// Cipher_IDEA
 
 static WORD IDEAInv(WORD x)
 {
@@ -3020,7 +3020,7 @@ static WORD IDEAInv(WORD x)
 static DWORD IDEAMul(DWORD x, DWORD y)
 {
 #ifdef ISE_WIN32
-	DWORD nResult;
+	DWORD result;
 
 	__asm
 	{
@@ -3042,13 +3042,13 @@ static DWORD IDEAMul(DWORD x, DWORD y)
 		LEA    EAX, [EAX + EDX -1]
 		NEG    EAX
 	_002:
-		MOV    nResult, EAX
+		MOV    result, EAX
 	}
 
-	return nResult;
+	return result;
 #endif
 #ifdef ISE_LINUX
-	DWORD nResult;
+	DWORD result;
 
 	__asm__ __volatile
 	(
@@ -3072,62 +3072,62 @@ static DWORD IDEAMul(DWORD x, DWORD y)
 	_011: \
 		nop; \
 		"
-			: "=eax"(nResult)
+			: "=eax"(result)
 			: "eax"(x), "edx"(y)
 	);
 
-	return nResult;
+	return result;
 #endif
 }
 
 //-----------------------------------------------------------------------------
 
-static void IDEACipher(PDWORD pSource, PDWORD pDest, PWORD pKey)
+static void IDEACipher(PDWORD source, PDWORD dest, PWORD key)
 {
 	DWORD i, x, y, a, b, c, d;
 
-	i = SwapDWord(pSource[0]);
+	i = swapDWord(source[0]);
 	a = i >> 16;
 	b = i & 0xFFFF;
-	i = SwapDWord(pSource[1]);
+	i = swapDWord(source[1]);
 	c = i >> 16;
 	d = i & 0xFFFF;
 
 	for (i = 0; i < 8; i++)
 	{
-		a = IDEAMul(a, pKey[0]);
-		b += pKey[1];
-		c += pKey[2];
-		d = IDEAMul(d, pKey[3]);
+		a = IDEAMul(a, key[0]);
+		b += key[1];
+		c += key[2];
+		d = IDEAMul(d, key[3]);
 		y = c ^ a;
-		y = IDEAMul(y, pKey[4]);
+		y = IDEAMul(y, key[4]);
 		x = (b ^ d) + y;
-		x = IDEAMul(x, pKey[5]);
+		x = IDEAMul(x, key[5]);
 		y += x;
 		a = a ^ x;
 		d = d ^ y;
 		y = b ^ y;
 		b = c ^ x;
 		c = y;
-		pKey = &pKey[6];
+		key = &key[6];
 	}
 
-	pDest[0] = SwapDWord( IDEAMul(a, pKey[0]) << 16 | (c + pKey[1]) & 0xFFFF );
-	pDest[1] = SwapDWord( (b + pKey[2]) << 16 | IDEAMul(d, pKey[3]) & 0xFFFF );
+	dest[0] = swapDWord( IDEAMul(a, key[0]) << 16 | (c + key[1]) & 0xFFFF );
+	dest[1] = swapDWord( (b + key[2]) << 16 | IDEAMul(d, key[3]) & 0xFFFF );
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_IDEA::DoInit(PVOID pKey, int nSize)
+void Cipher_IDEA::doInit(PVOID key, int size)
 {
 	int i;
 	PWORD e, k, d;
 	WORD a, b, c;
 
-	e = (PWORD)m_pUser;
-	memmove(e, pKey, nSize);
+	e = (PWORD)user_;
+	memmove(e, key, size);
 	for (i = 0; i < 8; i++)
-		e[i] = SwapWord(e[i]);
+		e[i] = swapWord(e[i]);
 	for (i = 0; i < 40; i++)
 	{
 		e[i + 8] =
@@ -3170,44 +3170,44 @@ void CCipher_IDEA::DoInit(PVOID pKey, int nSize)
 
 //-----------------------------------------------------------------------------
 
-void CCipher_IDEA::DoEncode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_IDEA::doEncode(PVOID source, PVOID dest, int size)
 {
-	ISE_ASSERT(nSize == Context().nBlockSize);
-	IDEACipher((PDWORD)pSource, (PDWORD)pDest, (PWORD)m_pUser);
+	ISE_ASSERT(size == context().blockSize);
+	IDEACipher((PDWORD)source, (PDWORD)dest, (PWORD)user_);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_IDEA::DoDecode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_IDEA::doDecode(PVOID source, PVOID dest, int size)
 {
-	ISE_ASSERT(nSize == Context().nBlockSize);
-	IDEACipher((PDWORD)pSource, (PDWORD)pDest, (PWORD)((PDWORD)m_pUser + 26));
+	ISE_ASSERT(size == context().blockSize);
+	IDEACipher((PDWORD)source, (PDWORD)dest, (PWORD)((PDWORD)user_ + 26));
 }
 
 //-----------------------------------------------------------------------------
 
-CCipherContext CCipher_IDEA::Context()
+CCipherContext Cipher_IDEA::context()
 {
 	CCipherContext context;
 
-	context.nKeySize = 16;
-	context.nBlockSize = 8;
-	context.nBufferSize = 8;
-	context.nUserSize = 208;
-	context.bUserSave = false;
+	context.keySize = 16;
+	context.blockSize = 8;
+	context.bufferSize = 8;
+	context.userSize = 208;
+	context.userSave = false;
 
 	return context;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CCipher_DES
+// Cipher_DES
 
-static void DESCipher(PDWORD pSource, PDWORD pDest, PDWORD pKey)
+static void DESCipher(PDWORD source, PDWORD dest, PDWORD key)
 {
 	DWORD l, r, x, y, i;
 
-	l = SwapDWord(pSource[0]);
-	r = SwapDWord(pSource[1]);
+	l = swapDWord(source[0]);
+	r = swapDWord(source[1]);
 
 	x = (l >>  4 ^ r) & 0x0F0F0F0F; r = r ^ x; l = l ^ x <<  4;
 	x = (l >> 16 ^ r) & 0x0000FFFF; r = r ^ x; l = l ^ x << 16;
@@ -3222,8 +3222,8 @@ static void DESCipher(PDWORD pSource, PDWORD pDest, PDWORD pKey)
 
 	for (i = 0; i < 8; i++)
 	{
-		x = (r << 28 | r >> 4) ^ pKey[0];
-		y = r ^ pKey[1];
+		x = (r << 28 | r >> 4) ^ key[0];
+		y = r ^ key[1];
 		l ^= (
 			DES_DATA[0][x       & 0x3F] | DES_DATA[1][x >>  8 & 0x3F] |
 			DES_DATA[2][x >> 16 & 0x3F] | DES_DATA[3][x >> 24 & 0x3F] |
@@ -3231,15 +3231,15 @@ static void DESCipher(PDWORD pSource, PDWORD pDest, PDWORD pKey)
 			DES_DATA[6][y >> 16 & 0x3F] | DES_DATA[7][y >> 24 & 0x3F]
 			);
 
-		x = (l << 28 | l >> 4) ^ pKey[2];
-		y = l ^ pKey[3];
+		x = (l << 28 | l >> 4) ^ key[2];
+		y = l ^ key[3];
 		r ^= (
 			DES_DATA[0][x       & 0x3F] | DES_DATA[1][x >>  8 & 0x3F] |
 			DES_DATA[2][x >> 16 & 0x3F] | DES_DATA[3][x >> 24 & 0x3F] |
 			DES_DATA[4][y       & 0x3F] | DES_DATA[5][y >>  8 & 0x3F] |
 			DES_DATA[6][y >> 16 & 0x3F] | DES_DATA[7][y >> 24 & 0x3F]
 			);
-		pKey = &pKey[4];
+		key = &key[4];
 	}
 
 	r = r << 31 | r >> 1;
@@ -3253,13 +3253,13 @@ static void DESCipher(PDWORD pSource, PDWORD pDest, PDWORD pKey)
 	x = (r >> 16 ^ l) & 0x0000FFFF; l = l ^ x; r = r ^ x << 16;
 	x = (r >>  4 ^ l) & 0x0F0F0F0F; l = l ^ x; r = r ^ x <<  4;
 
-	pDest[0] = SwapDWord(r);
-	pDest[1] = SwapDWord(l);
+	dest[0] = swapDWord(r);
+	dest[1] = swapDWord(l);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_DES::DoInitKey(PBYTE pData, PDWORD pKey, bool bReverse)
+void Cipher_DES::DoInitKey(PBYTE data, PDWORD key, bool reverse)
 {
 	const BYTE ROT[16] = {1,2,4,6,8,10,12,14,15,17,19,21,23,25,27,28};
 
@@ -3270,14 +3270,14 @@ void CCipher_DES::DoInitKey(PBYTE pData, PDWORD pKey, bool bReverse)
 	memset(k, 0, sizeof(k));
 	for (i = 0; i < 56; i++)
 	{
-		if ((pData[DES_PC1[i] >> 3] & (0x80 >> (DES_PC1[i] & 0x07))) != 0)
+		if ((data[DES_PC1[i] >> 3] & (0x80 >> (DES_PC1[i] & 0x07))) != 0)
 			pcm[i] = 1;
 		else
 			pcm[i] = 0;
 	}
 	for (i = 0; i < 16; i++)
 	{
-		if (bReverse)
+		if (reverse)
 			m = (15 - i) << 1;
 		else
 			m = i << 1;
@@ -3312,92 +3312,92 @@ void CCipher_DES::DoInitKey(PBYTE pData, PDWORD pKey, bool bReverse)
 	{
 		m = i << 1;
 		n = m + 1;
-		pKey[0] =
+		key[0] =
 			(k[m] & 0x00FC0000) <<  6 |
 			(k[m] & 0x00000FC0) << 10 |
 			(k[n] & 0x00FC0000) >> 10 |
 			(k[n] & 0x00000FC0) >>  6;
-		pKey[1] =
+		key[1] =
 			(k[m] & 0x0003F000) << 12 |
 			(k[m] & 0x0000003F) << 16 |
 			(k[n] & 0x0003F000) >>  4 |
 			(k[n] & 0x0000003F);
-		pKey = &pKey[2];
+		key = &key[2];
 	}
 
-	ProtectBuffer(k, sizeof(k));
-	ProtectBuffer(pcm, sizeof(pcm));
-	ProtectBuffer(pcr, sizeof(pcr));
+	protectBuffer(k, sizeof(k));
+	protectBuffer(pcm, sizeof(pcm));
+	protectBuffer(pcr, sizeof(pcr));
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_DES::DoInit(PVOID pKey, int nSize)
+void Cipher_DES::doInit(PVOID key, int size)
 {
 	BYTE k[8];
 
 	memset(k, 0, sizeof(k));
-	memmove(k, pKey, nSize);
-	DoInitKey(k, (PDWORD)m_pUser, false);
-	DoInitKey(k, (PDWORD)m_pUser + 32, true);
-	ProtectBuffer(k, sizeof(k));
+	memmove(k, key, size);
+	DoInitKey(k, (PDWORD)user_, false);
+	DoInitKey(k, (PDWORD)user_ + 32, true);
+	protectBuffer(k, sizeof(k));
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_DES::DoEncode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_DES::doEncode(PVOID source, PVOID dest, int size)
 {
-	ISE_ASSERT(nSize == Context().nBufferSize);
-	DESCipher((PDWORD)pSource, (PDWORD)pDest, (PDWORD)m_pUser);
+	ISE_ASSERT(size == context().bufferSize);
+	DESCipher((PDWORD)source, (PDWORD)dest, (PDWORD)user_);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_DES::DoDecode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_DES::doDecode(PVOID source, PVOID dest, int size)
 {
-	ISE_ASSERT(nSize == Context().nBufferSize);
-	DESCipher((PDWORD)pSource, (PDWORD)pDest, (PDWORD)m_pUser + 32);
+	ISE_ASSERT(size == context().bufferSize);
+	DESCipher((PDWORD)source, (PDWORD)dest, (PDWORD)user_ + 32);
 }
 
 //-----------------------------------------------------------------------------
 
-CCipherContext CCipher_DES::Context()
+CCipherContext Cipher_DES::context()
 {
 	CCipherContext context;
 
-	context.nKeySize = 8;
-	context.nBlockSize = 8;
-	context.nBufferSize = 8;
-	context.nUserSize = 32 * 4 * 2;
-	context.bUserSave = false;
+	context.keySize = 8;
+	context.blockSize = 8;
+	context.bufferSize = 8;
+	context.userSize = 32 * 4 * 2;
+	context.userSave = false;
 
 	return context;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// CCipher_Gost
+// Cipher_Gost
 
-void CCipher_Gost::DoInit(PVOID pKey, int nSize)
+void Cipher_Gost::doInit(PVOID key, int size)
 {
-	memmove(m_pUser, pKey, nSize);
+	memmove(user_, key, size);
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Gost::DoEncode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_Gost::doEncode(PVOID source, PVOID dest, int size)
 {
-	ISE_ASSERT(nSize == Context().nBufferSize);
+	ISE_ASSERT(size == context().bufferSize);
 
 	DWORD i, a, b, t;
 	PDWORD k;
 
-	k = (PDWORD)m_pUser;
-	a = ((PDWORD)pSource)[0];
-	b = ((PDWORD)pSource)[1];
+	k = (PDWORD)user_;
+	a = ((PDWORD)source)[0];
+	b = ((PDWORD)source)[1];
 
 	for (i = 0; i < 12; i++)
 	{
-		if ((i & 3) == 0) k = (PDWORD)m_pUser;
+		if ((i & 3) == 0) k = (PDWORD)user_;
 
 		t = a + k[0];
 		b ^=
@@ -3414,7 +3414,7 @@ void CCipher_Gost::DoEncode(PVOID pSource, PVOID pDest, int nSize)
 		k = &k[2];
 	}
 
-	k = (PDWORD)m_pUser + 6;
+	k = (PDWORD)user_ + 6;
 	for (i = 0; i < 4; i++)
 	{
 		t = a + k[1];
@@ -3432,22 +3432,22 @@ void CCipher_Gost::DoEncode(PVOID pSource, PVOID pDest, int nSize)
 		k -= 2;
 	}
 
-	((PDWORD)pDest)[0] = b;
-	((PDWORD)pDest)[1] = a;
+	((PDWORD)dest)[0] = b;
+	((PDWORD)dest)[1] = a;
 }
 
 //-----------------------------------------------------------------------------
 
-void CCipher_Gost::DoDecode(PVOID pSource, PVOID pDest, int nSize)
+void Cipher_Gost::doDecode(PVOID source, PVOID dest, int size)
 {
-	ISE_ASSERT(nSize == Context().nBufferSize);
+	ISE_ASSERT(size == context().bufferSize);
 
 	DWORD i, a, b, t;
 	PDWORD k;
 
-	a = ((PDWORD)pSource)[0];
-	b = ((PDWORD)pSource)[1];
-	k = (PDWORD)m_pUser;
+	a = ((PDWORD)source)[0];
+	b = ((PDWORD)source)[1];
+	k = (PDWORD)user_;
 
 	for (i = 0; i < 4; i++)
 	{
@@ -3468,7 +3468,7 @@ void CCipher_Gost::DoDecode(PVOID pSource, PVOID pDest, int nSize)
 	for (i = 0; i < 12; i++)
 	{
 		if ((i & 3) == 0)
-			k = (PDWORD)m_pUser + 6;
+			k = (PDWORD)user_ + 6;
 
 		t = a + k[1];
 		b ^=
@@ -3485,21 +3485,21 @@ void CCipher_Gost::DoDecode(PVOID pSource, PVOID pDest, int nSize)
 		k -= 2;
 	}
 
-	((PDWORD)pDest)[0] = b;
-	((PDWORD)pDest)[1] = a;
+	((PDWORD)dest)[0] = b;
+	((PDWORD)dest)[1] = a;
 }
 
 //-----------------------------------------------------------------------------
 
-CCipherContext CCipher_Gost::Context()
+CCipherContext Cipher_Gost::context()
 {
 	CCipherContext context;
 
-	context.nKeySize = 32;
-	context.nBlockSize = 8;
-	context.nBufferSize = 8;
-	context.nUserSize = 32;
-	context.bUserSave = false;
+	context.keySize = 32;
+	context.blockSize = 8;
+	context.bufferSize = 8;
+	context.userSize = 32;
+	context.userSave = false;
 
 	return context;
 }

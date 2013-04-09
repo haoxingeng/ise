@@ -2,15 +2,15 @@
 
 #include "echo.h"
 
-CIseBusiness* CreateIseBusinessObject()
+IseBusiness* createIseBusinessObject()
 {
-	return new CAppBusiness();
+	return new AppBusiness();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化 (失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CAppBusiness::Initialize()
+void AppBusiness::initialize()
 {
 	// nothing
 }
@@ -18,25 +18,25 @@ void CAppBusiness::Initialize()
 //-----------------------------------------------------------------------------
 // 描述: 结束化 (无论初始化是否有异常，结束时都会执行)
 //-----------------------------------------------------------------------------
-void CAppBusiness::Finalize()
+void AppBusiness::finalize()
 {
 	const char *pMsg = "Echo server stoped.";
 	cout << pMsg << endl;
-	Logger().WriteStr(pMsg);
+	logger().writeStr(pMsg);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 处理启动状态
 //-----------------------------------------------------------------------------
-void CAppBusiness::DoStartupState(STARTUP_STATE nState)
+void AppBusiness::doStartupState(STARTUP_STATE state)
 {
-	switch (nState)
+	switch (state)
 	{
 	case SS_AFTER_START:
 		{
 			const char *pMsg = "Echo server started.";
 			cout << endl << pMsg << endl;
-			Logger().WriteStr(pMsg);
+			logger().writeStr(pMsg);
 		}
 		break;
 
@@ -44,7 +44,7 @@ void CAppBusiness::DoStartupState(STARTUP_STATE nState)
 		{
 			const char *pMsg = "Fail to start echo server.";
 			cout << endl << pMsg << endl;
-			Logger().WriteStr(pMsg);
+			logger().writeStr(pMsg);
 		}
 		break;
 	}
@@ -53,62 +53,62 @@ void CAppBusiness::DoStartupState(STARTUP_STATE nState)
 //-----------------------------------------------------------------------------
 // 描述: 初始化SSE配置信息
 //-----------------------------------------------------------------------------
-void CAppBusiness::InitSseOptions(CIseOptions& SseOpt)
+void AppBusiness::initIseOptions(IseOptions& options)
 {
-	SseOpt.SetLogFileName(GetAppSubPath("log") + "echo-log.txt", true);
-	SseOpt.SetIsDaemon(true);
-	SseOpt.SetAllowMultiInstance(false);
+	options.setLogFileName(getAppSubPath("log") + "echo-log.txt", true);
+	options.setIsDaemon(true);
+	options.setAllowMultiInstance(false);
 
 	// 设置服务器类型
-	SseOpt.SetServerType(ST_TCP);
+	options.setServerType(ST_TCP);
 	// 设置TCP服务器的总数
-	SseOpt.SetTcpServerCount(1);
+	options.setTcpServerCount(1);
 	// 设置TCP服务端口号
-	SseOpt.SetTcpServerPort(0, 12345);
+	options.setTcpServerPort(0, 12345);
 	// 设置TCP事件循环的个数
-	SseOpt.SetTcpEventLoopCount(3);
+	options.setTcpEventLoopCount(3);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 接受了一个新的TCP连接
 //-----------------------------------------------------------------------------
-void CAppBusiness::OnTcpConnection(CTcpConnection *pConnection)
+void AppBusiness::onTcpConnection(TcpConnection *connection)
 {
-	Logger().WriteStr("OnTcpConnection");
-	pConnection->PostRecvTask(&CLinePacketMeasurer::Instance());
+	logger().writeStr("OnTcpConnection");
+	connection->postRecvTask(&LinePacketMeasurer::instance());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP连接传输过程发生了错误 (SSE将随之删除此连接对象)
 //-----------------------------------------------------------------------------
-void CAppBusiness::OnTcpError(CTcpConnection *pConnection)
+void AppBusiness::onTcpError(TcpConnection *connection)
 {
-	Logger().WriteStr("OnTcpError");
+	logger().writeStr("OnTcpError");
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP连接上的一个接收任务已完成
 //-----------------------------------------------------------------------------
-void CAppBusiness::OnTcpRecvComplete(CTcpConnection *pConnection, void *pPacketBuffer,
-	int nPacketSize, const CCustomParams& Params)
+void AppBusiness::onTcpRecvComplete(TcpConnection *connection, void *packetBuffer,
+	int packetSize, const CustomParams& params)
 {
-	Logger().WriteStr("OnTcpRecvComplete");
+	logger().writeStr("OnTcpRecvComplete");
 
-	string strMsg((char*)pPacketBuffer, nPacketSize);
-	strMsg = TrimString(strMsg);
+	string strMsg((char*)packetBuffer, packetSize);
+	strMsg = trimString(strMsg);
 	if (strMsg == "bye")
-		pConnection->Disconnect();
+		connection->disconnect();
 	else
-		pConnection->PostSendTask((char*)pPacketBuffer, nPacketSize);
+		connection->postSendTask((char*)packetBuffer, packetSize);
 
-	Logger().WriteFmt("Received message: %s", strMsg.c_str());
+	logger().writeFmt("Received message: %s", strMsg.c_str());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP连接上的一个发送任务已完成
 //-----------------------------------------------------------------------------
-void CAppBusiness::OnTcpSendComplete(CTcpConnection *pConnection, const CCustomParams& Params)
+void AppBusiness::onTcpSendComplete(TcpConnection *connection, const CustomParams& params)
 {
-	Logger().WriteStr("OnTcpSendComplete");
-	pConnection->PostRecvTask(&CLinePacketMeasurer::Instance());
+	logger().writeStr("OnTcpSendComplete");
+	connection->postRecvTask(&LinePacketMeasurer::instance());
 }

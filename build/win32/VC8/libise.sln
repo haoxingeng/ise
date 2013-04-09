@@ -10,8 +10,8 @@ Global
 		Release Unicode|Win32 = Release Unicode|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Debug MBCS|Win32.ActiveCfg = Release MBCS|Win32
-		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Debug MBCS|Win32.Build.0 = Release MBCS|Win32
+		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Debug MBCS|Win32.ActiveCfg = Debug MBCS|Win32
+		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Debug MBCS|Win32.Build.0 = Debug MBCS|Win32
 		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Debug Unicode|Win32.ActiveCfg = Debug Unicode|Win32
 		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Debug Unicode|Win32.Build.0 = Debug Unicode|Win32
 		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}.Release MBCS|Win32.ActiveCfg = Release MBCS|Win32

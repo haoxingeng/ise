@@ -35,47 +35,47 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAssistorThread
+// class AssistorThread
 
-CAssistorThread::CAssistorThread(CAssistorThreadPool *pThreadPool, int nAssistorIndex) :
-	m_pOwnPool(pThreadPool),
-	m_nAssistorIndex(nAssistorIndex)
+AssistorThread::AssistorThread(AssistorThreadPool *threadPool, int assistorIndex) :
+	ownPool_(threadPool),
+	assistorIndex_(assistorIndex)
 {
-	SetFreeOnTerminate(true);
-	m_pOwnPool->RegisterThread(this);
+	setFreeOnTerminate(true);
+	ownPool_->registerThread(this);
 }
 
-CAssistorThread::~CAssistorThread()
+AssistorThread::~AssistorThread()
 {
-	m_pOwnPool->UnregisterThread(this);
+	ownPool_->unregisterThread(this);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 线程执行函数
 //-----------------------------------------------------------------------------
-void CAssistorThread::Execute()
+void AssistorThread::execute()
 {
-	m_pOwnPool->GetAssistorServer().OnAssistorThreadExecute(*this, m_nAssistorIndex);
+	ownPool_->getAssistorServer().onAssistorThreadExecute(*this, assistorIndex_);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 执行 Kill() 前的附加操作
+// 描述: 执行 kill() 前的附加操作
 //-----------------------------------------------------------------------------
-void CAssistorThread::DoKill()
+void AssistorThread::doKill()
 {
 	// nothing
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAssistorThreadPool
+// class AssistorThreadPool
 
-CAssistorThreadPool::CAssistorThreadPool(CAssistorServer *pOwnAssistorServer) :
-	m_pOwnAssistorSvr(pOwnAssistorServer)
+AssistorThreadPool::AssistorThreadPool(AssistorServer *ownAssistorServer) :
+	ownAssistorSvr_(ownAssistorServer)
 {
 	// nothing
 }
 
-CAssistorThreadPool::~CAssistorThreadPool()
+AssistorThreadPool::~AssistorThreadPool()
 {
 	// nothing
 }
@@ -83,70 +83,70 @@ CAssistorThreadPool::~CAssistorThreadPool()
 //-----------------------------------------------------------------------------
 // 描述: 注册线程
 //-----------------------------------------------------------------------------
-void CAssistorThreadPool::RegisterThread(CAssistorThread *pThread)
+void AssistorThreadPool::registerThread(AssistorThread *thread)
 {
-	m_ThreadList.Add(pThread);
+	threadList_.add(thread);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 注销线程
 //-----------------------------------------------------------------------------
-void CAssistorThreadPool::UnregisterThread(CAssistorThread *pThread)
+void AssistorThreadPool::unregisterThread(AssistorThread *thread)
 {
-	m_ThreadList.Remove(pThread);
+	threadList_.remove(thread);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知所有线程退出
 //-----------------------------------------------------------------------------
-void CAssistorThreadPool::TerminateAllThreads()
+void AssistorThreadPool::terminateAllThreads()
 {
-	m_ThreadList.TerminateAllThreads();
+	threadList_.terminateAllThreads();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 等待所有线程退出
 //-----------------------------------------------------------------------------
-void CAssistorThreadPool::WaitForAllThreads()
+void AssistorThreadPool::waitForAllThreads()
 {
 	const int MAX_WAIT_FOR_SECS = 5;
-	int nKilledCount = 0;
+	int killedCount = 0;
 
-	m_ThreadList.WaitForAllThreads(MAX_WAIT_FOR_SECS, &nKilledCount);
+	threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
 
-	if (nKilledCount > 0)
-		Logger().WriteFmt(SEM_THREAD_KILLED, nKilledCount, "assistor");
+	if (killedCount > 0)
+		logger().writeFmt(SEM_THREAD_KILLED, killedCount, "assistor");
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 打断指定线程的睡眠
 //-----------------------------------------------------------------------------
-void CAssistorThreadPool::InterruptThreadSleep(int nAssistorIndex)
+void AssistorThreadPool::interruptThreadSleep(int assistorIndex)
 {
-	CAutoLocker Locker(m_ThreadList.GetLock());
+	AutoLocker locker(threadList_.getLock());
 
-	for (int i = 0; i < m_ThreadList.GetCount(); i++)
+	for (int i = 0; i < threadList_.getCount(); i++)
 	{
-		CAssistorThread *pThread = (CAssistorThread*)m_ThreadList[i];
-		if (pThread->GetIndex() == nAssistorIndex)
+		AssistorThread *thread = (AssistorThread*)threadList_[i];
+		if (thread->getIndex() == assistorIndex)
 		{
-			pThread->InterruptSleep();
+			thread->interruptSleep();
 			break;
 		}
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAssistorServer
+// class AssistorServer
 
-CAssistorServer::CAssistorServer() :
-	m_bActive(false),
-	m_ThreadPool(this)
+AssistorServer::AssistorServer() :
+	isActive_(false),
+	threadPool_(this)
 {
 	// nothing
 }
 
-CAssistorServer::~CAssistorServer()
+AssistorServer::~AssistorServer()
 {
 	// nothing
 }
@@ -154,67 +154,67 @@ CAssistorServer::~CAssistorServer()
 //-----------------------------------------------------------------------------
 // 描述: 启动服务器
 //-----------------------------------------------------------------------------
-void CAssistorServer::Open()
+void AssistorServer::open()
 {
-	if (!m_bActive)
+	if (!isActive_)
 	{
-		int nCount = IseApplication.GetIseOptions().GetAssistorThreadCount();
+		int count = iseApplication.getIseOptions().getAssistorThreadCount();
 
-		for (int i = 0; i < nCount; i++)
+		for (int i = 0; i < count; i++)
 		{
-			CAssistorThread *pThread;
-			pThread = new CAssistorThread(&m_ThreadPool, i);
-			pThread->Run();
+			AssistorThread *thread;
+			thread = new AssistorThread(&threadPool_, i);
+			thread->run();
 		}
 
-		m_bActive = true;
+		isActive_ = true;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 关闭服务器
 //-----------------------------------------------------------------------------
-void CAssistorServer::Close()
+void AssistorServer::close()
 {
-	if (m_bActive)
+	if (isActive_)
 	{
-		WaitForAllAssistorThreads();
-		m_bActive = false;
+		waitForAllAssistorThreads();
+		isActive_ = false;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 辅助服务线程执行函数
 // 参数:
-//   nAssistorIndex - 辅助线程序号(0-based)
+//   assistorIndex - 辅助线程序号(0-based)
 //-----------------------------------------------------------------------------
-void CAssistorServer::OnAssistorThreadExecute(CAssistorThread& AssistorThread, int nAssistorIndex)
+void AssistorServer::onAssistorThreadExecute(AssistorThread& assistorThread, int assistorIndex)
 {
-	pIseBusiness->AssistorThreadExecute(AssistorThread, nAssistorIndex);
+	iseBusiness->assistorThreadExecute(assistorThread, assistorIndex);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知所有辅助线程退出
 //-----------------------------------------------------------------------------
-void CAssistorServer::TerminateAllAssistorThreads()
+void AssistorServer::terminateAllAssistorThreads()
 {
-	m_ThreadPool.TerminateAllThreads();
+	threadPool_.terminateAllThreads();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 等待所有辅助线程退出
 //-----------------------------------------------------------------------------
-void CAssistorServer::WaitForAllAssistorThreads()
+void AssistorServer::waitForAllAssistorThreads()
 {
-	m_ThreadPool.WaitForAllThreads();
+	threadPool_.waitForAllThreads();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 打断指定辅助线程的睡眠
 //-----------------------------------------------------------------------------
-void CAssistorServer::InterruptAssistorThreadSleep(int nAssistorIndex)
+void AssistorServer::interruptAssistorThreadSleep(int assistorIndex)
 {
-	m_ThreadPool.InterruptThreadSleep(nAssistorIndex);
+	threadPool_.interruptThreadSleep(assistorIndex);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

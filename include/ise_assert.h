@@ -32,10 +32,10 @@ namespace ise
 
 ///////////////////////////////////////////////////////////////////////////////
 
-extern void InternalAssert(const char *pCondition, const char *pFileName, int nLineNumber);
+extern void internalAssert(const char *condition, const char *fileName, int lineNumber);
 
 #ifdef ISE_DEBUG
-#define ISE_ASSERT(c)   ((c) ? (void)0 : InternalAssert(#c, __FILE__, __LINE__))
+#define ISE_ASSERT(c)   ((c) ? (void)0 : internalAssert(#c, __FILE__, __LINE__))
 #else
 #define ISE_ASSERT(c)   ((void)0)
 #endif

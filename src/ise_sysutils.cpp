@@ -37,96 +37,96 @@ namespace ise
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串是不是一个整数
 //-----------------------------------------------------------------------------
-bool IsIntStr(const string& str)
+bool isIntStr(const string& str)
 {
-	bool bResult;
-	int nLen = (int)str.size();
-	char *pStr = (char*)str.c_str();
+	bool result;
+	int len = (int)str.size();
+	char *strPtr = (char*)str.c_str();
 
-	bResult = (nLen > 0) && !isspace(pStr[0]);
+	result = (len > 0) && !isspace(strPtr[0]);
 
-	if (bResult)
+	if (result)
 	{
 		char *endp;
-		strtol(pStr, &endp, 10);
-		bResult = (endp - pStr == nLen);
+		strtol(strPtr, &endp, 10);
+		result = (endp - strPtr == len);
 	}
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串是不是一个整数
 //-----------------------------------------------------------------------------
-bool IsInt64Str(const string& str)
+bool isInt64Str(const string& str)
 {
-	bool bResult;
-	int nLen = (int)str.size();
-	char *pStr = (char*)str.c_str();
+	bool result;
+	int len = (int)str.size();
+	char *strPtr = (char*)str.c_str();
 
-	bResult = (nLen > 0) && !isspace(pStr[0]);
+	result = (len > 0) && !isspace(strPtr[0]);
 
-	if (bResult)
+	if (result)
 	{
 		char *endp;
 #ifdef ISE_WIN32
-		_strtoi64(pStr, &endp, 10);
+		_strtoi64(strPtr, &endp, 10);
 #endif
 #ifdef ISE_LINUX
-		strtoll(pStr, &endp, 10);
+		strtoll(strPtr, &endp, 10);
 #endif
-		bResult = (endp - pStr == nLen);
+		result = (endp - strPtr == len);
 	}
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串是不是一个浮点数
 //-----------------------------------------------------------------------------
-bool IsFloatStr(const string& str)
+bool isFloatStr(const string& str)
 {
-	bool bResult;
-	int nLen = (int)str.size();
-	char *pStr = (char*)str.c_str();
+	bool result;
+	int len = (int)str.size();
+	char *strPtr = (char*)str.c_str();
 
-	bResult = (nLen > 0) && !isspace(pStr[0]);
+	result = (len > 0) && !isspace(strPtr[0]);
 
-	if (bResult)
+	if (result)
 	{
 		char *endp;
-		strtod(pStr, &endp);
-		bResult = (endp - pStr == nLen);
+		strtod(strPtr, &endp);
+		result = (endp - strPtr == len);
 	}
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串可否转换成布尔型
 //-----------------------------------------------------------------------------
-bool IsBoolStr(const string& str)
+bool isBoolStr(const string& str)
 {
-	return SameText(str, TRUE_STR) || SameText(str, FALSE_STR) || IsFloatStr(str);
+	return sameText(str, TRUE_STR) || sameText(str, FALSE_STR) || isFloatStr(str);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 字符串转换成整型(若转换失败，则返回 nDefault)
+// 描述: 字符串转换成整型(若转换失败，则返回 defaultVal)
 //-----------------------------------------------------------------------------
-int StrToInt(const string& str, int nDefault)
+int strToInt(const string& str, int defaultVal)
 {
-	if (IsIntStr(str))
+	if (isIntStr(str))
 		return strtol(str.c_str(), NULL, 10);
 	else
-		return nDefault;
+		return defaultVal;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 字符串转换成64位整型(若转换失败，则返回 nDefault)
+// 描述: 字符串转换成64位整型(若转换失败，则返回 defaultVal)
 //-----------------------------------------------------------------------------
-INT64 StrToInt64(const string& str, INT64 nDefault)
+INT64 strToInt64(const string& str, INT64 defaultVal)
 {
-	if (IsInt64Str(str))
+	if (isInt64Str(str))
 #ifdef ISE_WIN32
 		return _strtoi64(str.c_str(), NULL, 10);
 #endif
@@ -134,132 +134,132 @@ INT64 StrToInt64(const string& str, INT64 nDefault)
 		return strtol(str.c_str(), NULL, 10);
 #endif
 	else
-		return nDefault;
+		return defaultVal;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 整型转换成字符串
 //-----------------------------------------------------------------------------
-string IntToStr(int nValue)
+string intToStr(int value)
 {
-	char sTemp[64];
-	sprintf(sTemp, "%d", nValue);
-	return &sTemp[0];
+	char temp[64];
+	sprintf(temp, "%d", value);
+	return &temp[0];
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 64位整型转换成字符串
 //-----------------------------------------------------------------------------
-string IntToStr(INT64 nValue)
+string intToStr(INT64 value)
 {
-	char sTemp[64];
+	char temp[64];
 #ifdef ISE_WIN32
-	sprintf(sTemp, "%I64d", nValue);
+	sprintf(temp, "%I64d", value);
 #endif
 #ifdef ISE_LINUX
-	sprintf(sTemp, "%lld", nValue);
+	sprintf(temp, "%lld", value);
 #endif
-	return &sTemp[0];
+	return &temp[0];
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 字符串转换成浮点型(若转换失败，则返回 fDefault)
+// 描述: 字符串转换成浮点型(若转换失败，则返回 defaultVal)
 //-----------------------------------------------------------------------------
-double StrToFloat(const string& str, double fDefault)
+double strToFloat(const string& str, double defaultVal)
 {
-	if (IsFloatStr(str))
+	if (isFloatStr(str))
 		return strtod(str.c_str(), NULL);
 	else
-		return fDefault;
+		return defaultVal;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 浮点型转换成字符串
 //-----------------------------------------------------------------------------
-string FloatToStr(double fValue, const char *sFormat)
+string floatToStr(double value, const char *format)
 {
-	char sTemp[256];
-	sprintf(sTemp, sFormat, fValue);
-	return &sTemp[0];
+	char temp[256];
+	sprintf(temp, format, value);
+	return &temp[0];
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 字符串转换成布尔型
 //-----------------------------------------------------------------------------
-bool StrToBool(const string& str, bool bDefault)
+bool strToBool(const string& str, bool defaultVal)
 {
-	if (IsBoolStr(str))
+	if (isBoolStr(str))
 	{
-		if (SameText(str, TRUE_STR))
+		if (sameText(str, TRUE_STR))
 			return true;
-		else if (SameText(str, FALSE_STR))
+		else if (sameText(str, FALSE_STR))
 			return false;
 		else
-			return (StrToFloat(str, 0) != 0);
+			return (strToFloat(str, 0) != 0);
 	}
 	else
-		return bDefault;
+		return defaultVal;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 布尔型转换成字符串
 //-----------------------------------------------------------------------------
-string BoolToStr(bool bValue, bool bUseBoolStrs)
+string boolToStr(bool value, bool useBoolStrs)
 {
-	if (bUseBoolStrs)
-		return (bValue? TRUE_STR : FALSE_STR);
+	if (useBoolStrs)
+		return (value? TRUE_STR : FALSE_STR);
 	else
-		return (bValue? "1" : "0");
+		return (value? "1" : "0");
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 格式化字符串 (供FormatString函数调用)
+// 描述: 格式化字符串 (供formatString函数调用)
 //-----------------------------------------------------------------------------
-void FormatStringV(string& strResult, const char *sFormatString, va_list argList)
+void formatStringV(string& result, const char *format, va_list argList)
 {
 #if defined(ISE_COMPILER_VC)
 
-	int nSize = _vscprintf(sFormatString, argList);
-	char *pBuffer = (char *)malloc(nSize + 1);
-	if (pBuffer)
+	int size = _vscprintf(format, argList);
+	char *buffer = (char *)malloc(size + 1);
+	if (buffer)
 	{
-		vsprintf(pBuffer, sFormatString, argList);
-		strResult = pBuffer;
-		free(pBuffer);
+		vsprintf(buffer, format, argList);
+		result = buffer;
+		free(buffer);
 	}
 	else
-		strResult = "";
+		result = "";
 
 #else
 
-	int nSize = 100;
-	char *pBuffer = (char *)malloc(nSize);
+	int size = 100;
+	char *buffer = (char *)malloc(size);
 	va_list args;
 
-	while (pBuffer)
+	while (buffer)
 	{
 		int nChars;
 
 		va_copy(args, argList);
-		nChars = vsnprintf(pBuffer, nSize, sFormatString, args);
+		nChars = vsnprintf(buffer, size, format, args);
 		va_end(args);
 
-		if (nChars > -1 && nChars < nSize)
+		if (nChars > -1 && nChars < size)
 			break;
 		if (nChars > -1)
-			nSize = nChars + 1;
+			size = nChars + 1;
 		else
-			nSize *= 2;
-		pBuffer = (char *)realloc(pBuffer, nSize);
+			size *= 2;
+		buffer = (char *)realloc(buffer, size);
 	}
 
-	if (pBuffer)
+	if (buffer)
 	{
-		strResult = pBuffer;
-		free(pBuffer);
+		result = buffer;
+		free(buffer);
 	}
 	else
-		strResult = "";
+		result = "";
 
 #endif
 }
@@ -267,33 +267,33 @@ void FormatStringV(string& strResult, const char *sFormatString, va_list argList
 //-----------------------------------------------------------------------------
 // 描述: 返回格式化后的字符串
 // 参数:
-//   sFormatString  - 格式化字符串
+//   format  - 格式化字符串
 //   ...            - 格式化参数
 //-----------------------------------------------------------------------------
-string FormatString(const char *sFormatString, ...)
+string formatString(const char *format, ...)
 {
-	string strResult;
+	string result;
 
 	va_list argList;
-	va_start(argList, sFormatString);
-	FormatStringV(strResult, sFormatString, argList);
+	va_start(argList, format);
+	formatStringV(result, format, argList);
 	va_end(argList);
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 判断两个字符串是否相同 (不区分大小写)
 //-----------------------------------------------------------------------------
-bool SameText(const string& str1, const string& str2)
+bool sameText(const string& str1, const string& str2)
 {
-	return CompareText(str1.c_str(), str2.c_str()) == 0;
+	return compareText(str1.c_str(), str2.c_str()) == 0;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 比较两个字符串 (不区分大小写)
 //-----------------------------------------------------------------------------
-int CompareText(const char* str1, const char* str2)
+int compareText(const char* str1, const char* str2)
 {
 #ifdef ISE_COMPILER_VC
 	return _stricmp(str1, str2);
@@ -309,117 +309,117 @@ int CompareText(const char* str1, const char* str2)
 //-----------------------------------------------------------------------------
 // 描述: 去掉字符串头尾的空白字符 (ASCII <= 32)
 //-----------------------------------------------------------------------------
-string TrimString(const string& str)
+string trimString(const string& str)
 {
-	string strResult;
-	int i, nLen;
+	string result;
+	int i, len;
 
-	nLen = (int)str.size();
+	len = (int)str.size();
 	i = 0;
-	while (i < nLen && (BYTE)str[i] <= 32) i++;
-	if (i < nLen)
+	while (i < len && (BYTE)str[i] <= 32) i++;
+	if (i < len)
 	{
-		while ((BYTE)str[nLen-1] <= 32) nLen--;
-		strResult = str.substr(i, nLen - i);
+		while ((BYTE)str[len-1] <= 32) len--;
+		result = str.substr(i, len - i);
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 字符串变大写
 //-----------------------------------------------------------------------------
-string UpperCase(const string& str)
+string upperCase(const string& str)
 {
-	string strResult = str;
-	int nLen = (int)strResult.size();
+	string result = str;
+	int len = (int)result.size();
 	char c;
 
-	for (int i = 0; i < nLen; i++)
+	for (int i = 0; i < len; i++)
 	{
-		c = strResult[i];
+		c = result[i];
 		if (c >= 'a' && c <= 'z')
-			strResult[i] = c - 32;
+			result[i] = c - 32;
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 字符串变小写
 //-----------------------------------------------------------------------------
-string LowerCase(const string& str)
+string lowerCase(const string& str)
 {
-	string strResult = str;
-	int nLen = (int)strResult.size();
+	string result = str;
+	int len = (int)result.size();
 	char c;
 
-	for (int i = 0; i < nLen; i++)
+	for (int i = 0; i < len; i++)
 	{
-		c = strResult[i];
+		c = result[i];
 		if (c >= 'A' && c <= 'Z')
-			strResult[i] = c + 32;
+			result[i] = c + 32;
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 字符串替换
 // 参数:
-//   strSource        - 源串
-//   strOldPattern    - 源串中将被替换的字符串
-//   strNewPattern    - 取代 strOldPattern 的字符串
-//   bReplaceAll      - 是否替换源串中所有匹配的字符串(若为false，则只替换第一处)
-//   bCaseSensitive   - 是否区分大小写
+//   sourceStr        - 源串
+//   oldPattern    - 源串中将被替换的字符串
+//   newPattern    - 取代 oldPattern 的字符串
+//   replaceAll      - 是否替换源串中所有匹配的字符串(若为false，则只替换第一处)
+//   caseSensitive   - 是否区分大小写
 // 返回:
 //   进行替换动作之后的字符串
 //-----------------------------------------------------------------------------
-string RepalceString(const string& strSource, const string& strOldPattern,
-	const string& strNewPattern, bool bReplaceAll, bool bCaseSensitive)
+string repalceString(const string& sourceStr, const string& oldPattern,
+	const string& newPattern, bool replaceAll, bool caseSensitive)
 {
-	string strResult = strSource;
-	string strSearch, strPattern;
-	string::size_type nOffset, nIndex;
-	int nOldPattLen, nNewPattLen;
+	string result = sourceStr;
+	string searchStr, patternStr;
+	string::size_type offset, index;
+	int oldPattLen, newPattLen;
 
-	if (!bCaseSensitive)
+	if (!caseSensitive)
 	{
-		strSearch = UpperCase(strSource);
-		strPattern = UpperCase(strOldPattern);
+		searchStr = upperCase(sourceStr);
+		patternStr = upperCase(oldPattern);
 	}
 	else
 	{
-		strSearch = strSource;
-		strPattern = strOldPattern;
+		searchStr = sourceStr;
+		patternStr = oldPattern;
 	}
 
-	nOldPattLen = (int)strOldPattern.size();
-	nNewPattLen = (int)strNewPattern.size();
-	nIndex = 0;
+	oldPattLen = (int)oldPattern.size();
+	newPattLen = (int)newPattern.size();
+	index = 0;
 
-	while (nIndex < strSearch.size())
+	while (index < searchStr.size())
 	{
-		nOffset = strSearch.find(strPattern, nIndex);
-		if (nOffset == string::npos) break;  // 若没找到
+		offset = searchStr.find(patternStr, index);
+		if (offset == string::npos) break;  // 若没找到
 
-		strSearch.replace(nOffset, nOldPattLen, strNewPattern);
-		strResult.replace(nOffset, nOldPattLen, strNewPattern);
-		nIndex = (nOffset + nNewPattLen);
+		searchStr.replace(offset, oldPattLen, newPattern);
+		result.replace(offset, oldPattLen, newPattern);
+		index = (offset + newPattLen);
 
-		if (!bReplaceAll) break;
+		if (!replaceAll) break;
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 分割字符串
 // 参数:
-//   strSource   - 源串
-//   chSplitter  - 分隔符
-//   StrList     - 存放分割之后的字符串列表
-//   bTrimResult - 是否对分割后的结果进行 trim 处理
+//   sourceStr   - 源串
+//   splitter  - 分隔符
+//   strList     - 存放分割之后的字符串列表
+//   trimResult - 是否对分割后的结果进行 trim 处理
 // 示例:
 //   ""          -> []
 //   " "         -> [" "]
@@ -427,103 +427,103 @@ string RepalceString(const string& strSource, const string& strOldPattern,
 //   "a,b,c"     -> ["a", "b", "c"]
 //   ",a,,b,c,"  -> ["", "a", "", "b", "c", ""]
 //-----------------------------------------------------------------------------
-void SplitString(const string& strSource, char chSplitter, CStrList& StrList,
-	bool bTrimResult)
+void splitString(const string& sourceStr, char splitter, StrList& strList,
+	bool trimResult)
 {
-	string::size_type nOffset, nIndex = 0;
+	string::size_type offset, index = 0;
 
-	StrList.Clear();
-	if (strSource.empty()) return;
+	strList.clear();
+	if (sourceStr.empty()) return;
 
 	while (true)
 	{
-		nOffset = strSource.find(chSplitter, nIndex);
-		if (nOffset == string::npos)   // 若没找到
+		offset = sourceStr.find(splitter, index);
+		if (offset == string::npos)   // 若没找到
 		{
-			StrList.Add(strSource.substr(nIndex).c_str());
+			strList.add(sourceStr.substr(index).c_str());
 			break;
 		}
 		else
 		{
-			StrList.Add(strSource.substr(nIndex, nOffset - nIndex).c_str());
-			nIndex = nOffset + 1;
+			strList.add(sourceStr.substr(index, offset - index).c_str());
+			index = offset + 1;
 		}
 	}
 
-	if (bTrimResult)
+	if (trimResult)
 	{
-		for (int i = 0; i < StrList.GetCount(); i++)
-			StrList.SetString(i, TrimString(StrList[i]).c_str());
+		for (int i = 0; i < strList.getCount(); i++)
+			strList.setString(i, trimString(strList[i]).c_str());
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 分割字符串并转换成整型数列表
 // 参数:
-//   strSource  - 源串
-//   chSplitter - 分隔符
-//   IntList    - 存放分割之后的整型数列表
+//   sourceStr  - 源串
+//   splitter - 分隔符
+//   intList    - 存放分割之后的整型数列表
 //-----------------------------------------------------------------------------
-void SplitStringToInt(const string& strSource, char chSplitter, IntegerArray& IntList)
+void splitStringToInt(const string& sourceStr, char splitter, IntegerArray& intList)
 {
-	CStrList StrList;
-	SplitString(strSource, chSplitter, StrList, true);
+	StrList strList;
+	splitString(sourceStr, splitter, strList, true);
 
-	IntList.clear();
-	for (int i = 0; i < StrList.GetCount(); i++)
-		IntList.push_back(atoi(StrList[i].c_str()));
+	intList.clear();
+	for (int i = 0; i < strList.getCount(); i++)
+		intList.push_back(atoi(strList[i].c_str()));
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 复制串 pSource 到 pDest 中
+// 描述: 复制串 source 到 dest 中
 // 备注:
-//   1. 最多只复制 nMaxBytes 个字节到 pDest 中，包括结束符'\0'。
-//   2. 如果 pSource 的实际长度(strlen)小于 nMaxBytes，则复制会提前结束，
-//      pDest 的剩余部分以 '\0' 填充。
-//   3. 如果 pSource 的实际长度(strlen)大于 nMaxBytes，则复制之后的 pDest 没有结束符。
+//   1. 最多只复制 maxBytes 个字节到 dest 中，包括结束符'\0'。
+//   2. 如果 source 的实际长度(strlen)小于 maxBytes，则复制会提前结束，
+//      dest 的剩余部分以 '\0' 填充。
+//   3. 如果 source 的实际长度(strlen)大于 maxBytes，则复制之后的 dest 没有结束符。
 //-----------------------------------------------------------------------------
-char *StrNCopy(char *pDest, const char *pSource, int nMaxBytes)
+char *strNCopy(char *dest, const char *source, int maxBytes)
 {
-	if (nMaxBytes > 0)
+	if (maxBytes > 0)
 	{
-		if (pSource)
-			return strncpy(pDest, pSource, nMaxBytes);
+		if (source)
+			return strncpy(dest, source, maxBytes);
 		else
-			return strcpy(pDest, "");
+			return strcpy(dest, "");
 	}
 
-	return pDest;
+	return dest;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 复制串 pSource 到 pDest 中
-// 备注: 最多只复制 nDestSize 个字节到 pDest 中。并将 pDest 的最后字节设为'\0'。
+// 描述: 复制串 source 到 dest 中
+// 备注: 最多只复制 destSize 个字节到 dest 中。并将 dest 的最后字节设为'\0'。
 // 参数:
-//   nDestSize - pDest的大小
+//   destSize - dest的大小
 //-----------------------------------------------------------------------------
-char *StrNZCopy(char *pDest, const char *pSource, int nDestSize)
+char *strNZCopy(char *dest, const char *source, int destSize)
 {
-	if (nDestSize > 0)
+	if (destSize > 0)
 	{
-		if (pSource)
+		if (source)
 		{
 			char *p;
-			p = strncpy(pDest, pSource, nDestSize);
-			pDest[nDestSize - 1] = '\0';
+			p = strncpy(dest, source, destSize);
+			dest[destSize - 1] = '\0';
 			return p;
 		}
 		else
-			return strcpy(pDest, "");
+			return strcpy(dest, "");
 	}
 	else
-		return pDest;
+		return dest;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从源串中获取一个子串
 //
 // For example:
-//   strInput(before)   chDelimiter  bDelete       strInput(after)   Result(after)
+//   inputStr(before)   delimiter  del       inputStr(after)   result(after)
 //   ----------------   -----------  ----------    ---------------   -------------
 //   "abc def"           ' '         false         "abc def"         "abc"
 //   "abc def"           ' '         true          "def"             "abc"
@@ -531,36 +531,36 @@ char *StrNZCopy(char *pDest, const char *pSource, int nDestSize)
 //   " abc"              ' '         true          "abc"             ""
 //   ""                  ' '         true/false    ""                ""
 //-----------------------------------------------------------------------------
-string FetchStr(string& strInput, char chDelimiter, bool bDelete)
+string fetchStr(string& inputStr, char delimiter, bool del)
 {
-	string strResult;
+	string result;
 
-	string::size_type nPos = strInput.find(chDelimiter, 0);
-	if (nPos == string::npos)
+	string::size_type pos = inputStr.find(delimiter, 0);
+	if (pos == string::npos)
 	{
-		strResult = strInput;
-		if (bDelete)
-			strInput.clear();
+		result = inputStr;
+		if (del)
+			inputStr.clear();
 	}
 	else
 	{
-		strResult = strInput.substr(0, nPos);
-		if (bDelete)
-			strInput = strInput.substr(nPos + 1);
+		result = inputStr.substr(0, pos);
+		if (del)
+			inputStr = inputStr.substr(pos + 1);
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 在数字中间插入逗号进行数据分组
 //-----------------------------------------------------------------------------
-string AddThousandSep(const INT64& nNumber)
+string addThousandSep(const INT64& number)
 {
-	string strResult = IntToStr(nNumber);
-	for (int i = (int)strResult.length() - 3; i > 0; i -= 3)
-		strResult.insert(i, ",");
-	return strResult;
+	string result = intToStr(number);
+	for (int i = (int)result.length() - 3; i > 0; i -= 3)
+		result.insert(i, ",");
+	return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -571,51 +571,51 @@ string AddThousandSep(const INT64& nNumber)
 //    ab"c        ->     "ab""c"
 //    (empty)     ->     ""
 //-----------------------------------------------------------------------------
-string GetQuotedStr(const char* lpszStr, char chQuote)
+string getQuotedStr(const char* str, char quoteChar)
 {
-	string strResult;
-	string strSrc(lpszStr);
+	string result;
+	string srcStr(str);
 
-	strResult = chQuote;
+	result = quoteChar;
 
-	string::size_type nStart = 0;
+	string::size_type start = 0;
 	while (true)
 	{
-		string::size_type nPos = strSrc.find(chQuote, nStart);
-		if (nPos != string::npos)
+		string::size_type pos = srcStr.find(quoteChar, start);
+		if (pos != string::npos)
 		{
-			strResult += strSrc.substr(nStart, nPos - nStart) + chQuote + chQuote;
-			nStart = nPos + 1;
+			result += srcStr.substr(start, pos - start) + quoteChar + quoteChar;
+			start = pos + 1;
 		}
 		else
 		{
-			strResult += strSrc.substr(nStart);
+			result += srcStr.substr(start);
 			break;
 		}
 	}
 
-	strResult += chQuote;
+	result += quoteChar;
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // Converts a quoted string to an unquoted string.
 //
-// ExtractQuotedStr removes the quote characters from the beginning and end of a quoted string,
+// extractQuotedStr removes the quote characters from the beginning and end of a quoted string,
 // and reduces pairs of quote characters within the string to a single quote character.
-// The @a chQuote parameter defines what character to use as a quote character. If the first
-// character in @a lpszStr is not the value of the @a chQuote parameter, ExtractQuotedStr returns
+// The @a quoteChar parameter defines what character to use as a quote character. If the first
+// character in @a str is not the value of the @a quoteChar parameter, extractQuotedStr returns
 // an empty string.
 //
-// The function copies characters from @a lpszStr to the result string until the second solitary
-// quote character or the first null character in @a lpszStr. The @a lpszStr parameter is updated
-// to point to the first character following the quoted string. If @a lpszStr does not contain a
-// matching end quote character, the @a lpszStr parameter is updated to point to the terminating
+// The function copies characters from @a str to the result string until the second solitary
+// quote character or the first null character in @a str. The @a str parameter is updated
+// to point to the first character following the quoted string. If @a str does not contain a
+// matching end quote character, the @a str parameter is updated to point to the terminating
 // null character.
 //
 // For example:
-//    lpszStr(before)    Returned string        lpszStr(after)
+//    str(before)    Returned string        str(after)
 //    ---------------    ---------------        ---------------
 //    "abc"               abc                    '\0'
 //    "ab""c"             ab"c                   '\0'
@@ -624,81 +624,81 @@ string GetQuotedStr(const char* lpszStr, char chQuote)
 //    "abc                abc                    '\0'
 //    (empty)             (empty)                '\0'
 //-----------------------------------------------------------------------------
-string ExtractQuotedStr(const char*& lpszStr, char chQuote)
+string extractQuotedStr(const char*& str, char quoteChar)
 {
-	string strResult;
-	const char* lpszStart = lpszStr;
+	string result;
+	const char* startPtr = str;
 
-	if (lpszStr == NULL || *lpszStr != chQuote)
+	if (str == NULL || *str != quoteChar)
 		return "";
 
 	// Calc the character count after converting.
 
-	int nSize = 0;
-	lpszStr++;
-	while (*lpszStr != '\0')
+	int size = 0;
+	str++;
+	while (*str != '\0')
 	{
-		if (lpszStr[0] == chQuote)
+		if (str[0] == quoteChar)
 		{
-			if (lpszStr[1] == chQuote)
+			if (str[1] == quoteChar)
 			{
-				nSize++;
-				lpszStr += 2;
+				size++;
+				str += 2;
 			}
 			else
 			{
-				lpszStr++;
+				str++;
 				break;
 			}
 		}
 		else
 		{
-			const char* p = lpszStr;
-			lpszStr++;
-			nSize += (int)(lpszStr - p);
+			const char* p = str;
+			str++;
+			size += (int)(str - p);
 		}
 	}
 
 	// Begin to retrieve the characters.
 
-	strResult.resize(nSize);
-	char* pResult = (char*)strResult.c_str();
-	lpszStr = lpszStart;
-	lpszStr++;
-	while (*lpszStr != '\0')
+	result.resize(size);
+	char* resultPtr = (char*)result.c_str();
+	str = startPtr;
+	str++;
+	while (*str != '\0')
 	{
-		if (lpszStr[0] == chQuote)
+		if (str[0] == quoteChar)
 		{
-			if (lpszStr[1] == chQuote)
+			if (str[1] == quoteChar)
 			{
-				*pResult++ = *lpszStr;
-				lpszStr += 2;
+				*resultPtr++ = *str;
+				str += 2;
 			}
 			else
 			{
-				lpszStr++;
+				str++;
 				break;
 			}
 		}
 		else
 		{
-			const char* p = lpszStr;
-			lpszStr++;
-			while (p < lpszStr)
-				*pResult++ = *p++;
+			const char* p = str;
+			str++;
+			while (p < str)
+				*resultPtr++ = *p++;
 		}
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // Converts a quoted string to an unquoted string.
 //
-// GetDequotedStr removes the quote characters from the beginning and end of a quoted string, and
-// reduces pairs of quote characters within the string to a single quote character. The chQuote
-// parameter defines what character to use as a quote character. If the @a lpszStr parameter does
-// not begin and end with the quote character, GetDequotedStr returns @a lpszStr unchanged.
+// getDequotedStr removes the quote characters from the beginning and end of a quoted string, and
+// reduces pairs of quote characters within the string to a single quote character. The quoteChar
+// parameter defines what character to use as a quote character. If the @a str parameter does
+// not begin and end with the quote character, getDequotedStr returns @a str unchanged.
 //
 // For example:
 //    "abc"     ->     abc
@@ -707,116 +707,116 @@ string ExtractQuotedStr(const char*& lpszStr, char chQuote)
 //    abc"      ->     abc"
 //    (empty)   ->    (empty)
 //-----------------------------------------------------------------------------
-string GetDequotedStr(const char* lpszStr, char chQuote)
+string getDequotedStr(const char* str, char quoteChar)
 {
-	const char* lpszStart = lpszStr;
-	int nStrLen = (int)strlen(lpszStr);
+	const char* startPtr = str;
+	int strLen = (int)strlen(str);
 
-	string strResult = ExtractQuotedStr(lpszStr, chQuote);
+	string result = extractQuotedStr(str, quoteChar);
 
-	if ( (strResult.empty() || *lpszStr == '\0') &&
-		nStrLen > 0 && (lpszStart[0] != chQuote || lpszStart[nStrLen-1] != chQuote) )
-		strResult = lpszStart;
+	if ( (result.empty() || *str == '\0') &&
+		strLen > 0 && (startPtr[0] != quoteChar || startPtr[strLen-1] != quoteChar) )
+		result = startPtr;
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
 #ifdef ISE_WIN32
-static bool GetFileFindData(const string& strFileName, WIN32_FIND_DATAA& FindData)
+static bool GetFileFindData(const string& fileName, WIN32_FIND_DATAA& findData)
 {
-	HANDLE hFindHandle = ::FindFirstFileA(strFileName.c_str(), &FindData);
-	bool bResult = (hFindHandle != INVALID_HANDLE_VALUE);
-	if (bResult) ::FindClose(hFindHandle);
-	return bResult;
+	HANDLE findHandle = ::FindFirstFileA(fileName.c_str(), &findData);
+	bool result = (findHandle != INVALID_HANDLE_VALUE);
+	if (result) ::FindClose(findHandle);
+	return result;
 }
 #endif
 
 //-----------------------------------------------------------------------------
 // 描述: 检查文件是否存在
 //-----------------------------------------------------------------------------
-bool FileExists(const string& strFileName)
+bool fileExists(const string& fileName)
 {
 #ifdef ISE_WIN32
-	DWORD nFileAttr = ::GetFileAttributesA(strFileName.c_str());
-	if (nFileAttr != (DWORD)(-1))
-		return ((nFileAttr & FILE_ATTRIBUTE_DIRECTORY) == 0);
+	DWORD fileAttr = ::GetFileAttributesA(fileName.c_str());
+	if (fileAttr != (DWORD)(-1))
+		return ((fileAttr & FILE_ATTRIBUTE_DIRECTORY) == 0);
 	else
 	{
-		WIN32_FIND_DATAA FindData;
-		DWORD nLastError = ::GetLastError();
+		WIN32_FIND_DATAA findData;
+		DWORD lastError = ::GetLastError();
 		return
-			(nLastError != ERROR_FILE_NOT_FOUND) &&
-			(nLastError != ERROR_PATH_NOT_FOUND) &&
-			(nLastError != ERROR_INVALID_NAME) &&
-			GetFileFindData(strFileName, FindData) &&
-			(FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+			(lastError != ERROR_FILE_NOT_FOUND) &&
+			(lastError != ERROR_PATH_NOT_FOUND) &&
+			(lastError != ERROR_INVALID_NAME) &&
+			GetFileFindData(fileName, findData) &&
+			(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 	}
 #endif
 #ifdef ISE_LINUX
-	return (euidaccess(strFileName.c_str(), F_OK) == 0);
+	return (euidaccess(fileName.c_str(), F_OK) == 0);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 检查目录是否存在
 //-----------------------------------------------------------------------------
-bool DirectoryExists(const string& strDir)
+bool directoryExists(const string& dir)
 {
 #ifdef ISE_WIN32
-	int nCode;
-	nCode = GetFileAttributesA(strDir.c_str());
-	return (nCode != -1) && ((FILE_ATTRIBUTE_DIRECTORY & nCode) != 0);
+	int code;
+	code = GetFileAttributesA(dir.c_str());
+	return (code != -1) && ((FILE_ATTRIBUTE_DIRECTORY & code) != 0);
 #endif
 #ifdef ISE_LINUX
-	string strPath = PathWithSlash(strDir);
+	string path = pathWithSlash(dir);
 	struct stat st;
-	bool bResult;
+	bool result;
 
-	if (stat(strPath.c_str(), &st) == 0)
-		bResult = ((st.st_mode & S_IFDIR) == S_IFDIR);
+	if (stat(path.c_str(), &st) == 0)
+		result = ((st.st_mode & S_IFDIR) == S_IFDIR);
 	else
-		bResult = false;
+		result = false;
 
-	return bResult;
+	return result;
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建目录
 // 示例:
-//   CreateDir("C:\\test");
-//   CreateDir("/home/test");
+//   createDir("C:\\test");
+//   createDir("/home/test");
 //-----------------------------------------------------------------------------
-bool CreateDir(const string& strDir)
+bool createDir(const string& dir)
 {
 #ifdef ISE_WIN32
-	return CreateDirectoryA(strDir.c_str(), NULL) != 0;
+	return CreateDirectoryA(dir.c_str(), NULL) != 0;
 #endif
 #ifdef ISE_LINUX
-	return mkdir(strDir.c_str(), (mode_t)(-1)) == 0;
+	return mkdir(dir.c_str(), (mode_t)(-1)) == 0;
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 删除目录
 // 参数:
-//   strDir     - 待删除的目录
-//   bRecursive - 是否递归删除
+//   dir     - 待删除的目录
+//   recursive - 是否递归删除
 // 返回:
 //   true   - 成功
 //   false  - 失败
 //-----------------------------------------------------------------------------
-bool DeleteDir(const string& strDir, bool bRecursive)
+bool deleteDir(const string& dir, bool recursive)
 {
-	if (!bRecursive)
+	if (!recursive)
 	{
 #ifdef ISE_WIN32
-		return RemoveDirectoryA(strDir.c_str()) != 0;
+		return RemoveDirectoryA(dir.c_str()) != 0;
 #endif
 #ifdef ISE_LINUX
-		return rmdir(strDir.c_str()) == 0;
+		return rmdir(dir.c_str()) == 0;
 #endif
 	}
 
@@ -827,106 +827,106 @@ bool DeleteDir(const string& strDir, bool bRecursive)
 	const char* const ALL_FILE_WILDCHAR = "*";
 #endif
 
-	bool bResult = true;
-	string strPath = PathWithSlash(strDir);
+	bool result = true;
+	string path = pathWithSlash(dir);
 	FILE_FIND_RESULT fr;
-	FindFiles(strPath + ALL_FILE_WILDCHAR, FA_ANY_FILE, fr);
+	findFiles(path + ALL_FILE_WILDCHAR, FA_ANY_FILE, fr);
 
-	for (int i = 0; i < (int)fr.size() && bResult; i++)
+	for (int i = 0; i < (int)fr.size() && result; i++)
 	{
-		string strFullName = strPath + fr[i].strFileName;
-		if (fr[i].nAttr & FA_DIRECTORY)
-			bResult = DeleteDir(strFullName, true);
+		string fullName = path + fr[i].fileName;
+		if (fr[i].attr & FA_DIRECTORY)
+			result = deleteDir(fullName, true);
 		else
-			RemoveFile(strFullName);
+			removeFile(fullName);
 	}
 
-	bResult = DeleteDir(strPath, false);
+	result = deleteDir(path, false);
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得文件名中最后一个分隔符的位置(0-based)。若没有，则返回-1
 //-----------------------------------------------------------------------------
-int GetLastDelimPos(const string& strFileName, const string& strDelims)
+int getLastDelimPos(const string& fileName, const string& delims)
 {
-	int nResult = (int)strFileName.size() - 1;
+	int result = (int)fileName.size() - 1;
 
-	for (; nResult >= 0; nResult--)
-		if (strDelims.find(strFileName[nResult], 0) != string::npos)
+	for (; result >= 0; result--)
+		if (delims.find(fileName[result], 0) != string::npos)
 			break;
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从文件名字符串中取出文件路径
 // 参数:
-//   strFileName - 包含路径的文件名
+//   fileName - 包含路径的文件名
 // 返回:
 //   文件的路径
 // 示例:
-//   ExtractFilePath("C:\\MyDir\\test.c");         返回: "C:\\MyDir\\"
-//   ExtractFilePath("C:");                        返回: "C:\\"
-//   ExtractFilePath("/home/user1/data/test.c");   返回: "/home/user1/data/"
+//   extractFilePath("C:\\MyDir\\test.c");         返回: "C:\\MyDir\\"
+//   extractFilePath("C:");                        返回: "C:\\"
+//   extractFilePath("/home/user1/data/test.c");   返回: "/home/user1/data/"
 //-----------------------------------------------------------------------------
-string ExtractFilePath(const string& strFileName)
+string extractFilePath(const string& fileName)
 {
-	string strDelims;
-	strDelims += PATH_DELIM;
+	string delims;
+	delims += PATH_DELIM;
 #ifdef ISE_WIN32
-	strDelims += DRIVER_DELIM;
+	delims += DRIVER_DELIM;
 #endif
 
-	int nPos = GetLastDelimPos(strFileName, strDelims);
-	return PathWithSlash(strFileName.substr(0, nPos + 1));
+	int pos = getLastDelimPos(fileName, delims);
+	return pathWithSlash(fileName.substr(0, pos + 1));
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从文件名字符串中取出单独的文件名
 // 参数:
-//   strFileName - 包含路径的文件名
+//   fileName - 包含路径的文件名
 // 返回:
 //   文件名
 // 示例:
-//   ExtractFileName("C:\\MyDir\\test.c");         返回: "test.c"
-//   ExtractFilePath("/home/user1/data/test.c");   返回: "test.c"
+//   extractFileName("C:\\MyDir\\test.c");         返回: "test.c"
+//   extractFilePath("/home/user1/data/test.c");   返回: "test.c"
 //-----------------------------------------------------------------------------
-string ExtractFileName(const string& strFileName)
+string extractFileName(const string& fileName)
 {
-	string strDelims;
-	strDelims += PATH_DELIM;
+	string delims;
+	delims += PATH_DELIM;
 #ifdef ISE_WIN32
-	strDelims += DRIVER_DELIM;
+	delims += DRIVER_DELIM;
 #endif
 
-	int nPos = GetLastDelimPos(strFileName, strDelims);
-	return strFileName.substr(nPos + 1, strFileName.size() - nPos - 1);
+	int pos = getLastDelimPos(fileName, delims);
+	return fileName.substr(pos + 1, fileName.size() - pos - 1);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从文件名字符串中取出文件扩展名
 // 参数:
-//   strFileName - 文件名 (可包含路径)
+//   fileName - 文件名 (可包含路径)
 // 返回:
 //   文件扩展名
 // 示例:
-//   ExtractFileExt("C:\\MyDir\\test.txt");         返回:  ".txt"
-//   ExtractFileExt("/home/user1/data/test.c");     返回:  ".c"
+//   extractFileExt("C:\\MyDir\\test.txt");         返回:  ".txt"
+//   extractFileExt("/home/user1/data/test.c");     返回:  ".c"
 //-----------------------------------------------------------------------------
-string ExtractFileExt(const string& strFileName)
+string extractFileExt(const string& fileName)
 {
-	string strDelims;
-	strDelims += PATH_DELIM;
+	string delims;
+	delims += PATH_DELIM;
 #ifdef ISE_WIN32
-	strDelims += DRIVER_DELIM;
+	delims += DRIVER_DELIM;
 #endif
-	strDelims += FILE_EXT_DELIM;
+	delims += FILE_EXT_DELIM;
 
-	int nPos = GetLastDelimPos(strFileName, strDelims);
-	if (nPos >= 0 && strFileName[nPos] == FILE_EXT_DELIM)
-		return strFileName.substr(nPos, strFileName.length());
+	int pos = getLastDelimPos(fileName, delims);
+	if (pos >= 0 && fileName[pos] == FILE_EXT_DELIM)
+		return fileName.substr(pos, fileName.length());
 	else
 		return "";
 }
@@ -934,235 +934,235 @@ string ExtractFileExt(const string& strFileName)
 //-----------------------------------------------------------------------------
 // 描述: 改变文件名字符串中的文件扩展名
 // 参数:
-//   strFileName - 原文件名 (可包含路径)
-//   strExt      - 新的文件扩展名
+//   fileName - 原文件名 (可包含路径)
+//   ext      - 新的文件扩展名
 // 返回:
 //   新的文件名
 // 示例:
-//   ChangeFileExt("c:\\test.txt", ".new");        返回:  "c:\\test.new"
-//   ChangeFileExt("test.txt", ".new");            返回:  "test.new"
-//   ChangeFileExt("test", ".new");                返回:  "test.new"
-//   ChangeFileExt("test.txt", "");                返回:  "test"
-//   ChangeFileExt("test.txt", ".");               返回:  "test."
-//   ChangeFileExt("/home/user1/test.c", ".new");  返回:  "/home/user1/test.new"
+//   changeFileExt("c:\\test.txt", ".new");        返回:  "c:\\test.new"
+//   changeFileExt("test.txt", ".new");            返回:  "test.new"
+//   changeFileExt("test", ".new");                返回:  "test.new"
+//   changeFileExt("test.txt", "");                返回:  "test"
+//   changeFileExt("test.txt", ".");               返回:  "test."
+//   changeFileExt("/home/user1/test.c", ".new");  返回:  "/home/user1/test.new"
 //-----------------------------------------------------------------------------
-string ChangeFileExt(const string& strFileName, const string& strExt)
+string changeFileExt(const string& fileName, const string& ext)
 {
-	string strResult(strFileName);
-	string strNewExt(strExt);
+	string result(fileName);
+	string newExt(ext);
 
-	if (!strResult.empty())
+	if (!result.empty())
 	{
-		if (!strNewExt.empty() && strNewExt[0] != FILE_EXT_DELIM)
-			strNewExt = FILE_EXT_DELIM + strNewExt;
+		if (!newExt.empty() && newExt[0] != FILE_EXT_DELIM)
+			newExt = FILE_EXT_DELIM + newExt;
 
-		string strOldExt = ExtractFileExt(strResult);
-		if (!strOldExt.empty())
-			strResult.erase(strResult.length() - strOldExt.length());
-		strResult += strNewExt;
+		string oldExt = extractFileExt(result);
+		if (!oldExt.empty())
+			result.erase(result.length() - oldExt.length());
+		result += newExt;
 	}
 
-	return strResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 强制创建目录
 // 参数:
-//   strDir - 待创建的目录 (可以是多级目录)
+//   dir - 待创建的目录 (可以是多级目录)
 // 返回:
 //   true   - 成功
 //   false  - 失败
 // 示例:
-//   ForceDirectories("C:\\MyDir\\Test");
-//   ForceDirectories("/home/user1/data");
+//   forceDirectories("C:\\MyDir\\Test");
+//   forceDirectories("/home/user1/data");
 //-----------------------------------------------------------------------------
-bool ForceDirectories(string strDir)
+bool forceDirectories(string dir)
 {
-	int nLen = (int)strDir.length();
+	int len = (int)dir.length();
 
-	if (strDir.empty()) return false;
-	if (strDir[nLen-1] == PATH_DELIM)
-		strDir.resize(nLen - 1);
+	if (dir.empty()) return false;
+	if (dir[len-1] == PATH_DELIM)
+		dir.resize(len - 1);
 
 #ifdef ISE_WIN32
-	if (strDir.length() < 3 || DirectoryExists(strDir) ||
-		ExtractFilePath(strDir) == strDir) return true;    // avoid 'xyz:\' problem.
+	if (dir.length() < 3 || directoryExists(dir) ||
+		extractFilePath(dir) == dir) return true;    // avoid 'xyz:\' problem.
 #endif
 #ifdef ISE_LINUX
-	if (strDir.empty() || DirectoryExists(strDir)) return true;
+	if (dir.empty() || directoryExists(dir)) return true;
 #endif
-	return ForceDirectories(ExtractFilePath(strDir)) && CreateDir(strDir);
+	return forceDirectories(extractFilePath(dir)) && createDir(dir);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 删除文件
 //-----------------------------------------------------------------------------
-bool DeleteFile(const string& strFileName)
+bool deleteFile(const string& fileName)
 {
 #ifdef ISE_WIN32
-	DWORD nFileAttr = ::GetFileAttributesA(strFileName.c_str());
-	if (nFileAttr != (DWORD)(-1) && (nFileAttr & FILE_ATTRIBUTE_READONLY) != 0)
+	DWORD fileAttr = ::GetFileAttributesA(fileName.c_str());
+	if (fileAttr != (DWORD)(-1) && (fileAttr & FILE_ATTRIBUTE_READONLY) != 0)
 	{
-		nFileAttr &= ~FILE_ATTRIBUTE_READONLY;
-		::SetFileAttributesA(strFileName.c_str(), nFileAttr);
+		fileAttr &= ~FILE_ATTRIBUTE_READONLY;
+		::SetFileAttributesA(fileName.c_str(), fileAttr);
 	}
 
-	return ::DeleteFileA(strFileName.c_str()) != 0;
+	return ::DeleteFileA(fileName.c_str()) != 0;
 #endif
 #ifdef ISE_LINUX
-	return (unlink(strFileName.c_str()) == 0);
+	return (unlink(fileName.c_str()) == 0);
 #endif
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 同 DeleteFile()
+// 描述: 同 deleteFile()
 //-----------------------------------------------------------------------------
-bool RemoveFile(const string& strFileName)
+bool removeFile(const string& fileName)
 {
-	return DeleteFile(strFileName);
+	return deleteFile(fileName);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 文件重命名
 //-----------------------------------------------------------------------------
-bool RenameFile(const string& strOldFileName, const string& strNewFileName)
+bool renameFile(const string& oldFileName, const string& newFileName)
 {
 #ifdef ISE_WIN32
-	return ::MoveFileA(strOldFileName.c_str(), strNewFileName.c_str()) != 0;
+	return ::MoveFileA(oldFileName.c_str(), newFileName.c_str()) != 0;
 #endif
 #ifdef ISE_LINUX
-	return (rename(strOldFileName.c_str(), strNewFileName.c_str()) == 0);
+	return (rename(oldFileName.c_str(), newFileName.c_str()) == 0);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得文件的大小。若失败则返回-1
 //-----------------------------------------------------------------------------
-INT64 GetFileSize(const string& strFileName)
+INT64 getFileSize(const string& fileName)
 {
-	INT64 nResult;
+	INT64 result;
 
 	try
 	{
-		CFileStream FileStream(strFileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
-		nResult = FileStream.GetSize();
+		FileStream fileStream(fileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
+		result = fileStream.getSize();
 	}
-	catch (CException&)
+	catch (Exception&)
 	{
-		nResult = -1;
+		result = -1;
 	}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 在指定路径下查找符合条件的文件
 // 参数:
-//   strPath    - 指定在哪个路径下进行查找，并必须指定通配符
-//   nAttr      - 只查找符合此属性的文件
-//   FindResult - 传回查找结果
+//   path    - 指定在哪个路径下进行查找，并必须指定通配符
+//   attr      - 只查找符合此属性的文件
+//   findResult - 传回查找结果
 // 示例:
-//   FindFiles("C:\\test\\*.*", FA_ANY_FILE & ~FA_HIDDEN, fr);
-//   FindFiles("/home/*.log", FA_ANY_FILE & ~FA_SYM_LINK, fr);
+//   findFiles("C:\\test\\*.*", FA_ANY_FILE & ~FA_HIDDEN, fr);
+//   findFiles("/home/*.log", FA_ANY_FILE & ~FA_SYM_LINK, fr);
 //-----------------------------------------------------------------------------
-void FindFiles(const string& strPath, UINT nAttr, FILE_FIND_RESULT& FindResult)
+void findFiles(const string& path, UINT attr, FILE_FIND_RESULT& findResult)
 {
 	const UINT FA_SPECIAL = FA_HIDDEN | FA_SYS_FILE | FA_VOLUME_ID | FA_DIRECTORY;
-	UINT nExcludeAttr = ~nAttr & FA_SPECIAL;
-	FindResult.clear();
+	UINT excludeAttr = ~attr & FA_SPECIAL;
+	findResult.clear();
 
 #ifdef ISE_WIN32
-	HANDLE nFindHandle;
-	WIN32_FIND_DATAA FindData;
+	HANDLE findHandle;
+	WIN32_FIND_DATAA findData;
 
-	nFindHandle = FindFirstFileA(strPath.c_str(), &FindData);
-	if (nFindHandle != INVALID_HANDLE_VALUE)
+	findHandle = FindFirstFileA(path.c_str(), &findData);
+	if (findHandle != INVALID_HANDLE_VALUE)
 	{
 		do
 		{
-			DWORD nAttr = FindData.dwFileAttributes;
-			string strName = FindData.cFileName;
-			bool bIsSpecDir = (nAttr & FA_DIRECTORY) && (strName == "." || strName == "..");
+			DWORD attr = findData.dwFileAttributes;
+			string name = findData.cFileName;
+			bool isSpecDir = (attr & FA_DIRECTORY) && (name == "." || name == "..");
 
-			if ((nAttr & nExcludeAttr) == 0 && !bIsSpecDir)
+			if ((attr & excludeAttr) == 0 && !isSpecDir)
 			{
-				FILE_FIND_ITEM Item;
-				Item.nFileSize = FindData.nFileSizeHigh;
-				Item.nFileSize = (Item.nFileSize << 32) | FindData.nFileSizeLow;
-				Item.strFileName = strName;
-				Item.nAttr = nAttr;
+				FILE_FIND_ITEM item;
+				item.fileSize = findData.nFileSizeHigh;
+				item.fileSize = (item.fileSize << 32) | findData.nFileSizeLow;
+				item.fileName = name;
+				item.attr = attr;
 
-				FindResult.push_back(Item);
+				findResult.push_back(item);
 			}
 		}
-		while (FindNextFileA(nFindHandle, &FindData));
+		while (FindNextFileA(findHandle, &findData));
 
-		FindClose(nFindHandle);
+		FindClose(findHandle);
 	}
 #endif
 
 #ifdef ISE_LINUX
-	string strPathOnly = ExtractFilePath(strPath);
-	string strPattern = ExtractFileName(strPath);
-	string strFullName, strName;
-	DIR *pDir;
-	struct dirent DirEnt, *pDirEnt = NULL;
-	struct stat StatBuf, LinkStatBuf;
-	UINT nFileAttr, nFileMode;
+	string pathOnlyStr = extractFilePath(path);
+	string patternStr = extractFileName(path);
+	string fullName, name;
+	DIR *dirPtr;
+	struct dirent dirEnt, *dirEntPtr = NULL;
+	struct stat statBuf, linkStatBuf;
+	UINT fileAttr, fileMode;
 
-	if (strPathOnly.empty()) strPathOnly = "/";
+	if (pathOnlyStr.empty()) pathOnlyStr = "/";
 
-	pDir = opendir(strPathOnly.c_str());
-	if (pDir)
+	dirPtr = opendir(pathOnlyStr.c_str());
+	if (dirPtr)
 	{
-		while ((readdir_r(pDir, &DirEnt, &pDirEnt) == 0) && pDirEnt)
+		while ((readdir_r(dirPtr, &dirEnt, &dirEntPtr) == 0) && dirEntPtr)
 		{
-			if (!fnmatch(strPattern.c_str(), pDirEnt->d_name, 0) == 0) continue;
+			if (!fnmatch(patternStr.c_str(), dirEntPtr->d_name, 0) == 0) continue;
 
-			strName = pDirEnt->d_name;
-			strFullName = strPathOnly + strName;
+			name = dirEntPtr->d_name;
+			fullName = pathOnlyStr + name;
 
-			if (lstat(strFullName.c_str(), &StatBuf) == 0)
+			if (lstat(fullName.c_str(), &statBuf) == 0)
 			{
-				nFileAttr = 0;
-				nFileMode = StatBuf.st_mode;
+				fileAttr = 0;
+				fileMode = statBuf.st_mode;
 
-				if (S_ISDIR(nFileMode))
-					nFileAttr |= FA_DIRECTORY;
-				else if (!S_ISREG(nFileMode))
+				if (S_ISDIR(fileMode))
+					fileAttr |= FA_DIRECTORY;
+				else if (!S_ISREG(fileMode))
 				{
-					if (S_ISLNK(nFileMode))
+					if (S_ISLNK(fileMode))
 					{
-						nFileAttr |= FA_SYM_LINK;
-						if ((stat(strFullName.c_str(), &LinkStatBuf) == 0) &&
-							(S_ISDIR(LinkStatBuf.st_mode)))
-							nFileAttr |= FA_DIRECTORY;
+						fileAttr |= FA_SYM_LINK;
+						if ((stat(fullName.c_str(), &linkStatBuf) == 0) &&
+							(S_ISDIR(linkStatBuf.st_mode)))
+							fileAttr |= FA_DIRECTORY;
 					}
-					nFileAttr |= FA_SYS_FILE;
+					fileAttr |= FA_SYS_FILE;
 				}
 
-				if (pDirEnt->d_name[0] == '.' && pDirEnt->d_name[1])
-					if (!(pDirEnt->d_name[1] == '.' && !pDirEnt->d_name[2]))
-						nFileAttr |= FA_HIDDEN;
+				if (dirEntPtr->d_name[0] == '.' && dirEntPtr->d_name[1])
+					if (!(dirEntPtr->d_name[1] == '.' && !dirEntPtr->d_name[2]))
+						fileAttr |= FA_HIDDEN;
 
-				if (euidaccess(strFullName.c_str(), W_OK) != 0)
-					nFileAttr |= FA_READ_ONLY;
+				if (euidaccess(fullName.c_str(), W_OK) != 0)
+					fileAttr |= FA_READ_ONLY;
 
-				bool bIsSpecDir = (nFileAttr & FA_DIRECTORY) && (strName == "." || strName == "..");
+				bool bIsSpecDir = (fileAttr & FA_DIRECTORY) && (name == "." || name == "..");
 
-				if ((nFileAttr & nExcludeAttr) == 0 && !bIsSpecDir)
+				if ((fileAttr & excludeAttr) == 0 && !bIsSpecDir)
 				{
-					FILE_FIND_ITEM Item;
-					Item.nFileSize = StatBuf.st_size;
-					Item.strFileName = strName;
-					Item.nAttr = nFileAttr;
+					FILE_FIND_ITEM item;
+					item.fileSize = statBuf.st_size;
+					item.fileName = name;
+					item.attr = fileAttr;
 
-					FindResult.push_back(Item);
+					findResult.push_back(item);
 				}
 			}
 		} // while
 
-		closedir(pDir);
+		closedir(dirPtr);
 	}
 #endif
 }
@@ -1170,25 +1170,25 @@ void FindFiles(const string& strPath, UINT nAttr, FILE_FIND_RESULT& FindResult)
 //-----------------------------------------------------------------------------
 // 描述: 补全路径字符串后面的 "\" 或 "/"
 //-----------------------------------------------------------------------------
-string PathWithSlash(const string& strPath)
+string pathWithSlash(const string& path)
 {
-	string strResult = TrimString(strPath);
-	int nLen = (int)strResult.size();
-	if (nLen > 0 && strResult[nLen-1] != PATH_DELIM)
-		strResult += PATH_DELIM;
-	return strResult;
+	string result = trimString(path);
+	int len = (int)result.size();
+	if (len > 0 && result[len-1] != PATH_DELIM)
+		result += PATH_DELIM;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 去掉路径字符串后面的 "\" 或 "/"
 //-----------------------------------------------------------------------------
-string PathWithoutSlash(const string& strPath)
+string pathWithoutSlash(const string& path)
 {
-	string strResult = TrimString(strPath);
-	int nLen = (int)strResult.size();
-	if (nLen > 0 && strResult[nLen-1] == PATH_DELIM)
-		strResult.resize(nLen - 1);
-	return strResult;
+	string result = trimString(path);
+	int len = (int)result.size();
+	if (len > 0 && result[len-1] == PATH_DELIM)
+		result.resize(len - 1);
+	return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -1197,53 +1197,53 @@ string PathWithoutSlash(const string& strPath)
 string GetAppExeName()
 {
 #ifdef ISE_WIN32
-	char szBuffer[MAX_PATH];
-	::GetModuleFileNameA(NULL, szBuffer, MAX_PATH);
-	return string(szBuffer);
+	char buffer[MAX_PATH];
+	::GetModuleFileNameA(NULL, buffer, MAX_PATH);
+	return string(buffer);
 #endif
 #ifdef ISE_LINUX
 	const int BUFFER_SIZE = 1024;
 
 	int r;
-	char sBuffer[BUFFER_SIZE];
-	string strResult;
+	char buffer[BUFFER_SIZE];
+	string result;
 
-	r = readlink("/proc/self/exe", sBuffer, BUFFER_SIZE);
+	r = readlink("/proc/self/exe", buffer, BUFFER_SIZE);
 	if (r != -1)
 	{
 		if (r >= BUFFER_SIZE) r = BUFFER_SIZE - 1;
-		sBuffer[r] = 0;
-		strResult = sBuffer;
+		buffer[r] = 0;
+		result = buffer;
 	}
 	else
 	{
-		IseThrowException(SEM_NO_PERM_READ_PROCSELFEXE);
+		iseThrowException(SEM_NO_PERM_READ_PROCSELFEXE);
 	}
 
-	return strResult;
+	return result;
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径
 //-----------------------------------------------------------------------------
-string GetAppPath()
+string getAppPath()
 {
-	return ExtractFilePath(GetAppExeName());
+	return extractFilePath(GetAppExeName());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径的子目录
 //-----------------------------------------------------------------------------
-string GetAppSubPath(const string& strSubDir)
+string getAppSubPath(const string& subDir)
 {
-	return PathWithSlash(GetAppPath() + strSubDir);
+	return pathWithSlash(getAppPath() + subDir);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回操作系统错误代码
 //-----------------------------------------------------------------------------
-int GetLastSysError()
+int getLastSysError()
 {
 #ifdef ISE_WIN32
 	return ::GetLastError();
@@ -1256,53 +1256,53 @@ int GetLastSysError()
 //-----------------------------------------------------------------------------
 // 描述: 返回操作系统错误代码对应的错误信息
 //-----------------------------------------------------------------------------
-string SysErrorMessage(int nErrorCode)
+string sysErrorMessage(int errorCode)
 {
 #ifdef ISE_WIN32
-	char *pErrorMsg;
+	char *errorMsg;
 
-	pErrorMsg = strerror(nErrorCode);
-	return pErrorMsg;
+	errorMsg = strerror(errorCode);
+	return errorMsg;
 #endif
 #ifdef ISE_LINUX
 	const int ERROR_MSG_SIZE = 256;
-	char sErrorMsg[ERROR_MSG_SIZE];
-	string strResult;
+	char errorMsg[ERROR_MSG_SIZE];
+	string result;
 
-	sErrorMsg[0] = 0;
-	strerror_r(nErrorCode, sErrorMsg, ERROR_MSG_SIZE);
-	if (sErrorMsg[0] == 0)
-		strResult = FormatString("System error: %d", nErrorCode);
+	errorMsg[0] = 0;
+	strerror_r(errorCode, errorMsg, ERROR_MSG_SIZE);
+	if (errorMsg[0] == 0)
+		result = formatString("System error: %d", errorCode);
 	else
-		strResult = sErrorMsg;
+		result = errorMsg;
 
-	return strResult;
+	return result;
 #endif
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 睡眠 fSeconds 秒，可精确到纳秒。
+// 描述: 睡眠 seconds 秒，可精确到纳秒。
 // 参数:
-//   fSeconds       - 睡眠的秒数，可为小数，可精确到纳秒 (实际精确度取决于操作系统)
-//   AllowInterrupt - 是否允许信号中断
+//   seconds       - 睡眠的秒数，可为小数，可精确到纳秒 (实际精确度取决于操作系统)
+//   allowInterrupt - 是否允许信号中断
 //-----------------------------------------------------------------------------
-void SleepSec(double fSeconds, bool AllowInterrupt)
+void sleepSec(double seconds, bool allowInterrupt)
 {
 #ifdef ISE_WIN32
-	Sleep((UINT)(fSeconds * 1000));
+	::Sleep((UINT)(seconds * 1000));
 #endif
 #ifdef ISE_LINUX
 	const UINT NANO_PER_SEC = 1000000000;  // 一秒等于多少纳秒
 	struct timespec req, remain;
 	int r;
 
-	req.tv_sec = (UINT)fSeconds;
-	req.tv_nsec = (UINT)((fSeconds - req.tv_sec) * NANO_PER_SEC);
+	req.tv_sec = (UINT)seconds;
+	req.tv_nsec = (UINT)((seconds - req.tv_sec) * NANO_PER_SEC);
 
 	while (true)
 	{
 		r = nanosleep(&req, &remain);
-		if (r == -1 && errno == EINTR && !AllowInterrupt)
+		if (r == -1 && errno == EINTR && !allowInterrupt)
 			req = remain;
 		else
 			break;
@@ -1313,7 +1313,7 @@ void SleepSec(double fSeconds, bool AllowInterrupt)
 //-----------------------------------------------------------------------------
 // 描述: 取得当前 Ticks，单位:毫秒
 //-----------------------------------------------------------------------------
-UINT GetCurTicks()
+UINT getCurTicks()
 {
 #ifdef ISE_WIN32
 	return GetTickCount();
@@ -1328,50 +1328,50 @@ UINT GetCurTicks()
 //-----------------------------------------------------------------------------
 // 描述: 取得两个 Ticks 之差
 //-----------------------------------------------------------------------------
-UINT GetTickDiff(UINT nOldTicks, UINT nNewTicks)
+UINT getTickDiff(UINT oldTicks, UINT newTicks)
 {
-	if (nNewTicks >= nOldTicks)
-		return (nNewTicks - nOldTicks);
+	if (newTicks >= oldTicks)
+		return (newTicks - oldTicks);
 	else
-		return (UINT(-1) - nOldTicks + nNewTicks);
+		return (UINT(-1) - oldTicks + newTicks);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 随机化 "随机数种子"
 //-----------------------------------------------------------------------------
-void Randomize()
+void randomize()
 {
 	srand((unsigned int)time(NULL));
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 返回 [nMin..nMax] 之间的一个随机数，包含边界
+// 描述: 返回 [min..max] 之间的一个随机数，包含边界
 //-----------------------------------------------------------------------------
-int GetRandom(int nMin, int nMax)
+int getRandom(int min, int max)
 {
-	ISE_ASSERT((nMax - nMin) < MAXLONG);
-	return nMin + (int)(((double)rand() / ((double)RAND_MAX + 0.1)) * (nMax - nMin + 1));
+	ISE_ASSERT((max - min) < MAXLONG);
+	return min + (int)(((double)rand() / ((double)RAND_MAX + 0.1)) * (max - min + 1));
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 生成一组介于区间 [nStartNumber, nEndNumber] 内的不重复的随机数
-// 注意: 数组 pRandomList 的容量必须 >= (nEndNumber - nStartNumber + 1)
+// 描述: 生成一组介于区间 [startNumber, endNumber] 内的不重复的随机数
+// 注意: 数组 randomList 的容量必须 >= (endNumber - startNumber + 1)
 //-----------------------------------------------------------------------------
-void GenerateRandomList(int nStartNumber, int nEndNumber, int *pRandomList)
+void generateRandomList(int startNumber, int endNumber, int *randomList)
 {
-	if (nStartNumber > nEndNumber || !pRandomList) return;
+	if (startNumber > endNumber || !randomList) return;
 
-	int nCount = nEndNumber - nStartNumber + 1;
+	int count = endNumber - startNumber + 1;
 
 	if (rand() % 2 == 0)
-		for (int i = 0; i < nCount; i++)
-			pRandomList[i] = nStartNumber + i;
+		for (int i = 0; i < count; i++)
+			randomList[i] = startNumber + i;
 	else
-		for (int i = 0; i < nCount; i++)
-			pRandomList[nCount - i - 1] = nStartNumber + i;
+		for (int i = 0; i < count; i++)
+			randomList[count - i - 1] = startNumber + i;
 
-	for (int i = nCount - 1; i >= 1; i--)
-		Swap(pRandomList[i], pRandomList[rand()%i]);
+	for (int i = count - 1; i >= 1; i--)
+		ise::swap(randomList[i], randomList[rand()%i]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

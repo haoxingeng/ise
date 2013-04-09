@@ -32,135 +32,135 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// classs CIseServerModuleMgr
+// classs IseServerModuleMgr
 
-CIseServerModuleMgr::CIseServerModuleMgr()
+IseServerModuleMgr::IseServerModuleMgr()
 {
 	// nothing
 }
 
-CIseServerModuleMgr::~CIseServerModuleMgr()
+IseServerModuleMgr::~IseServerModuleMgr()
 {
-	ClearServerModuleList();
+	clearServerModuleList();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化服务模块列表
 //-----------------------------------------------------------------------------
-void CIseServerModuleMgr::InitServerModuleList(const CList& List)
+void IseServerModuleMgr::initServerModuleList(const PointerList& list)
 {
-	m_Items.Clear();
-	for (int i = 0; i < List.GetCount(); i++)
+	items_.clear();
+	for (int i = 0; i < list.getCount(); i++)
 	{
-		CIseServerModule *pModule = (CIseServerModule*)List[i];
-		pModule->m_nSvrModIndex = i;
-		m_Items.Add(pModule);
+		IseServerModule *pModule = (IseServerModule*)list[i];
+		pModule->svrModIndex_ = i;
+		items_.add(pModule);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 清空所有服务模块
 //-----------------------------------------------------------------------------
-void CIseServerModuleMgr::ClearServerModuleList()
+void IseServerModuleMgr::clearServerModuleList()
 {
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		delete (CIseServerModule*)m_Items[i];
-	m_Items.Clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		delete (IseServerModule*)items_[i];
+	items_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseSvrModBusiness
+// class IseSvrModBusiness
 
 //-----------------------------------------------------------------------------
 // 描述: 取得全局UDP组别数量
 //-----------------------------------------------------------------------------
-int CIseSvrModBusiness::GetUdpGroupCount()
+int IseSvrModBusiness::getUdpGroupCount()
 {
-	int nResult = 0;
+	int result = 0;
 
-	for (int i = 0; i < m_ServerModuleMgr.GetCount(); i++)
+	for (int i = 0; i < serverModuleMgr_.getCount(); i++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(i);
-		nResult += ServerModule.GetUdpGroupCount();
+		IseServerModule& serverModule = serverModuleMgr_.getItems(i);
+		result += serverModule.getUdpGroupCount();
 	}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得全局TCP服务器数量
 //-----------------------------------------------------------------------------
-int CIseSvrModBusiness::GetTcpServerCount()
+int IseSvrModBusiness::getTcpServerCount()
 {
-	int nResult = 0;
+	int result = 0;
 
-	for (int i = 0; i < m_ServerModuleMgr.GetCount(); i++)
+	for (int i = 0; i < serverModuleMgr_.getCount(); i++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(i);
-		nResult += ServerModule.GetTcpServerCount();
+		IseServerModule& serverModule = serverModuleMgr_.getItems(i);
+		result += serverModule.getTcpServerCount();
 	}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 初始化 m_ActionCodeMap
+// 描述: 初始化 actionCodeMap_
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::InitActionCodeMap()
+void IseSvrModBusiness::initActionCodeMap()
 {
-	int nGlobalGroupIndex = 0;
-	m_ActionCodeMap.clear();
+	int globalGroupIndex = 0;
+	actionCodeMap_.clear();
 
-	for (int nModIndex = 0; nModIndex < m_ServerModuleMgr.GetCount(); nModIndex++)
+	for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(nModIndex);
-		for (int nGroupIndex = 0; nGroupIndex < ServerModule.GetUdpGroupCount(); nGroupIndex++)
+		IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+		for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
 		{
-			ACTION_CODE_ARRAY ActionCodes;
-			ServerModule.GetUdpGroupActionCodes(nGroupIndex, ActionCodes);
+			ACTION_CODE_ARRAY actionCodes;
+			serverModule.getUdpGroupActionCodes(groupIndex, actionCodes);
 
-			for (UINT i = 0; i < ActionCodes.size(); i++)
-				m_ActionCodeMap[ActionCodes[i]] = nGlobalGroupIndex;
+			for (UINT i = 0; i < actionCodes.size(); i++)
+				actionCodeMap_[actionCodes[i]] = globalGroupIndex;
 
-			nGlobalGroupIndex++;
+			globalGroupIndex++;
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 初始化 m_UdpGroupIndexMap
+// 描述: 初始化 udpGroupIndexMap_
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::InitUdpGroupIndexMap()
+void IseSvrModBusiness::initUdpGroupIndexMap()
 {
-	int nGlobalGroupIndex = 0;
-	m_UdpGroupIndexMap.clear();
+	int globalGroupIndex = 0;
+	udpGroupIndexMap_.clear();
 
-	for (int nModIndex = 0; nModIndex < m_ServerModuleMgr.GetCount(); nModIndex++)
+	for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(nModIndex);
-		for (int nGroupIndex = 0; nGroupIndex < ServerModule.GetUdpGroupCount(); nGroupIndex++)
+		IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+		for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
 		{
-			m_UdpGroupIndexMap[nGlobalGroupIndex] = nModIndex;
-			nGlobalGroupIndex++;
+			udpGroupIndexMap_[globalGroupIndex] = modIndex;
+			globalGroupIndex++;
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 初始化 m_TcpServerIndexMap
+// 描述: 初始化 tcpServerIndexMap_
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::InitTcpServerIndexMap()
+void IseSvrModBusiness::initTcpServerIndexMap()
 {
-	int nGlobalServerIndex = 0;
-	m_TcpServerIndexMap.clear();
+	int globalServerIndex = 0;
+	tcpServerIndexMap_.clear();
 
-	for (int nModIndex = 0; nModIndex < m_ServerModuleMgr.GetCount(); nModIndex++)
+	for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(nModIndex);
-		for (int nServerIndex = 0; nServerIndex < ServerModule.GetTcpServerCount(); nServerIndex++)
+		IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+		for (int serverIndex = 0; serverIndex < serverModule.getTcpServerCount(); serverIndex++)
 		{
-			m_TcpServerIndexMap[nGlobalServerIndex] = nModIndex;
-			nGlobalServerIndex++;
+			tcpServerIndexMap_[globalServerIndex] = modIndex;
+			globalServerIndex++;
 		}
 	}
 }
@@ -168,224 +168,224 @@ void CIseSvrModBusiness::InitTcpServerIndexMap()
 //-----------------------------------------------------------------------------
 // 描述: 更新ISE配置
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::UpdateIseOptions()
+void IseSvrModBusiness::updateIseOptions()
 {
-	CIseOptions& IseOpt = IseApplication.GetIseOptions();
+	IseOptions& options = iseApplication.getIseOptions();
 
 	// 设置UDP请求组别的总数量
-	IseOpt.SetUdpRequestGroupCount(GetUdpGroupCount());
+	options.setUdpRequestGroupCount(getUdpGroupCount());
 	// 设置TCP服务器的总数量
-	IseOpt.SetTcpServerCount(GetTcpServerCount());
+	options.setTcpServerCount(getTcpServerCount());
 
 	// UDP请求组别相关设置
-	int nGlobalGroupIndex = 0;
-	for (int nModIndex = 0; nModIndex < m_ServerModuleMgr.GetCount(); nModIndex++)
+	int globalGroupIndex = 0;
+	for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(nModIndex);
-		for (int nGroupIndex = 0; nGroupIndex < ServerModule.GetUdpGroupCount(); nGroupIndex++)
+		IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+		for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
 		{
-			UDP_GROUP_OPTIONS GrpOpt;
-			memset(&GrpOpt, 0, sizeof(GrpOpt));
-			ServerModule.GetUdpGroupOptions(nGroupIndex, GrpOpt);
-			IseOpt.SetUdpRequestQueueCapacity(nGlobalGroupIndex, GrpOpt.nQueueCapacity);
-			IseOpt.SetUdpWorkerThreadCount(nGlobalGroupIndex, GrpOpt.nMinThreads, GrpOpt.nMaxThreads);
-			nGlobalGroupIndex++;
+			UDP_GROUP_OPTIONS grpOpt;
+			memset(&grpOpt, 0, sizeof(grpOpt));
+			serverModule.getUdpGroupOptions(groupIndex, grpOpt);
+			options.setUdpRequestQueueCapacity(globalGroupIndex, grpOpt.queueCapacity);
+			options.setUdpWorkerThreadCount(globalGroupIndex, grpOpt.minThreads, grpOpt.maxThreads);
+			globalGroupIndex++;
 		}
 	}
 
 	// TCP服务器相关设置
-	int nGlobalServerIndex = 0;
-	for (int nModIndex = 0; nModIndex < m_ServerModuleMgr.GetCount(); nModIndex++)
+	int globalServerIndex = 0;
+	for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
 	{
-		CIseServerModule& ServerModule = m_ServerModuleMgr.GetItems(nModIndex);
-		for (int nServerIndex = 0; nServerIndex < ServerModule.GetTcpServerCount(); nServerIndex++)
+		IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+		for (int serverIndex = 0; serverIndex < serverModule.getTcpServerCount(); serverIndex++)
 		{
-			TCP_SERVER_OPTIONS SvrOpt;
-			memset(&SvrOpt, 0, sizeof(SvrOpt));
-			ServerModule.GetTcpServerOptions(nServerIndex, SvrOpt);
-			IseOpt.SetTcpServerPort(nGlobalServerIndex, SvrOpt.nPort);
-			nGlobalServerIndex++;
+			TCP_SERVER_OPTIONS svrOpt;
+			memset(&svrOpt, 0, sizeof(svrOpt));
+			serverModule.getTcpServerOptions(serverIndex, svrOpt);
+			options.setTcpServerPort(globalServerIndex, svrOpt.port);
+			globalServerIndex++;
 		}
 	}
 
 	// 设置辅助服务线程的数量
-	int nAssistorCount = 0;
-	for (int i = 0; i < m_ServerModuleMgr.GetCount(); i++)
-		nAssistorCount += m_ServerModuleMgr.GetItems(i).GetAssistorThreadCount();
-	IseOpt.SetAssistorThreadCount(nAssistorCount);
+	int assistorCount = 0;
+	for (int i = 0; i < serverModuleMgr_.getCount(); i++)
+		assistorCount += serverModuleMgr_.getItems(i).getAssistorThreadCount();
+	options.setAssistorThreadCount(assistorCount);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化 (失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::Initialize()
+void IseSvrModBusiness::initialize()
 {
-	CIseBusiness::Initialize();
+	IseBusiness::initialize();
 
 	// 创建所有服务模块
-	CList SvrModList;
-	CreateServerModules(SvrModList);
-	m_ServerModuleMgr.InitServerModuleList(SvrModList);
+	PointerList svrModList;
+	createServerModules(svrModList);
+	serverModuleMgr_.initServerModuleList(svrModList);
 
 	// 初始化各个映射表
-	InitActionCodeMap();
-	InitUdpGroupIndexMap();
-	InitTcpServerIndexMap();
+	initActionCodeMap();
+	initUdpGroupIndexMap();
+	initTcpServerIndexMap();
 
 	// 更新ISE配置
-	UpdateIseOptions();
+	updateIseOptions();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 结束化 (无论初始化是否有异常，结束时都会执行)
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::Finalize()
+void IseSvrModBusiness::finalize()
 {
-	try { m_ServerModuleMgr.ClearServerModuleList(); } catch (...) {}
+	try { serverModuleMgr_.clearServerModuleList(); } catch (...) {}
 
-	CIseBusiness::Finalize();
+	IseBusiness::finalize();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: UDP数据包分类
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::ClassifyUdpPacket(void *pPacketBuffer, int nPacketSize, int& nGroupIndex)
+void IseSvrModBusiness::classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex)
 {
-	nGroupIndex = -1;
-	if (nPacketSize <= 0 || !FilterUdpPacket(pPacketBuffer, nPacketSize)) return;
+	groupIndex = -1;
+	if (packetSize <= 0 || !filterUdpPacket(packetBuffer, packetSize)) return;
 
-	UINT nActionCode = GetUdpPacketActionCode(pPacketBuffer, nPacketSize);
-	ACTION_CODE_MAP::iterator iter = m_ActionCodeMap.find(nActionCode);
-	if (iter != m_ActionCodeMap.end())
+	UINT actionCode = getUdpPacketActionCode(packetBuffer, packetSize);
+	ACTION_CODE_MAP::iterator iter = actionCodeMap_.find(actionCode);
+	if (iter != actionCodeMap_.end())
 	{
-		nGroupIndex = iter->second;
+		groupIndex = iter->second;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: UDP数据包分派
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::DispatchUdpPacket(CUdpWorkerThread& WorkerThread,
-	int nGroupIndex, CUdpPacket& Packet)
+void IseSvrModBusiness::dispatchUdpPacket(UdpWorkerThread& workerThread,
+	int groupIndex, UdpPacket& packet)
 {
-	UDP_GROUP_INDEX_MAP::iterator iter = m_UdpGroupIndexMap.find(nGroupIndex);
-	if (iter != m_UdpGroupIndexMap.end())
+	UDP_GROUP_INDEX_MAP::iterator iter = udpGroupIndexMap_.find(groupIndex);
+	if (iter != udpGroupIndexMap_.end())
 	{
-		int nModIndex = iter->second;
-		m_ServerModuleMgr.GetItems(nModIndex).DispatchUdpPacket(WorkerThread, Packet);
+		int modIndex = iter->second;
+		serverModuleMgr_.getItems(modIndex).dispatchUdpPacket(workerThread, packet);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 接受了一个新的TCP连接
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::OnTcpConnection(CTcpConnection *pConnection)
+void IseSvrModBusiness::onTcpConnection(TcpConnection *connection)
 {
-	TCP_SERVER_INDEX_MAP::iterator iter = m_TcpServerIndexMap.find(pConnection->GetServerIndex());
-	if (iter != m_TcpServerIndexMap.end())
+	TCP_SERVER_INDEX_MAP::iterator iter = tcpServerIndexMap_.find(connection->getServerIndex());
+	if (iter != tcpServerIndexMap_.end())
 	{
-		int nModIndex = iter->second;
-		m_ServerModuleMgr.GetItems(nModIndex).OnTcpConnection(pConnection);
+		int modIndex = iter->second;
+		serverModuleMgr_.getItems(modIndex).onTcpConnection(connection);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP连接传输过程发生了错误 (ISE将随之删除此连接对象)
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::OnTcpError(CTcpConnection *pConnection)
+void IseSvrModBusiness::onTcpError(TcpConnection *connection)
 {
-	TCP_SERVER_INDEX_MAP::iterator iter = m_TcpServerIndexMap.find(pConnection->GetServerIndex());
-	if (iter != m_TcpServerIndexMap.end())
+	TCP_SERVER_INDEX_MAP::iterator iter = tcpServerIndexMap_.find(connection->getServerIndex());
+	if (iter != tcpServerIndexMap_.end())
 	{
-		int nModIndex = iter->second;
-		m_ServerModuleMgr.GetItems(nModIndex).OnTcpError(pConnection);
+		int modIndex = iter->second;
+		serverModuleMgr_.getItems(modIndex).onTcpError(connection);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP连接上的一个接收任务已完成
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::OnTcpRecvComplete(CTcpConnection *pConnection, void *pPacketBuffer,
-	int nPacketSize, const CCustomParams& Params)
+void IseSvrModBusiness::onTcpRecvComplete(TcpConnection *connection, void *packetBuffer,
+	int packetSize, const CustomParams& params)
 {
-	TCP_SERVER_INDEX_MAP::iterator iter = m_TcpServerIndexMap.find(pConnection->GetServerIndex());
-	if (iter != m_TcpServerIndexMap.end())
+	TCP_SERVER_INDEX_MAP::iterator iter = tcpServerIndexMap_.find(connection->getServerIndex());
+	if (iter != tcpServerIndexMap_.end())
 	{
-		int nModIndex = iter->second;
-		m_ServerModuleMgr.GetItems(nModIndex).OnTcpRecvComplete(pConnection,
-			pPacketBuffer, nPacketSize, Params);
+		int modIndex = iter->second;
+		serverModuleMgr_.getItems(modIndex).onTcpRecvComplete(connection,
+			packetBuffer, packetSize, params);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: TCP连接上的一个发送任务已完成
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::OnTcpSendComplete(CTcpConnection *pConnection, const CCustomParams& Params)
+void IseSvrModBusiness::onTcpSendComplete(TcpConnection *connection, const CustomParams& params)
 {
-	TCP_SERVER_INDEX_MAP::iterator iter = m_TcpServerIndexMap.find(pConnection->GetServerIndex());
-	if (iter != m_TcpServerIndexMap.end())
+	TCP_SERVER_INDEX_MAP::iterator iter = tcpServerIndexMap_.find(connection->getServerIndex());
+	if (iter != tcpServerIndexMap_.end())
 	{
-		int nModIndex = iter->second;
-		m_ServerModuleMgr.GetItems(nModIndex).OnTcpSendComplete(pConnection, Params);
+		int modIndex = iter->second;
+		serverModuleMgr_.getItems(modIndex).onTcpSendComplete(connection, params);
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 辅助服务线程执行(nAssistorIndex: 0-based)
+// 描述: 辅助服务线程执行(assistorIndex: 0-based)
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::AssistorThreadExecute(CAssistorThread& AssistorThread, int nAssistorIndex)
+void IseSvrModBusiness::assistorThreadExecute(AssistorThread& assistorThread, int assistorIndex)
 {
-	int nIndex1, nIndex2 = 0;
+	int index1, index2 = 0;
 
-	for (int i = 0; i < m_ServerModuleMgr.GetCount(); i++)
+	for (int i = 0; i < serverModuleMgr_.getCount(); i++)
 	{
-		nIndex1 = nIndex2;
-		nIndex2 += m_ServerModuleMgr.GetItems(i).GetAssistorThreadCount();
+		index1 = index2;
+		index2 += serverModuleMgr_.getItems(i).getAssistorThreadCount();
 
-		if (nAssistorIndex >= nIndex1 && nAssistorIndex < nIndex2)
+		if (assistorIndex >= index1 && assistorIndex < index2)
 		{
-			m_ServerModuleMgr.GetItems(i).AssistorThreadExecute(AssistorThread, nAssistorIndex - nIndex1);
+			serverModuleMgr_.getItems(i).assistorThreadExecute(assistorThread, assistorIndex - index1);
 			break;
 		}
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 系统守护线程执行 (nSecondCount: 0-based)
+// 描述: 系统守护线程执行 (secondCount: 0-based)
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::DaemonThreadExecute(CThread& Thread, int nSecondCount)
+void IseSvrModBusiness::daemonThreadExecute(Thread& thread, int secondCount)
 {
-	for (int i = 0; i < m_ServerModuleMgr.GetCount(); i++)
-		m_ServerModuleMgr.GetItems(i).DaemonThreadExecute(Thread, nSecondCount);
+	for (int i = 0; i < serverModuleMgr_.getCount(); i++)
+		serverModuleMgr_.getItems(i).daemonThreadExecute(thread, secondCount);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据服务模块序号和模块内的局部辅助线程序号，取得此辅助线程的全局序号
 //-----------------------------------------------------------------------------
-int CIseSvrModBusiness::GetAssistorIndex(int nServerModuleIndex, int nLocalAssistorIndex)
+int IseSvrModBusiness::getAssistorIndex(int serverModuleIndex, int localAssistorIndex)
 {
-	int nResult = -1;
+	int result = -1;
 
-	if (nServerModuleIndex >= 0 && nServerModuleIndex < m_ServerModuleMgr.GetCount())
+	if (serverModuleIndex >= 0 && serverModuleIndex < serverModuleMgr_.getCount())
 	{
-		nResult = 0;
-		for (int i = 0; i < nServerModuleIndex; i++)
-			nResult += m_ServerModuleMgr.GetItems(i).GetAssistorThreadCount();
-		nResult += nLocalAssistorIndex;
+		result = 0;
+		for (int i = 0; i < serverModuleIndex; i++)
+			result += serverModuleMgr_.getItems(i).getAssistorThreadCount();
+		result += localAssistorIndex;
 	}
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 分派消息给服务模块
 //-----------------------------------------------------------------------------
-void CIseSvrModBusiness::DispatchMessage(CBaseSvrModMessage& Message)
+void IseSvrModBusiness::dispatchMessage(BaseSvrModMessage& message)
 {
-	for (int i = 0; i < m_ServerModuleMgr.GetCount(); i++)
+	for (int i = 0; i < serverModuleMgr_.getCount(); i++)
 	{
-		if (Message.bHandled) break;
-		m_ServerModuleMgr.GetItems(i).DispatchMessage(Message);
+		if (message.isHandled) break;
+		serverModuleMgr_.getItems(i).dispatchMessage(message);
 	}
 }
 

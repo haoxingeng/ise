@@ -41,14 +41,14 @@ const int SMMC_BASE           = 100;
 // 消息结构定义
 
 // 消息基类
-struct CBaseSvrModMessage
+struct BaseSvrModMessage
 {
 public:
-	UINT nMessageCode;    // 消息代码
-	bool bHandled;        // 是否处理了此消息
+	UINT messageCode;      // 消息代码
+	bool isHandled;        // 是否处理了此消息
 public:
-	CBaseSvrModMessage() : nMessageCode(0), bHandled(false) {}
-	virtual ~CBaseSvrModMessage() {}
+	BaseSvrModMessage() : messageCode(0), isHandled(false) {}
+	virtual ~BaseSvrModMessage() {}
 };
 	
 ///////////////////////////////////////////////////////////////////////////////

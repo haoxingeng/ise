@@ -35,15 +35,15 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDelimiterPacketMeasurer
+// class DelimiterPacketMeasurer
 
-bool CDelimiterPacketMeasurer::IsCompletePacket(const char *pData, int nBytes, int& nPacketSize)
+bool DelimiterPacketMeasurer::isCompletePacket(const char *data, int bytes, int& packetSize)
 {
-	for (int i = 0; i < nBytes; i++)
+	for (int i = 0; i < bytes; i++)
 	{
-		if (pData[i] == m_chDelimiter)
+		if (data[i] == delimiter_)
 		{
-			nPacketSize = i + 1;
+			packetSize = i + 1;
 			return true;
 		}
 	}
@@ -52,192 +52,192 @@ bool CDelimiterPacketMeasurer::IsCompletePacket(const char *pData, int nBytes, i
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIoBuffer
+// class IoBuffer
 
-CIoBuffer::CIoBuffer() :
-	m_Buffer(INITIAL_SIZE),
-	m_nReaderIndex(0),
-	m_nWriterIndex(0)
+IoBuffer::IoBuffer() :
+	buffer_(INITIAL_SIZE),
+	readerIndex_(0),
+	writerIndex_(0)
 {
 	// nothing
 }
 
-CIoBuffer::~CIoBuffer()
+IoBuffer::~IoBuffer()
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 扩展缓存空间以便可再写进 nMoreBytes 个字节
+// 描述: 扩展缓存空间以便可再写进 moreBytes 个字节
 //-----------------------------------------------------------------------------
-void CIoBuffer::MakeSpace(int nMoreBytes)
+void IoBuffer::makeSpace(int moreBytes)
 {
-	if (GetWritableBytes() + GetUselessBytes() < nMoreBytes)
+	if (getWritableBytes() + getUselessBytes() < moreBytes)
 	{
-		m_Buffer.resize(m_nWriterIndex + nMoreBytes);
+		buffer_.resize(writerIndex_ + moreBytes);
 	}
 	else
 	{
 		// 将全部可读数据移至缓存开始处
-		int nReadableBytes = GetReadableBytes();
-		char *pBuffer = GetBufferPtr();
-		memmove(pBuffer, pBuffer + m_nReaderIndex, nReadableBytes);
-		m_nReaderIndex = 0;
-		m_nWriterIndex = m_nReaderIndex + nReadableBytes;
+		int readableBytes = getReadableBytes();
+		char *buffer = getBufferPtr();
+		memmove(buffer, buffer + readerIndex_, readableBytes);
+		readerIndex_ = 0;
+		writerIndex_ = readerIndex_ + readableBytes;
 
-		ISE_ASSERT(nReadableBytes == GetReadableBytes());
+		ISE_ASSERT(readableBytes == getReadableBytes());
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 向缓存追加写入数据
 //-----------------------------------------------------------------------------
-void CIoBuffer::Append(const string& str)
+void IoBuffer::append(const string& str)
 {
-	Append(str.c_str(), (int)str.length());
+	append(str.c_str(), (int)str.length());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 向缓存追加写入数据
 //-----------------------------------------------------------------------------
-void CIoBuffer::Append(const char *pData, int nBytes)
+void IoBuffer::append(const char *data, int bytes)
 {
-	if (pData && nBytes > 0)
+	if (data && bytes > 0)
 	{
-		if (GetWritableBytes() < nBytes)
-			MakeSpace(nBytes);
+		if (getWritableBytes() < bytes)
+			makeSpace(bytes);
 
-		ISE_ASSERT(GetWritableBytes() >= nBytes);
+		ISE_ASSERT(getWritableBytes() >= bytes);
 
-		memmove(GetWriterPtr(), pData, nBytes);
-		m_nWriterIndex += nBytes;
+		memmove(getWriterPtr(), data, bytes);
+		writerIndex_ += bytes;
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 向缓存追加 nBytes 个字节并填充为'\0'
+// 描述: 向缓存追加 bytes 个字节并填充为'\0'
 //-----------------------------------------------------------------------------
-void CIoBuffer::Append(int nBytes)
+void IoBuffer::append(int bytes)
 {
-	if (nBytes > 0)
+	if (bytes > 0)
 	{
 		string str;
-		str.resize(nBytes, 0);
-		Append(str);
+		str.resize(bytes, 0);
+		append(str);
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 从缓存读取 nBytes 个字节数据
+// 描述: 从缓存读取 bytes 个字节数据
 //-----------------------------------------------------------------------------
-void CIoBuffer::Retrieve(int nBytes)
+void IoBuffer::retrieve(int bytes)
 {
-	if (nBytes > 0)
+	if (bytes > 0)
 	{
-		ISE_ASSERT(nBytes <= GetReadableBytes());
-		m_nReaderIndex += nBytes;
+		ISE_ASSERT(bytes <= getReadableBytes());
+		readerIndex_ += bytes;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从缓存读取全部可读数据并存入 str 中
 //-----------------------------------------------------------------------------
-void CIoBuffer::RetrieveAll(string& str)
+void IoBuffer::retrieveAll(string& str)
 {
-	if (GetReadableBytes() > 0)
-		str.assign(Peek(), GetReadableBytes());
+	if (getReadableBytes() > 0)
+		str.assign(peek(), getReadableBytes());
 	else
 		str.clear();
 
-	RetrieveAll();
+	retrieveAll();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从缓存读取全部可读数据
 //-----------------------------------------------------------------------------
-void CIoBuffer::RetrieveAll()
+void IoBuffer::retrieveAll()
 {
-	m_nReaderIndex = 0;
-	m_nWriterIndex = 0;
+	readerIndex_ = 0;
+	writerIndex_ = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoopThread
+// class TcpEventLoopThread
 
-CTcpEventLoopThread::CTcpEventLoopThread(CBaseTcpEventLoop& EventLoop) :
-	m_EventLoop(EventLoop)
+TcpEventLoopThread::TcpEventLoopThread(BaseTcpEventLoop& eventLoop) :
+	eventLoop_(eventLoop)
 {
-	SetFreeOnTerminate(false);
+	setFreeOnTerminate(false);
 }
 
 //-----------------------------------------------------------------------------
 
-void CTcpEventLoopThread::Execute()
+void TcpEventLoopThread::execute()
 {
-	m_EventLoop.ExecuteLoop(this);
+	eventLoop_.executeLoop(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CBaseTcpEventLoop
+// class BaseTcpEventLoop
 
-CBaseTcpEventLoop::CBaseTcpEventLoop() :
-	m_pThread(NULL),
-	m_AcceptedConnList(true, false)
+BaseTcpEventLoop::BaseTcpEventLoop() :
+	thread_(NULL),
+	acceptedConnList_(true, false)
 {
 	// nothing
 }
 
-CBaseTcpEventLoop::~CBaseTcpEventLoop()
+BaseTcpEventLoop::~BaseTcpEventLoop()
 {
-	Stop(false, true);
+	stop(false, true);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 处理由TcpServer新产生的连接
 //-----------------------------------------------------------------------------
-void CBaseTcpEventLoop::ProcessAcceptedConnList()
+void BaseTcpEventLoop::processAcceptedConnList()
 {
-	CTcpConnection *pConnection;
-	while ((pConnection = m_AcceptedConnList.Extract(0)))
-		pIseBusiness->OnTcpConnection(pConnection);
+	TcpConnection *connection;
+	while ((connection = acceptedConnList_.extract(0)))
+		iseBusiness->onTcpConnection(connection);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 启动工作线程
 //-----------------------------------------------------------------------------
-void CBaseTcpEventLoop::Start()
+void BaseTcpEventLoop::start()
 {
-	if (!m_pThread)
+	if (!thread_)
 	{
-		m_pThread = new CTcpEventLoopThread(*this);
-		m_pThread->Run();
+		thread_ = new TcpEventLoopThread(*this);
+		thread_->run();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 停止工作线程
 //-----------------------------------------------------------------------------
-void CBaseTcpEventLoop::Stop(bool bForce, bool bWaitFor)
+void BaseTcpEventLoop::stop(bool force, bool waitFor)
 {
-	if (m_pThread && m_pThread->IsRunning())
+	if (thread_ && thread_->isRunning())
 	{
-		if (bForce)
+		if (force)
 		{
-			m_pThread->Kill();
-			m_pThread = NULL;
-			bWaitFor = false;
+			thread_->kill();
+			thread_ = NULL;
+			waitFor = false;
 		}
 		else
 		{
-			m_pThread->Terminate();
-			WakeupLoop();
+			thread_->terminate();
+			wakeupLoop();
 		}
 
-		if (bWaitFor)
+		if (waitFor)
 		{
-			m_pThread->WaitFor();
-			delete m_pThread;
-			m_pThread = NULL;
+			thread_->waitFor();
+			delete thread_;
+			thread_ = NULL;
 		}
 	}
 }
@@ -245,92 +245,92 @@ void CBaseTcpEventLoop::Stop(bool bForce, bool bWaitFor)
 //-----------------------------------------------------------------------------
 // 描述: 判断工作线程当前是否正在运行
 //-----------------------------------------------------------------------------
-bool CBaseTcpEventLoop::IsRunning()
+bool BaseTcpEventLoop::isRunning()
 {
-	return (m_pThread != NULL && m_pThread->IsRunning());
+	return (thread_ != NULL && thread_->isRunning());
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 将指定连接注册到此 EventLoop 中
+// 描述: 将指定连接注册到此 eventLoop 中
 //-----------------------------------------------------------------------------
-void CBaseTcpEventLoop::AddConnection(CTcpConnection *pConnection)
+void BaseTcpEventLoop::addConnection(TcpConnection *connection)
 {
-	RegisterConnection(pConnection);
-	m_AcceptedConnList.Add(pConnection);
-	WakeupLoop();
+	registerConnection(connection);
+	acceptedConnList_.add(connection);
+	wakeupLoop();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 将指定连接从此 EventLoop 中注销
+// 描述: 将指定连接从此 eventLoop 中注销
 //-----------------------------------------------------------------------------
-void CBaseTcpEventLoop::RemoveConnection(CTcpConnection *pConnection)
+void BaseTcpEventLoop::removeConnection(TcpConnection *connection)
 {
-	UnregisterConnection(pConnection);
+	unregisterConnection(connection);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoopList
+// class TcpEventLoopList
 
-CTcpEventLoopList::CTcpEventLoopList(int nLoopCount) :
-	m_Items(false, true)
+TcpEventLoopList::TcpEventLoopList(int nLoopCount) :
+	items_(false, true)
 {
-	SetCount(nLoopCount);
+	setCount(nLoopCount);
 }
 
-CTcpEventLoopList::~CTcpEventLoopList()
+TcpEventLoopList::~TcpEventLoopList()
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置 EventLoop 的个数
+// 描述: 设置 eventLoop 的个数
 //-----------------------------------------------------------------------------
-void CTcpEventLoopList::SetCount(int nCount)
+void TcpEventLoopList::setCount(int count)
 {
-	nCount = EnsureRange(nCount, 1, (int)MAX_LOOP_COUNT);
+	count = ensureRange(count, 1, (int)MAX_LOOP_COUNT);
 
-	for (int i = 0; i < nCount; i++)
-		m_Items.Add(new CTcpEventLoop());
+	for (int i = 0; i < count; i++)
+		items_.add(new TcpEventLoop());
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 启动全部 EventLoop 的工作线程
+// 描述: 启动全部 eventLoop 的工作线程
 //-----------------------------------------------------------------------------
-void CTcpEventLoopList::Start()
+void TcpEventLoopList::start()
 {
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		m_Items[i]->Start();
+	for (int i = 0; i < items_.getCount(); i++)
+		items_[i]->start();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 停止全部 EventLoop 的工作线程
+// 描述: 停止全部 eventLoop 的工作线程
 //-----------------------------------------------------------------------------
-void CTcpEventLoopList::Stop()
+void TcpEventLoopList::stop()
 {
 	const int MAX_WAIT_FOR_SECS = 5;    // (秒)
 	const double SLEEP_INTERVAL = 0.5;  // (秒)
 
 	// 通知停止
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		m_Items[i]->Stop(false, false);
+	for (int i = 0; i < items_.getCount(); i++)
+		items_[i]->stop(false, false);
 
 	// 等待停止
-	double nWaitSecs = 0;
-	while (nWaitSecs < MAX_WAIT_FOR_SECS)
+	double waitSecs = 0;
+	while (waitSecs < MAX_WAIT_FOR_SECS)
 	{
-		int nRunningCount = 0;
-		for (int i = 0; i < m_Items.GetCount(); i++)
-			if (m_Items[i]->IsRunning()) nRunningCount++;
+		int runningCount = 0;
+		for (int i = 0; i < items_.getCount(); i++)
+			if (items_[i]->isRunning()) runningCount++;
 
-		if (nRunningCount == 0) break;
+		if (runningCount == 0) break;
 
-		SleepSec(SLEEP_INTERVAL, true);
-		nWaitSecs += SLEEP_INTERVAL;
+		sleepSec(SLEEP_INTERVAL, true);
+		waitSecs += SLEEP_INTERVAL;
 	}
 
 	// 强行停止
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		m_Items[i]->Stop(true, true);
+	for (int i = 0; i < items_.getCount(); i++)
+		items_[i]->stop(true, true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -339,543 +339,543 @@ void CTcpEventLoopList::Stop()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CTcpConnection::CTcpConnection(CTcpServer *pTcpServer,
-	SOCKET nSocketHandle, const CPeerAddress& PeerAddr) :
-		CBaseTcpConnection(nSocketHandle, PeerAddr),
-		m_pTcpServer(pTcpServer),
-		m_pEventLoop(NULL),
-		m_bSending(false),
-		m_bRecving(false),
-		m_nBytesSent(0),
-		m_nBytesRecved(0)
+TcpConnection::TcpConnection(TcpServer *tcpServer,
+	SOCKET socketHandle, const InetAddress& peerAddr) :
+		BaseTcpConnection(socketHandle, peerAddr),
+		tcpServer_(tcpServer),
+		eventLoop_(NULL),
+		isSending_(false),
+		isRecving_(false),
+		bytesSent_(0),
+		bytesRecved_(0)
 {
 	// nothing
 }
 
-CTcpConnection::~CTcpConnection()
+TcpConnection::~TcpConnection()
 {
-	SetEventLoop(NULL);
+	setEventLoop(NULL);
 }
 
 //-----------------------------------------------------------------------------
 
-void CTcpConnection::TrySend()
+void TcpConnection::trySend()
 {
-	if (m_bSending) return;
+	if (isSending_) return;
 
-	int nReadableBytes = m_SendBuffer.GetReadableBytes();
-	if (nReadableBytes > 0)
+	int readableBytes = sendBuffer_.getReadableBytes();
+	if (readableBytes > 0)
 	{
 		const int MAX_SEND_SIZE = 1024*32;
 
-		const char *pBuffer = m_SendBuffer.Peek();
-		int nSendSize = Min(nReadableBytes, MAX_SEND_SIZE);
+		const char *buffer = sendBuffer_.peek();
+		int sendSize = ise::min(readableBytes, MAX_SEND_SIZE);
 
-		m_bSending = true;
-		m_pEventLoop->GetIocpObject()->Send(GetSocket().GetHandle(), 
-			(PVOID)pBuffer, nSendSize, 0,
-			IOCP_CALLBACK_DEF(OnIocpCallBack, this), this, EMPTY_PARAMS);
+		isSending_ = true;
+		eventLoop_->getIocpObject()->send(getSocket().getHandle(), 
+			(PVOID)buffer, sendSize, 0,
+			IOCP_CALLBACK_DEF(onIocpCallback, this), this, EMPTY_PARAMS);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CTcpConnection::TryRecv()
+void TcpConnection::tryRecv()
 {
-	if (m_bRecving) return;
+	if (isRecving_) return;
 
-	if (!m_RecvTaskQueue.empty())
+	if (!recvTaskQueue_.empty())
 	{
 		const int MAX_RECV_SIZE = 1024*8;
 
-		m_bRecving = true;
-		m_RecvBuffer.Append(MAX_RECV_SIZE);
-		const char *pBuffer = m_RecvBuffer.Peek() + m_nBytesRecved;
+		isRecving_ = true;
+		recvBuffer_.append(MAX_RECV_SIZE);
+		const char *buffer = recvBuffer_.peek() + bytesRecved_;
 
-		m_pEventLoop->GetIocpObject()->Recv(GetSocket().GetHandle(), 
-			(PVOID)pBuffer, MAX_RECV_SIZE, 0,
-			IOCP_CALLBACK_DEF(OnIocpCallBack, this), this, EMPTY_PARAMS);
+		eventLoop_->getIocpObject()->recv(getSocket().getHandle(), 
+			(PVOID)buffer, MAX_RECV_SIZE, 0,
+			IOCP_CALLBACK_DEF(onIocpCallback, this), this, EMPTY_PARAMS);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 发生错误
 //-----------------------------------------------------------------------------
-void CTcpConnection::ErrorOccurred()
+void TcpConnection::errorOccurred()
 {
-	SetEventLoop(NULL);
-	pIseBusiness->OnTcpError(this);
+	setEventLoop(NULL);
+	iseBusiness->onTcpError(this);
 	delete this;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置此连接从属于哪个 EventLoop
+// 描述: 设置此连接从属于哪个 eventLoop
 //-----------------------------------------------------------------------------
-void CTcpConnection::SetEventLoop(CTcpEventLoop *pEventLoop)
+void TcpConnection::setEventLoop(TcpEventLoop *eventLoop)
 {
-	if (m_pEventLoop)
+	if (eventLoop_)
 	{
-		m_pEventLoop->RemoveConnection(this);
-		m_pEventLoop = NULL;
+		eventLoop_->removeConnection(this);
+		eventLoop_ = NULL;
 	}
 
-	if (pEventLoop)
+	if (eventLoop)
 	{
-		m_pEventLoop = pEventLoop;
-		pEventLoop->AddConnection(this);
+		eventLoop_ = eventLoop;
+		eventLoop->addConnection(this);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CTcpConnection::OnIocpCallBack(const CIocpTaskData& TaskData, PVOID pParam)
+void TcpConnection::onIocpCallback(const IocpTaskData& taskData, PVOID param)
 {
-	CTcpConnection *pThis = (CTcpConnection*)pParam;
+	TcpConnection *thisObj = (TcpConnection*)param;
 
-	if (TaskData.GetErrorCode() == 0)
+	if (taskData.getErrorCode() == 0)
 	{
-		switch (TaskData.GetTaskType())
+		switch (taskData.getTaskType())
 		{
 		case ITT_SEND:
-			pThis->OnSendCallBack(TaskData);
+			thisObj->onSendCallback(taskData);
 			break;
 		case ITT_RECV:
-			pThis->OnRecvCallBack(TaskData);
+			thisObj->onRecvCallback(taskData);
 			break;
 		}
 	}
 	else
 	{
-		pThis->ErrorOccurred();
+		thisObj->errorOccurred();
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CTcpConnection::OnSendCallBack(const CIocpTaskData& TaskData)
+void TcpConnection::onSendCallback(const IocpTaskData& taskData)
 {
-	ISE_ASSERT(TaskData.GetErrorCode() == 0);
+	ISE_ASSERT(taskData.getErrorCode() == 0);
 
-	if (TaskData.GetBytesTrans() < TaskData.GetDataSize())
+	if (taskData.getBytesTrans() < taskData.getDataSize())
 	{
-		m_pEventLoop->GetIocpObject()->Send(
-			(SOCKET)TaskData.GetFileHandle(),
-			TaskData.GetEntireDataBuf(),
-			TaskData.GetEntireDataSize(),
-			TaskData.GetDataBuf() - TaskData.GetEntireDataBuf() + TaskData.GetBytesTrans(),
-			TaskData.GetCallBack(), TaskData.GetCaller(), TaskData.GetParams());
+		eventLoop_->getIocpObject()->send(
+			(SOCKET)taskData.getFileHandle(),
+			taskData.getEntireDataBuf(),
+			taskData.getEntireDataSize(),
+			taskData.getDataBuf() - taskData.getEntireDataBuf() + taskData.getBytesTrans(),
+			taskData.getCallback(), taskData.getCaller(), taskData.getParams());
 	}
 	else
 	{
-		m_bSending = false;
-		m_SendBuffer.Retrieve(TaskData.GetEntireDataSize());
+		isSending_ = false;
+		sendBuffer_.retrieve(taskData.getEntireDataSize());
 	}
 
-	m_nBytesSent += TaskData.GetBytesTrans();
+	bytesSent_ += taskData.getBytesTrans();
 
-	while (!m_SendTaskQueue.empty())
+	while (!sendTaskQueue_.empty())
 	{
-		const SEND_TASK& Task = m_SendTaskQueue.front();
-		if (m_nBytesSent >= Task.nBytes)
+		const SEND_TASK& task = sendTaskQueue_.front();
+		if (bytesSent_ >= task.bytes)
 		{
-			m_nBytesSent -= Task.nBytes;
-			pIseBusiness->OnTcpSendComplete(this, Task.Params);
-			m_SendTaskQueue.pop_front();
+			bytesSent_ -= task.bytes;
+			iseBusiness->onTcpSendComplete(this, task.params);
+			sendTaskQueue_.pop_front();
 		}
 		else
 			break;
 	}
 
-	if (!m_SendTaskQueue.empty())
-		TrySend();
+	if (!sendTaskQueue_.empty())
+		trySend();
 }
 
 //-----------------------------------------------------------------------------
 
-void CTcpConnection::OnRecvCallBack(const CIocpTaskData& TaskData)
+void TcpConnection::onRecvCallback(const IocpTaskData& taskData)
 {
-	ISE_ASSERT(TaskData.GetErrorCode() == 0);
+	ISE_ASSERT(taskData.getErrorCode() == 0);
 
-	if (TaskData.GetBytesTrans() < TaskData.GetDataSize())
+	if (taskData.getBytesTrans() < taskData.getDataSize())
 	{
-		m_pEventLoop->GetIocpObject()->Recv(
-			(SOCKET)TaskData.GetFileHandle(),
-			TaskData.GetEntireDataBuf(),
-			TaskData.GetEntireDataSize(),
-			TaskData.GetDataBuf() - TaskData.GetEntireDataBuf() + TaskData.GetBytesTrans(),
-			TaskData.GetCallBack(), TaskData.GetCaller(), TaskData.GetParams());
+		eventLoop_->getIocpObject()->recv(
+			(SOCKET)taskData.getFileHandle(),
+			taskData.getEntireDataBuf(),
+			taskData.getEntireDataSize(),
+			taskData.getDataBuf() - taskData.getEntireDataBuf() + taskData.getBytesTrans(),
+			taskData.getCallback(), taskData.getCaller(), taskData.getParams());
 	}
 	else
 	{
-		m_bRecving = false;
+		isRecving_ = false;
 	}
 
-	m_nBytesRecved += TaskData.GetBytesTrans();
+	bytesRecved_ += taskData.getBytesTrans();
 
-	while (!m_RecvTaskQueue.empty())
+	while (!recvTaskQueue_.empty())
 	{
-		RECV_TASK& Task = m_RecvTaskQueue.front();
-		const char *pBuffer = m_RecvBuffer.Peek();
-		int nPacketSize = 0;
+		RECV_TASK& task = recvTaskQueue_.front();
+		const char *buffer = recvBuffer_.peek();
+		int packetSize = 0;
 
-		if (m_nBytesRecved > 0 &&
-			Task.pPacketMeasurer->IsCompletePacket(pBuffer, m_nBytesRecved, nPacketSize) &&
-			nPacketSize > 0)
+		if (bytesRecved_ > 0 &&
+			task.packetMeasurer->isCompletePacket(buffer, bytesRecved_, packetSize) &&
+			packetSize > 0)
 		{
-			m_nBytesRecved -= nPacketSize;
-			pIseBusiness->OnTcpRecvComplete(this, (void*)pBuffer, nPacketSize, Task.Params);
-			m_RecvTaskQueue.pop_front();
-			m_RecvBuffer.Retrieve(nPacketSize);
+			bytesRecved_ -= packetSize;
+			iseBusiness->onTcpRecvComplete(this, (void*)buffer, packetSize, task.params);
+			recvTaskQueue_.pop_front();
+			recvBuffer_.retrieve(packetSize);
 		}
 		else
 			break;
 	}
 
-	if (!m_RecvTaskQueue.empty())
-		TryRecv();
+	if (!recvTaskQueue_.empty())
+		tryRecv();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开连接
 //-----------------------------------------------------------------------------
-void CTcpConnection::DoDisconnect()
+void TcpConnection::doDisconnect()
 {
-	SetEventLoop(NULL);
-	CBaseTcpConnection::DoDisconnect();
+	setEventLoop(NULL);
+	BaseTcpConnection::doDisconnect();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 提交一个发送任务
 //-----------------------------------------------------------------------------
-void CTcpConnection::PostSendTask(char *pBuffer, int nSize, const CCustomParams& Params)
+void TcpConnection::postSendTask(char *buffer, int size, const CustomParams& params)
 {
-	if (!pBuffer || nSize <= 0) return;
+	if (!buffer || size <= 0) return;
 
-	m_SendBuffer.Append(pBuffer, nSize);
+	sendBuffer_.append(buffer, size);
 
-	SEND_TASK Task;
-	Task.nBytes = nSize;
-	Task.Params = Params;
+	SEND_TASK task;
+	task.bytes = size;
+	task.params = params;
 
-	m_SendTaskQueue.push_back(Task);
+	sendTaskQueue_.push_back(task);
 
-	TrySend();
+	trySend();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 提交一个接收任务
 //-----------------------------------------------------------------------------
-void CTcpConnection::PostRecvTask(CPacketMeasurer *pPacketMeasurer, const CCustomParams& Params)
+void TcpConnection::postRecvTask(PacketMeasurer *packetMeasurer, const CustomParams& params)
 {
-	if (!pPacketMeasurer) return;
+	if (!packetMeasurer) return;
 
-	RECV_TASK Task;
-	Task.pPacketMeasurer = pPacketMeasurer;
-	Task.Params = Params;
+	RECV_TASK task;
+	task.packetMeasurer = packetMeasurer;
+	task.params = params;
 
-	m_RecvTaskQueue.push_back(Task);
+	recvTaskQueue_.push_back(task);
 
-	TryRecv();
+	tryRecv();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpTaskData
+// class IocpTaskData
 
-CIocpTaskData::CIocpTaskData() :
-	m_hIocpHandle(INVALID_HANDLE_VALUE),
-	m_hFileHandle(INVALID_HANDLE_VALUE),
-	m_nTaskType((IOCP_TASK_TYPE)0),
-	m_nTaskSeqNum(0),
-	m_pCaller(0),
-	m_pEntireDataBuf(0),
-	m_nEntireDataSize(0),
-	m_nBytesTrans(0),
-	m_nErrorCode(0)
+IocpTaskData::IocpTaskData() :
+	iocpHandle_(INVALID_HANDLE_VALUE),
+	fileHandle_(INVALID_HANDLE_VALUE),
+	taskType_((IOCP_TASK_TYPE)0),
+	taskSeqNum_(0),
+	caller_(0),
+	entireDataBuf_(0),
+	entireDataSize_(0),
+	bytesTrans_(0),
+	errorCode_(0)
 {
-	m_WSABuffer.buf = NULL;
-	m_WSABuffer.len = 0;
+	wsaBuffer_.buf = NULL;
+	wsaBuffer_.len = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpBufferAllocator
+// class IocpBufferAllocator
 
-CIocpBufferAllocator::CIocpBufferAllocator(int nBufferSize) :
-	m_nBufferSize(nBufferSize),
-	m_nUsedCount(0)
+IocpBufferAllocator::IocpBufferAllocator(int bufferSize) :
+	bufferSize_(bufferSize),
+	usedCount_(0)
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-CIocpBufferAllocator::~CIocpBufferAllocator()
+IocpBufferAllocator::~IocpBufferAllocator()
 {
-	Clear();
+	clear();
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpBufferAllocator::Clear()
+void IocpBufferAllocator::clear()
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		delete[] (char*)m_Items[i];
-	m_Items.Clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		delete[] (char*)items_[i];
+	items_.clear();
 }
 
 //-----------------------------------------------------------------------------
 
-PVOID CIocpBufferAllocator::AllocBuffer()
+PVOID IocpBufferAllocator::allocBuffer()
 {
-	CAutoLocker Locker(m_Lock);
-	PVOID pResult;
+	AutoLocker locker(lock_);
+	PVOID result;
 
-	if (!m_Items.IsEmpty())
+	if (!items_.isEmpty())
 	{
-		pResult = m_Items.Last();
-		m_Items.Delete(m_Items.GetCount() - 1);
+		result = items_.last();
+		items_.del(items_.getCount() - 1);
 	}
 	else
 	{
-		pResult = new char[m_nBufferSize];
-		if (pResult == NULL)
-			IseThrowMemoryException();
+		result = new char[bufferSize_];
+		if (result == NULL)
+			iseThrowMemoryException();
 	}
 
-	m_nUsedCount++;
-	return pResult;
+	usedCount_++;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpBufferAllocator::ReturnBuffer(PVOID pBuffer)
+void IocpBufferAllocator::returnBuffer(PVOID buffer)
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	if (pBuffer != NULL && m_Items.IndexOf(pBuffer) == -1)
+	if (buffer != NULL && items_.indexOf(buffer) == -1)
 	{
-		m_Items.Add(pBuffer);
-		m_nUsedCount--;
+		items_.add(buffer);
+		usedCount_--;
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpPendingCounter
+// class IocpPendingCounter
 
-void CIocpPendingCounter::Inc(PVOID pCaller, IOCP_TASK_TYPE nTaskType)
+void IocpPendingCounter::inc(PVOID caller, IOCP_TASK_TYPE taskType)
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	ITEMS::iterator iter = m_Items.find(pCaller);
-	if (iter == m_Items.end())
+	ITEMS::iterator iter = items_.find(caller);
+	if (iter == items_.end())
 	{
 		COUNT_DATA Data = {0, 0};
-		iter = m_Items.insert(std::make_pair(pCaller, Data)).first;
+		iter = items_.insert(std::make_pair(caller, Data)).first;
 	}
 
-	if (nTaskType == ITT_SEND)
-		iter->second.nSendCount++;
-	else if (nTaskType == ITT_RECV)
-		iter->second.nRecvCount++;
+	if (taskType == ITT_SEND)
+		iter->second.sendCount++;
+	else if (taskType == ITT_RECV)
+		iter->second.recvCount++;
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpPendingCounter::Dec(PVOID pCaller, IOCP_TASK_TYPE nTaskType)
+void IocpPendingCounter::dec(PVOID caller, IOCP_TASK_TYPE taskType)
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	ITEMS::iterator iter = m_Items.find(pCaller);
-	if (iter != m_Items.end())
+	ITEMS::iterator iter = items_.find(caller);
+	if (iter != items_.end())
 	{
-		if (nTaskType == ITT_SEND)
-			iter->second.nSendCount--;
-		else if (nTaskType == ITT_RECV)
-			iter->second.nRecvCount--;
+		if (taskType == ITT_SEND)
+			iter->second.sendCount--;
+		else if (taskType == ITT_RECV)
+			iter->second.recvCount--;
 
-		if (iter->second.nSendCount <= 0 && iter->second.nRecvCount <= 0)
-			m_Items.erase(iter);
+		if (iter->second.sendCount <= 0 && iter->second.recvCount <= 0)
+			items_.erase(iter);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-int CIocpPendingCounter::Get(PVOID pCaller)
+int IocpPendingCounter::get(PVOID caller)
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	ITEMS::iterator iter = m_Items.find(pCaller);
-	if (iter == m_Items.end())
+	ITEMS::iterator iter = items_.find(caller);
+	if (iter == items_.end())
 		return 0;
 	else
-		return Max(0, iter->second.nSendCount + iter->second.nRecvCount);
+		return ise::max(0, iter->second.sendCount + iter->second.recvCount);
 }
 
 //-----------------------------------------------------------------------------
 
-int CIocpPendingCounter::Get(IOCP_TASK_TYPE nTaskType)
+int IocpPendingCounter::get(IOCP_TASK_TYPE taskType)
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	int nResult = 0;
-	if (nTaskType == ITT_SEND)
+	int result = 0;
+	if (taskType == ITT_SEND)
 	{
-		for (ITEMS::iterator iter = m_Items.begin(); iter != m_Items.end(); ++iter)
-			nResult += iter->second.nSendCount;
+		for (ITEMS::iterator iter = items_.begin(); iter != items_.end(); ++iter)
+			result += iter->second.sendCount;
 	}
-	else if (nTaskType == ITT_RECV)
+	else if (taskType == ITT_RECV)
 	{
-		for (ITEMS::iterator iter = m_Items.begin(); iter != m_Items.end(); ++iter)
-			nResult += iter->second.nRecvCount;
+		for (ITEMS::iterator iter = items_.begin(); iter != items_.end(); ++iter)
+			result += iter->second.recvCount;
 	}
 
-	return nResult;
+	return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIocpObject
+// class IocpObject
 
-CIocpBufferAllocator CIocpObject::m_BufferAlloc(sizeof(CIocpOverlappedData));
-CSeqNumberAlloc CIocpObject::m_TaskSeqAlloc(0);
-CIocpPendingCounter CIocpObject::m_PendingCounter;
+IocpBufferAllocator IocpObject::bufferAlloc_(sizeof(CIocpOverlappedData));
+SeqNumberAlloc IocpObject::taskSeqAlloc_(0);
+IocpPendingCounter IocpObject::pendingCounter_;
 
 //-----------------------------------------------------------------------------
 
-CIocpObject::CIocpObject() :
-	m_hIocpHandle(0)
+IocpObject::IocpObject() :
+	iocpHandle_(0)
 {
-	Initialize();
+	initialize();
 }
 
 //-----------------------------------------------------------------------------
 
-CIocpObject::~CIocpObject()
+IocpObject::~IocpObject()
 {
-	Finalize();
+	finalize();
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::Initialize()
+void IocpObject::initialize()
 {
-	m_hIocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 1);
-	if (m_hIocpHandle == 0)
-		ThrowGeneralError();
+	iocpHandle_ = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 1);
+	if (iocpHandle_ == 0)
+		throwGeneralError();
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::Finalize()
+void IocpObject::finalize()
 {
-	CloseHandle(m_hIocpHandle);
-	m_hIocpHandle = 0;
+	CloseHandle(iocpHandle_);
+	iocpHandle_ = 0;
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::ThrowGeneralError()
+void IocpObject::throwGeneralError()
 {
-	IseThrowException(FormatString(SEM_IOCP_ERROR, GetLastError()).c_str());
+	iseThrowException(formatString(SEM_IOCP_ERROR, GetLastError()).c_str());
 }
 
 //-----------------------------------------------------------------------------
 
-CIocpOverlappedData* CIocpObject::CreateOverlappedData(IOCP_TASK_TYPE nTaskType,
-	HANDLE hFileHandle, PVOID pBuffer, int nSize, int nOffset,
-	const IOCP_CALLBACK_DEF& CallBackDef, PVOID pCaller, const CCustomParams& Params)
+CIocpOverlappedData* IocpObject::createOverlappedData(IOCP_TASK_TYPE taskType,
+	HANDLE fileHandle, PVOID buffer, int size, int offset,
+	const IOCP_CALLBACK_DEF& callbackDef, PVOID caller, const CustomParams& params)
 {
-	ISE_ASSERT(pBuffer != NULL);
-	ISE_ASSERT(nSize >= 0);
-	ISE_ASSERT(nOffset >= 0);
-	ISE_ASSERT(nOffset < nSize);
+	ISE_ASSERT(buffer != NULL);
+	ISE_ASSERT(size >= 0);
+	ISE_ASSERT(offset >= 0);
+	ISE_ASSERT(offset < size);
 
-	CIocpOverlappedData *pResult = (CIocpOverlappedData*)m_BufferAlloc.AllocBuffer();
-	memset(pResult, 0, sizeof(*pResult));
+	CIocpOverlappedData *result = (CIocpOverlappedData*)bufferAlloc_.allocBuffer();
+	memset(result, 0, sizeof(*result));
 
-	pResult->TaskData.m_hIocpHandle = m_hIocpHandle;
-	pResult->TaskData.m_hFileHandle = hFileHandle;
-	pResult->TaskData.m_nTaskType = nTaskType;
-	pResult->TaskData.m_nTaskSeqNum = m_TaskSeqAlloc.AllocId();
-	pResult->TaskData.m_CallBack = CallBackDef;
-	pResult->TaskData.m_pCaller = pCaller;
-	pResult->TaskData.m_Params = Params;
-	pResult->TaskData.m_pEntireDataBuf = pBuffer;
-	pResult->TaskData.m_nEntireDataSize = nSize;
-	pResult->TaskData.m_WSABuffer.buf = (char*)pBuffer + nOffset;
-	pResult->TaskData.m_WSABuffer.len = nSize - nOffset;
+	result->taskData.iocpHandle_ = iocpHandle_;
+	result->taskData.fileHandle_ = fileHandle;
+	result->taskData.taskType_ = taskType;
+	result->taskData.taskSeqNum_ = taskSeqAlloc_.allocId();
+	result->taskData.callback_ = callbackDef;
+	result->taskData.caller_ = caller;
+	result->taskData.params_ = params;
+	result->taskData.entireDataBuf_ = buffer;
+	result->taskData.entireDataSize_ = size;
+	result->taskData.wsaBuffer_.buf = (char*)buffer + offset;
+	result->taskData.wsaBuffer_.len = size - offset;
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::DestroyOverlappedData(CIocpOverlappedData *pOvDataPtr)
+void IocpObject::destroyOverlappedData(CIocpOverlappedData *ovDataPtr)
 {
-	m_BufferAlloc.ReturnBuffer(pOvDataPtr);
+	bufferAlloc_.returnBuffer(ovDataPtr);
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::PostError(int nErrorCode, CIocpOverlappedData *pOvDataPtr)
+void IocpObject::postError(int errorCode, CIocpOverlappedData *ovDataPtr)
 {
-	pOvDataPtr->TaskData.m_nErrorCode = nErrorCode;
-	::PostQueuedCompletionStatus(m_hIocpHandle, 0, 0, LPOVERLAPPED(pOvDataPtr));
+	ovDataPtr->taskData.errorCode_ = errorCode;
+	::PostQueuedCompletionStatus(iocpHandle_, 0, 0, LPOVERLAPPED(ovDataPtr));
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::InvokeCallBack(const CIocpTaskData& TaskData)
+void IocpObject::invokeCallback(const IocpTaskData& taskData)
 {
-	const IOCP_CALLBACK_DEF& CallBackDef = TaskData.GetCallBack();
-	if (CallBackDef.pProc != NULL)
-		CallBackDef.pProc(TaskData, CallBackDef.pParam);
+	const IOCP_CALLBACK_DEF& callbackDef = taskData.getCallback();
+	if (callbackDef.proc != NULL)
+		callbackDef.proc(taskData, callbackDef.param);
 }
 
 //-----------------------------------------------------------------------------
 
-bool CIocpObject::AssociateHandle(SOCKET hSocketHandle)
+bool IocpObject::associateHandle(SOCKET socketHandle)
 {
-	HANDLE h = ::CreateIoCompletionPort((HANDLE)hSocketHandle, m_hIocpHandle, 0, 0);
+	HANDLE h = ::CreateIoCompletionPort((HANDLE)socketHandle, iocpHandle_, 0, 0);
 	return (h != 0);
 }
 
 //-----------------------------------------------------------------------------
 
-bool CIocpObject::IsComplete(PVOID pCaller)
+bool IocpObject::isComplete(PVOID caller)
 {
-	return (m_PendingCounter.Get(pCaller) <= 0);
+	return (pendingCounter_.get(caller) <= 0);
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::Work()
+void IocpObject::work()
 {
 	const int IOCP_WAIT_TIMEOUT = 1000*1;  // ms
 
-	CIocpOverlappedData *pOverlappedPtr = NULL;
-	DWORD nBytesTransferred = 0, nTemp = 0;
-	int nErrorCode = 0;
+	CIocpOverlappedData *overlappedPtr = NULL;
+	DWORD bytesTransferred = 0, nTemp = 0;
+	int errorCode = 0;
 
-	struct CAutoFinalizer
+	struct AutoFinalizer
 	{
 	private:
-		CIocpObject& m_IocpObject;
-		CIocpOverlappedData*& m_pOvPtr;
+		IocpObject& iocpObject_;
+		CIocpOverlappedData*& ovPtr_;
 	public:
-		CAutoFinalizer(CIocpObject& IocpObject, CIocpOverlappedData*& pOvPtr) :
-			m_IocpObject(IocpObject), m_pOvPtr(pOvPtr) {}
-		~CAutoFinalizer()
+		AutoFinalizer(IocpObject& iocpObject, CIocpOverlappedData*& ovPtr) :
+			iocpObject_(iocpObject), ovPtr_(ovPtr) {}
+		~AutoFinalizer()
 		{
-			if (m_pOvPtr)
+			if (ovPtr_)
 			{
-				m_IocpObject.m_PendingCounter.Dec(
-					m_pOvPtr->TaskData.GetCaller(),
-					m_pOvPtr->TaskData.GetTaskType());
-				m_IocpObject.DestroyOverlappedData(m_pOvPtr);
+				iocpObject_.pendingCounter_.dec(
+					ovPtr_->taskData.getCaller(),
+					ovPtr_->taskData.getTaskType());
+				iocpObject_.destroyOverlappedData(ovPtr_);
 			}
 		}
-	} AutoFinalizer(*this, pOverlappedPtr);
+	} autoFinalizer(*this, overlappedPtr);
 
 	/*
 	FROM MSDN:
@@ -899,139 +899,139 @@ void CIocpObject::Work()
 	ERROR_SUCCESS (0), with *lpOverlapped non-NULL and lpNumberOfBytes equal zero.
 	*/
 
-	if (::GetQueuedCompletionStatus(m_hIocpHandle, &nBytesTransferred, &nTemp,
-		(LPOVERLAPPED*)&pOverlappedPtr, IOCP_WAIT_TIMEOUT))
+	if (::GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &nTemp,
+		(LPOVERLAPPED*)&overlappedPtr, IOCP_WAIT_TIMEOUT))
 	{
-		if (pOverlappedPtr != NULL && nBytesTransferred == 0)
+		if (overlappedPtr != NULL && bytesTransferred == 0)
 		{
-			nErrorCode = pOverlappedPtr->TaskData.GetErrorCode();
-			if (nErrorCode == 0)
-				nErrorCode = GetLastError();
-			if (nErrorCode == 0)
-				nErrorCode = SOCKET_ERROR;
+			errorCode = overlappedPtr->taskData.getErrorCode();
+			if (errorCode == 0)
+				errorCode = GetLastError();
+			if (errorCode == 0)
+				errorCode = SOCKET_ERROR;
 		}
 	}
 	else
 	{
-		if (pOverlappedPtr != NULL)
-			nErrorCode = GetLastError();
+		if (overlappedPtr != NULL)
+			errorCode = GetLastError();
 		else
 		{
 			if (GetLastError() != WAIT_TIMEOUT)
-				ThrowGeneralError();
+				throwGeneralError();
 		}
 	}
 
-	if (pOverlappedPtr != NULL)
+	if (overlappedPtr != NULL)
 	{
-		CIocpTaskData *pTaskPtr = &pOverlappedPtr->TaskData;
-		pTaskPtr->m_nBytesTrans = nBytesTransferred;
-		if (pTaskPtr->m_nErrorCode == 0)
-			pTaskPtr->m_nErrorCode = nErrorCode;
+		IocpTaskData *taskPtr = &overlappedPtr->taskData;
+		taskPtr->bytesTrans_ = bytesTransferred;
+		if (taskPtr->errorCode_ == 0)
+			taskPtr->errorCode_ = errorCode;
 
-		InvokeCallBack(*pTaskPtr);
+		invokeCallback(*taskPtr);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::Wakeup()
+void IocpObject::wakeup()
 {
-	::PostQueuedCompletionStatus(m_hIocpHandle, 0, 0, NULL);
+	::PostQueuedCompletionStatus(iocpHandle_, 0, 0, NULL);
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::Send(SOCKET hSocketHandle, PVOID pBuffer, int nSize, int nOffset,
-	const IOCP_CALLBACK_DEF& CallBackDef, PVOID pCaller, const CCustomParams& Params)
+void IocpObject::send(SOCKET socketHandle, PVOID buffer, int size, int offset,
+	const IOCP_CALLBACK_DEF& callbackDef, PVOID caller, const CustomParams& params)
 {
-	CIocpOverlappedData *pOvDataPtr;
-	CIocpTaskData *pTaskPtr;
-	DWORD nNumberOfBytesSent;
+	CIocpOverlappedData *ovDataPtr;
+	IocpTaskData *taskPtr;
+	DWORD numberOfBytesSent;
 
-	m_PendingCounter.Inc(pCaller, ITT_SEND);
+	pendingCounter_.inc(caller, ITT_SEND);
 
-	pOvDataPtr = CreateOverlappedData(ITT_SEND, (HANDLE)hSocketHandle, pBuffer, nSize,
-		nOffset, CallBackDef, pCaller, Params);
-	pTaskPtr = &(pOvDataPtr->TaskData);
+	ovDataPtr = createOverlappedData(ITT_SEND, (HANDLE)socketHandle, buffer, size,
+		offset, callbackDef, caller, params);
+	taskPtr = &(ovDataPtr->taskData);
 
-	if (::WSASend(hSocketHandle, &pTaskPtr->m_WSABuffer, 1, &nNumberOfBytesSent, 0,
-		(LPWSAOVERLAPPED)pOvDataPtr, NULL) == SOCKET_ERROR)
+	if (::WSASend(socketHandle, &taskPtr->wsaBuffer_, 1, &numberOfBytesSent, 0,
+		(LPWSAOVERLAPPED)ovDataPtr, NULL) == SOCKET_ERROR)
 	{
 		if (GetLastError() != ERROR_IO_PENDING)
-			PostError(GetLastError(), pOvDataPtr);
+			postError(GetLastError(), ovDataPtr);
 	}
 }
 
 //-----------------------------------------------------------------------------
 
-void CIocpObject::Recv(SOCKET hSocketHandle, PVOID pBuffer, int nSize, int nOffset,
-	const IOCP_CALLBACK_DEF& CallBackDef, PVOID pCaller, const CCustomParams& Params)
+void IocpObject::recv(SOCKET socketHandle, PVOID buffer, int size, int offset,
+	const IOCP_CALLBACK_DEF& callbackDef, PVOID caller, const CustomParams& params)
 {
-	CIocpOverlappedData *pOvDataPtr;
-	CIocpTaskData *pTaskPtr;
-	DWORD nNumberOfBytesRecvd, nFlags = 0;
+	CIocpOverlappedData *ovDataPtr;
+	IocpTaskData *taskPtr;
+	DWORD nNumberOfBytesRecvd, flags = 0;
 
-	m_PendingCounter.Inc(pCaller, ITT_RECV);
+	pendingCounter_.inc(caller, ITT_RECV);
 
-	pOvDataPtr = CreateOverlappedData(ITT_RECV, (HANDLE)hSocketHandle, pBuffer, nSize,
-		nOffset, CallBackDef, pCaller, Params);
-	pTaskPtr = &(pOvDataPtr->TaskData);
+	ovDataPtr = createOverlappedData(ITT_RECV, (HANDLE)socketHandle, buffer, size,
+		offset, callbackDef, caller, params);
+	taskPtr = &(ovDataPtr->taskData);
 
-	if (::WSARecv(hSocketHandle, &pTaskPtr->m_WSABuffer, 1, &nNumberOfBytesRecvd, &nFlags,
-		(LPWSAOVERLAPPED)pOvDataPtr, NULL) == SOCKET_ERROR)
+	if (::WSARecv(socketHandle, &taskPtr->wsaBuffer_, 1, &nNumberOfBytesRecvd, &flags,
+		(LPWSAOVERLAPPED)ovDataPtr, NULL) == SOCKET_ERROR)
 	{
 		if (GetLastError() != ERROR_IO_PENDING)
-			PostError(GetLastError(), pOvDataPtr);
+			postError(GetLastError(), ovDataPtr);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoop
+// class TcpEventLoop
 
-CTcpEventLoop::CTcpEventLoop()
+TcpEventLoop::TcpEventLoop()
 {
-	m_pIocpObject = new CIocpObject();
+	iocpObject_ = new IocpObject();
 }
 
-CTcpEventLoop::~CTcpEventLoop()
+TcpEventLoop::~TcpEventLoop()
 {
-	Stop(false, true);
-	delete m_pIocpObject;
+	stop(false, true);
+	delete iocpObject_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 执行事件循环
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::ExecuteLoop(CThread *pThread)
+void TcpEventLoop::executeLoop(Thread *thread)
 {
-	while (!pThread->GetTerminated())
+	while (!thread->isTerminated())
 	{
-		m_pIocpObject->Work();
-		ProcessAcceptedConnList();
+		iocpObject_->work();
+		processAcceptedConnList();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 唤醒事件循环中的阻塞操作
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::WakeupLoop()
+void TcpEventLoop::wakeupLoop()
 {
-	m_pIocpObject->Wakeup();
+	iocpObject_->wakeup();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 将新连接注册到事件循环中
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::RegisterConnection(CTcpConnection *pConnection)
+void TcpEventLoop::registerConnection(TcpConnection *connection)
 {
-	m_pIocpObject->AssociateHandle(pConnection->GetSocket().GetHandle());
+	iocpObject_->associateHandle(connection->getSocket().getHandle());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从事件循环中注销连接
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::UnregisterConnection(CTcpConnection *pConnection)
+void TcpEventLoop::unregisterConnection(TcpConnection *connection)
 {
 	// nothing
 }
@@ -1046,80 +1046,80 @@ void CTcpEventLoop::UnregisterConnection(CTcpConnection *pConnection)
 #ifdef ISE_LINUX
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpConnection
+// class TcpConnection
 
-CTcpConnection::CTcpConnection(CTcpServer *pTcpServer,
-	SOCKET nSocketHandle, const CPeerAddress& PeerAddr) :
-		CBaseTcpConnection(nSocketHandle, PeerAddr),
-		m_pTcpServer(pTcpServer),
-		m_pEventLoop(NULL),
-		m_nBytesSent(0),
-		m_bEnableSend(false),
-		m_bEnableRecv(false)
+TcpConnection::TcpConnection(TcpServer *tcpServer,
+	SOCKET socketHandle, const InetAddress& peerAddr) :
+		BaseTcpConnection(socketHandle, peerAddr),
+		tcpServer_(tcpServer),
+		eventLoop_(NULL),
+		bytesSent_(0),
+		enableSend_(false),
+		enableRecv_(false)
 {
 	// nothing
 }
 
-CTcpConnection::~CTcpConnection()
+TcpConnection::~TcpConnection()
 {
-	SetEventLoop(NULL);
+	setEventLoop(NULL);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置“是否监视可发送事件”
 //-----------------------------------------------------------------------------
-void CTcpConnection::SetSendEnabled(bool bEnabled)
+void TcpConnection::setSendEnabled(bool enabled)
 {
-	ISE_ASSERT(m_pEventLoop != NULL);
+	ISE_ASSERT(eventLoop_ != NULL);
 
-	m_bEnableSend = bEnabled;
-	m_pEventLoop->UpdateConnection(this, m_bEnableSend, m_bEnableRecv);
+	enableSend_ = enabled;
+	eventLoop_->updateConnection(this, enableSend_, enableRecv_);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置“是否监视可接收事件”
 //-----------------------------------------------------------------------------
-void CTcpConnection::SetRecvEnabled(bool bEnabled)
+void TcpConnection::setRecvEnabled(bool enabled)
 {
-	ISE_ASSERT(m_pEventLoop != NULL);
+	ISE_ASSERT(eventLoop_ != NULL);
 
-	m_bEnableRecv = bEnabled;
-	m_pEventLoop->UpdateConnection(this, m_bEnableSend, m_bEnableRecv);
+	enableRecv_ = enabled;
+	eventLoop_->updateConnection(this, enableSend_, enableRecv_);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 当“可发送”事件到来时，尝试发送数据
 //-----------------------------------------------------------------------------
-void CTcpConnection::TrySend()
+void TcpConnection::trySend()
 {
-	int nReadableBytes = m_SendBuffer.GetReadableBytes();
-	if (nReadableBytes <= 0)
+	int readableBytes = sendBuffer_.getReadableBytes();
+	if (readableBytes <= 0)
 	{
-		SetSendEnabled(false);
+		setSendEnabled(false);
 		return;
 	}
 
-	const char *pBuffer = m_SendBuffer.Peek();
-	int nBytesSent = SendBuffer((void*)pBuffer, nReadableBytes, false);
-	if (nBytesSent < 0)
+	const char *buffer = sendBuffer_.peek();
+	int bytesSent = sendBuffer((void*)buffer, readableBytes, false);
+	if (bytesSent < 0)
 	{
-		ErrorOccurred();
+		errorOccurred();
 		return;
 	}
 
-	if (nBytesSent > 0)
+	if (bytesSent > 0)
 	{
-		m_SendBuffer.Retrieve(nBytesSent);
-		m_nBytesSent += nBytesSent;
+		sendBuffer_.retrieve(bytesSent);
+		bytesSent_ += bytesSent;
 
-		while (!m_SendTaskQueue.empty())
+		while (!sendTaskQueue_.empty())
 		{
-			const SEND_TASK& Task = m_SendTaskQueue.front();
-			if (m_nBytesSent >= Task.nBytes)
+			const SEND_TASK& task = sendTaskQueue_.front();
+			if (bytesSent_ >= task.bytes)
 			{
-				m_nBytesSent -= Task.nBytes;
-				pIseBusiness->OnTcpSendComplete(this, Task.Params);
-				m_SendTaskQueue.pop_front();
+				bytesSent_ -= task.bytes;
+				iseBusiness->onTcpSendComplete(this, task.params);
+				sendTaskQueue_.pop_front();
 			}
 			else
 				break;
@@ -1130,41 +1130,41 @@ void CTcpConnection::TrySend()
 //-----------------------------------------------------------------------------
 // 描述: 当“可接收”事件到来时，尝试接收数据
 //-----------------------------------------------------------------------------
-void CTcpConnection::TryRecv()
+void TcpConnection::tryRecv()
 {
-	if (m_RecvTaskQueue.empty())
+	if (recvTaskQueue_.empty())
 	{
-		SetRecvEnabled(false);
+		setRecvEnabled(false);
 		return;
 	}
 
 	const int BUFFER_SIZE = 1024*64;
-	char cBuffer[BUFFER_SIZE];
+	char dataBuf[BUFFER_SIZE];
 
-	int nBytesRecved = RecvBuffer(cBuffer, BUFFER_SIZE, false);
+	int nBytesRecved = recvBuffer(dataBuf, BUFFER_SIZE, false);
 	if (nBytesRecved < 0)
 	{
-		ErrorOccurred();
+		errorOccurred();
 		return;
 	}
 
 	if (nBytesRecved > 0)
-		m_RecvBuffer.Append(cBuffer, nBytesRecved);
+		recvBuffer_.append(dataBuf, nBytesRecved);
 
-	while (!m_RecvTaskQueue.empty())
+	while (!recvTaskQueue_.empty())
 	{
-		RECV_TASK& Task = m_RecvTaskQueue.front();
-		const char *pBuffer = m_RecvBuffer.Peek();
-		int nReadableBytes = m_RecvBuffer.GetReadableBytes();
-		int nPacketSize = 0;
+		RECV_TASK& task = recvTaskQueue_.front();
+		const char *buffer = recvBuffer_.peek();
+		int readableBytes = recvBuffer_.getReadableBytes();
+		int packetSize = 0;
 
-		if (nReadableBytes > 0 &&
-			Task.pPacketMeasurer->IsCompletePacket(pBuffer, nReadableBytes, nPacketSize) &&
-			nPacketSize > 0)
+		if (readableBytes > 0 &&
+			task.packetMeasurer->isCompletePacket(buffer, readableBytes, packetSize) &&
+			packetSize > 0)
 		{
-			pIseBusiness->OnTcpRecvComplete(this, (void*)pBuffer, nPacketSize, Task.Params);
-			m_RecvTaskQueue.pop_front();
-			m_RecvBuffer.Retrieve(nPacketSize);
+			iseBusiness->onTcpRecvComplete(this, (void*)buffer, packetSize, task.params);
+			recvTaskQueue_.pop_front();
+			recvBuffer_.retrieve(packetSize);
 		}
 		else
 			break;
@@ -1174,189 +1174,189 @@ void CTcpConnection::TryRecv()
 //-----------------------------------------------------------------------------
 // 描述: 发生错误
 //-----------------------------------------------------------------------------
-void CTcpConnection::ErrorOccurred()
+void TcpConnection::errorOccurred()
 {
-	SetEventLoop(NULL);
-	pIseBusiness->OnTcpError(this);
+	setEventLoop(NULL);
+	iseBusiness->onTcpError(this);
 	delete this;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置此连接从属于哪个 EventLoop
+// 描述: 设置此连接从属于哪个 eventLoop
 //-----------------------------------------------------------------------------
-void CTcpConnection::SetEventLoop(CTcpEventLoop *pEventLoop)
+void TcpConnection::setEventLoop(TcpEventLoop *eventLoop)
 {
-	if (m_pEventLoop)
+	if (eventLoop_)
 	{
-		m_pEventLoop->RemoveConnection(this);
-		m_pEventLoop = NULL;
+		eventLoop_->removeConnection(this);
+		eventLoop_ = NULL;
 	}
 
-	if (pEventLoop)
+	if (eventLoop)
 	{
-		m_pEventLoop = pEventLoop;
-		pEventLoop->AddConnection(this);
+		eventLoop_ = eventLoop;
+		eventLoop->addConnection(this);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开连接
 //-----------------------------------------------------------------------------
-void CTcpConnection::DoDisconnect()
+void TcpConnection::doDisconnect()
 {
-	SetEventLoop(NULL);
-	CBaseTcpConnection::DoDisconnect();
+	setEventLoop(NULL);
+	BaseTcpConnection::doDisconnect();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 提交一个发送任务
 //-----------------------------------------------------------------------------
-void CTcpConnection::PostSendTask(char *pBuffer, int nSize, const CCustomParams& Params)
+void TcpConnection::postSendTask(char *buffer, int size, const CustomParams& params)
 {
-	if (!pBuffer || nSize <= 0) return;
+	if (!buffer || size <= 0) return;
 
-	m_SendBuffer.Append(pBuffer, nSize);
+	sendBuffer_.append(buffer, size);
 
-	SEND_TASK Task;
-	Task.nBytes = nSize;
-	Task.Params = Params;
+	SEND_TASK task;
+	task.bytes = size;
+	task.params = params;
 
-	m_SendTaskQueue.push_back(Task);
+	sendTaskQueue_.push_back(task);
 
-	if (!m_bEnableSend)
-		SetSendEnabled(true);
+	if (!enableSend_)
+		setSendEnabled(true);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 提交一个接收任务
 //-----------------------------------------------------------------------------
-void CTcpConnection::PostRecvTask(CPacketMeasurer *pPacketMeasurer, const CCustomParams& Params)
+void TcpConnection::postRecvTask(PacketMeasurer *packetMeasurer, const CustomParams& params)
 {
-	if (!pPacketMeasurer) return;
+	if (!packetMeasurer) return;
 
-	RECV_TASK Task;
-	Task.pPacketMeasurer = pPacketMeasurer;
-	Task.Params = Params;
+	RECV_TASK task;
+	task.packetMeasurer = packetMeasurer;
+	task.params = params;
 
-	m_RecvTaskQueue.push_back(Task);
+	recvTaskQueue_.push_back(task);
 
-	if (!m_bEnableRecv)
-		SetRecvEnabled(true);
+	if (!enableRecv_)
+		setRecvEnabled(true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CEpollObject
+// class EpollObject
 
-CEpollObject::CEpollObject()
+EpollObject::EpollObject()
 {
-	m_Events.resize(INITIAL_EVENT_SIZE);
-	CreateEpoll();
-	CreatePipe();
+	events_.resize(INITIAL_EVENT_SIZE);
+	createEpoll();
+	createPipe();
 }
 
-CEpollObject::~CEpollObject()
+EpollObject::~EpollObject()
 {
-	DestroyPipe();
-	DestroyEpoll();
-}
-
-//-----------------------------------------------------------------------------
-
-void CEpollObject::CreateEpoll()
-{
-	m_nEpollFd = ::epoll_create(1024);
-	if (m_nEpollFd < 0)
-		Logger().WriteStr(SEM_CREATE_EPOLL_ERROR);
+	destroyPipe();
+	destroyEpoll();
 }
 
 //-----------------------------------------------------------------------------
 
-void CEpollObject::DestroyEpoll()
+void EpollObject::createEpoll()
 {
-	if (m_nEpollFd > 0)
-		::close(m_nEpollFd);
+	epollFd_ = ::epoll_create(1024);
+	if (epollFd_ < 0)
+		logger().writeStr(SEM_CREATE_EPOLL_ERROR);
 }
 
 //-----------------------------------------------------------------------------
 
-void CEpollObject::CreatePipe()
+void EpollObject::destroyEpoll()
 {
-	// m_PipeFds[0] for reading, m_PipeFds[1] for writing.
-	memset(m_PipeFds, 0, sizeof(m_PipeFds));
-	if (::pipe(m_PipeFds) == 0)
-		EpollControl(EPOLL_CTL_ADD, NULL, m_PipeFds[0], false, true);
+	if (epollFd_ > 0)
+		::close(epollFd_);
+}
+
+//-----------------------------------------------------------------------------
+
+void EpollObject::createPipe()
+{
+	// pipeFds_[0] for reading, pipeFds_[1] for writing.
+	memset(pipeFds_, 0, sizeof(pipeFds_));
+	if (::pipe(pipeFds_) == 0)
+		epollControl(EPOLL_CTL_ADD, NULL, pipeFds_[0], false, true);
 	else
-		Logger().WriteStr(SEM_CREATE_PIPE_ERROR);
+		logger().writeStr(SEM_CREATE_PIPE_ERROR);
 }
 
 //-----------------------------------------------------------------------------
 
-void CEpollObject::DestroyPipe()
+void EpollObject::destroyPipe()
 {
-	EpollControl(EPOLL_CTL_DEL, NULL, m_PipeFds[0], false, false);
+	epollControl(EPOLL_CTL_DEL, NULL, pipeFds_[0], false, false);
 
-	if (m_PipeFds[0]) close(m_PipeFds[0]);
-	if (m_PipeFds[1]) close(m_PipeFds[1]);
+	if (pipeFds_[0]) close(pipeFds_[0]);
+	if (pipeFds_[1]) close(pipeFds_[1]);
 
-	memset(m_PipeFds, 0, sizeof(m_PipeFds));
+	memset(pipeFds_, 0, sizeof(pipeFds_));
 }
 
 //-----------------------------------------------------------------------------
 
-void CEpollObject::EpollControl(int nOperation, void *pParam, int nHandle,
-	bool bEnableSend, bool bEnableRecv)
+void EpollObject::epollControl(int operation, void *param, int handle,
+	bool enableSend, bool enableRecv)
 {
 	// 注: 采用 Level Triggered (LT, 也称 "电平触发") 模式
 
 	struct epoll_event event;
 	memset(&event, 0, sizeof(event));
-	event.data.ptr = pParam;
-	if (bEnableSend)
+	event.data.ptr = param;
+	if (enableSend)
 		event.events |= EPOLLOUT;
-	if (bEnableRecv)
+	if (enableRecv)
 		event.events |= (EPOLLIN | EPOLLPRI);
 
-	if (::epoll_ctl(m_nEpollFd, nOperation, nHandle, &event) < 0)
+	if (::epoll_ctl(epollFd_, operation, handle, &event) < 0)
 	{
-		Logger().WriteFmt(SEM_EPOLL_CTRL_ERROR, nOperation);
+		logger().writeFmt(SEM_EPOLL_CTRL_ERROR, operation);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 处理管道事件
 //-----------------------------------------------------------------------------
-void CEpollObject::ProcessPipeEvent()
+void EpollObject::processPipeEvent()
 {
 	BYTE val;
-	::read(m_PipeFds[0], &val, sizeof(BYTE));
+	::read(pipeFds_[0], &val, sizeof(BYTE));
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 处理 EPoll 轮循后的事件
 //-----------------------------------------------------------------------------
-void CEpollObject::ProcessEvents(int nEventCount)
+void EpollObject::processEvents(int eventCount)
 {
-	for (int i = 0; i < nEventCount; i++)
+	for (int i = 0; i < eventCount; i++)
 	{
-		epoll_event& ev = m_Events[i];
+		epoll_event& ev = events_[i];
 		if (ev.data.ptr == NULL)  // for pipe
 		{
-			ProcessPipeEvent();
+			processPipeEvent();
 		}
 		else
 		{
-			CTcpConnection *pConnection = (CTcpConnection*)ev.data.ptr;
-			EVENT_TYPE nEventType = ET_NONE;
+			TcpConnection *connection = (TcpConnection*)ev.data.ptr;
+			EVENT_TYPE eventType = ET_NONE;
 
 			if (ev.events & (EPOLLERR | EPOLLHUP))
-				nEventType = ET_ERROR;
+				eventType = ET_ERROR;
 			else if (ev.events & (EPOLLIN | EPOLLPRI))
-				nEventType = ET_ALLOW_RECV;
+				eventType = ET_ALLOW_RECV;
 			else if (ev.events & EPOLLOUT)
-				nEventType = ET_ALLOW_SEND;
+				eventType = ET_ALLOW_SEND;
 
-			if (nEventType != ET_NONE && m_OnNotifyEvent.pProc)
-				m_OnNotifyEvent.pProc(m_OnNotifyEvent.pParam, pConnection, nEventType);
+			if (eventType != ET_NONE && onNotifyEvent_.proc)
+				onNotifyEvent_.proc(onNotifyEvent_.param, connection, eventType);
 		}
 	}
 }
@@ -1364,143 +1364,143 @@ void CEpollObject::ProcessEvents(int nEventCount)
 //-----------------------------------------------------------------------------
 // 描述: 执行一次 EPoll 轮循
 //-----------------------------------------------------------------------------
-void CEpollObject::Poll()
+void EpollObject::poll()
 {
 	const int EPOLL_WAIT_TIMEOUT = 1000*1;  // ms
 
-	int nEventCount = ::epoll_wait(m_nEpollFd, &m_Events[0], (int)m_Events.size(), EPOLL_WAIT_TIMEOUT);
-	if (nEventCount > 0)
+	int eventCount = ::epoll_wait(epollFd_, &events_[0], (int)events_.size(), EPOLL_WAIT_TIMEOUT);
+	if (eventCount > 0)
 	{
-		ProcessEvents(nEventCount);
+		processEvents(eventCount);
 
-		if (nEventCount == (int)m_Events.size())
-			m_Events.resize(nEventCount * 2);
+		if (eventCount == (int)events_.size())
+			events_.resize(eventCount * 2);
 	}
-	else if (nEventCount < 0)
+	else if (eventCount < 0)
 	{
-		Logger().WriteStr(SEM_EPOLL_WAIT_ERROR);
+		logger().writeStr(SEM_EPOLL_WAIT_ERROR);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 唤醒正在阻塞的 Poll() 函数
 //-----------------------------------------------------------------------------
-void CEpollObject::Wakeup()
+void EpollObject::wakeup()
 {
 	BYTE val = 0;
-	::write(m_PipeFds[1], &val, sizeof(BYTE));
+	::write(pipeFds_[1], &val, sizeof(BYTE));
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 向 EPoll 中添加一个连接
 //-----------------------------------------------------------------------------
-void CEpollObject::AddConnection(CTcpConnection *pConnection, bool bEnableSend, bool bEnableRecv)
+void EpollObject::addConnection(TcpConnection *connection, bool enableSend, bool enableRecv)
 {
-	EpollControl(
-		EPOLL_CTL_ADD, pConnection, pConnection->GetSocket().GetHandle(),
-		bEnableSend, bEnableRecv);
+	epollControl(
+		EPOLL_CTL_ADD, connection, connection->getSocket().getHandle(),
+		enableSend, enableRecv);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 更新 EPoll 中的一个连接
 //-----------------------------------------------------------------------------
-void CEpollObject::UpdateConnection(CTcpConnection *pConnection, bool bEnableSend, bool bEnableRecv)
+void EpollObject::updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv)
 {
-	EpollControl(
-		EPOLL_CTL_MOD, pConnection, pConnection->GetSocket().GetHandle(),
-		bEnableSend, bEnableRecv);
+	epollControl(
+		EPOLL_CTL_MOD, connection, connection->getSocket().getHandle(),
+		enableSend, enableRecv);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从 EPoll 中删除一个连接
 //-----------------------------------------------------------------------------
-void CEpollObject::RemoveConnection(CTcpConnection *pConnection)
+void EpollObject::removeConnection(TcpConnection *connection)
 {
-	EpollControl(
-		EPOLL_CTL_DEL, pConnection, pConnection->GetSocket().GetHandle(),
+	epollControl(
+		EPOLL_CTL_DEL, connection, connection->getSocket().getHandle(),
 		false, false);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置回调
 //-----------------------------------------------------------------------------
-void CEpollObject::SetOnNotifyEventCallBack(NOTIFY_EVENT_PROC pProc, void *pParam)
+void EpollObject::setOnNotifyEventCallback(NOTIFY_EVENT_PROC proc, void *param)
 {
-	m_OnNotifyEvent.pProc = pProc;
-	m_OnNotifyEvent.pParam = pParam;
+	onNotifyEvent_.proc = proc;
+	onNotifyEvent_.param = param;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CTcpEventLoop
+// class TcpEventLoop
 
-CTcpEventLoop::CTcpEventLoop()
+TcpEventLoop::TcpEventLoop()
 {
-	m_pEpollObject = new CEpollObject();
-	m_pEpollObject->SetOnNotifyEventCallBack(OnEpollNotifyEvent, this);
+	epollObject_ = new EpollObject();
+	epollObject_->setOnNotifyEventCallback(onEpollNotifyEvent, this);
 }
 
-CTcpEventLoop::~CTcpEventLoop()
+TcpEventLoop::~TcpEventLoop()
 {
-	Stop(false, true);
-	delete m_pEpollObject;
+	stop(false, true);
+	delete epollObject_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: EPoll 事件回调
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::OnEpollNotifyEvent(void *pParam, CTcpConnection *pConnection,
-	CEpollObject::EVENT_TYPE nEventType)
+void TcpEventLoop::onEpollNotifyEvent(void *param, TcpConnection *connection,
+	EpollObject::EVENT_TYPE eventType)
 {
-	if (nEventType == CEpollObject::ET_ALLOW_SEND)
-		pConnection->TrySend();
-	else if (nEventType == CEpollObject::ET_ALLOW_RECV)
-		pConnection->TryRecv();
-	else if (nEventType == CEpollObject::ET_ERROR)
-		pConnection->ErrorOccurred();
+	if (eventType == EpollObject::ET_ALLOW_SEND)
+		connection->trySend();
+	else if (eventType == EpollObject::ET_ALLOW_RECV)
+		connection->tryRecv();
+	else if (eventType == EpollObject::ET_ERROR)
+		connection->errorOccurred();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 执行事件循环
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::ExecuteLoop(CThread *pThread)
+void TcpEventLoop::executeLoop(Thread *thread)
 {
-	while (!pThread->GetTerminated())
+	while (!thread->isTerminated())
 	{
-		m_pEpollObject->Poll();
-		ProcessAcceptedConnList();
+		epollObject_->poll();
+		processAcceptedConnList();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 唤醒事件循环中的阻塞操作
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::WakeupLoop()
+void TcpEventLoop::wakeupLoop()
 {
-	m_pEpollObject->Wakeup();
+	epollObject_->wakeup();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 将新连接注册到事件循环中
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::RegisterConnection(CTcpConnection *pConnection)
+void TcpEventLoop::registerConnection(TcpConnection *connection)
 {
-	m_pEpollObject->AddConnection(pConnection, false, false);
+	epollObject_->addConnection(connection, false, false);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从事件循环中注销连接
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::UnregisterConnection(CTcpConnection *pConnection)
+void TcpEventLoop::unregisterConnection(TcpConnection *connection)
 {
-	m_pEpollObject->RemoveConnection(pConnection);
+	epollObject_->removeConnection(connection);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 更新此 EventLoop 中的指定连接的设置
+// 描述: 更新此 eventLoop 中的指定连接的设置
 //-----------------------------------------------------------------------------
-void CTcpEventLoop::UpdateConnection(CTcpConnection *pConnection, bool bEnableSend, bool bEnableRecv)
+void TcpEventLoop::updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv)
 {
-	m_pEpollObject->UpdateConnection(pConnection, bEnableSend, bEnableRecv);
+	epollObject_->updateConnection(connection, enableSend, enableRecv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1508,123 +1508,123 @@ void CTcpEventLoop::UpdateConnection(CTcpConnection *pConnection, bool bEnableSe
 #endif  /* ifdef ISE_LINUX */
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMainTcpServer
+// class MainTcpServer
 
-CMainTcpServer::CMainTcpServer() :
-	m_EventLoopList(IseApplication.GetIseOptions().GetTcpEventLoopCount()),
-	m_bActive(false)
+MainTcpServer::MainTcpServer() :
+	eventLoopList_(iseApplication.getIseOptions().getTcpEventLoopCount()),
+	isActive_(false)
 {
-	CreateTcpServerList();
+	createTcpServerList();
 }
 
-CMainTcpServer::~CMainTcpServer()
+MainTcpServer::~MainTcpServer()
 {
-	Close();
-	DestroyTcpServerList();
+	close();
+	destroyTcpServerList();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建TCP服务器
 //-----------------------------------------------------------------------------
-void CMainTcpServer::CreateTcpServerList()
+void MainTcpServer::createTcpServerList()
 {
-	int nServerCount = IseApplication.GetIseOptions().GetTcpServerCount();
-	ISE_ASSERT(nServerCount >= 0);
+	int serverCount = iseApplication.getIseOptions().getTcpServerCount();
+	ISE_ASSERT(serverCount >= 0);
 
-	m_TcpServerList.resize(nServerCount);
-	for (int i = 0; i < nServerCount; i++)
+	tcpServerList_.resize(serverCount);
+	for (int i = 0; i < serverCount; i++)
 	{
-		CTcpServer *pTcpServer = new CTcpServer();
-		pTcpServer->CustomData() = (PVOID)i;
+		TcpServer *tcpServer = new TcpServer();
+		tcpServer->customData() = (PVOID)i;
 
-		m_TcpServerList[i] = pTcpServer;
+		tcpServerList_[i] = tcpServer;
 
-		pTcpServer->SetOnCreateConnCallBack(OnCreateConnection, this);
-		pTcpServer->SetOnAcceptConnCallBack(OnAcceptConnection, this);
+		tcpServer->setOnCreateConnCallback(onCreateConnection, this);
+		tcpServer->setOnAcceptConnCallback(onAcceptConnection, this);
 
-		pTcpServer->SetLocalPort(IseApplication.GetIseOptions().GetTcpServerPort(i));
+		tcpServer->setLocalPort(iseApplication.getIseOptions().getTcpServerPort(i));
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 销毁TCP服务器
 //-----------------------------------------------------------------------------
-void CMainTcpServer::DestroyTcpServerList()
+void MainTcpServer::destroyTcpServerList()
 {
-	for (int i = 0; i < (int)m_TcpServerList.size(); i++)
-		delete m_TcpServerList[i];
-	m_TcpServerList.clear();
+	for (int i = 0; i < (int)tcpServerList_.size(); i++)
+		delete tcpServerList_[i];
+	tcpServerList_.clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开启服务器
 //-----------------------------------------------------------------------------
-void CMainTcpServer::DoOpen()
+void MainTcpServer::doOpen()
 {
-	for (int i = 0; i < (int)m_TcpServerList.size(); i++)
-		m_TcpServerList[i]->Open();
+	for (int i = 0; i < (int)tcpServerList_.size(); i++)
+		tcpServerList_[i]->open();
 
-	m_EventLoopList.Start();
+	eventLoopList_.start();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 关闭服务器
 //-----------------------------------------------------------------------------
-void CMainTcpServer::DoClose()
+void MainTcpServer::doClose()
 {
-	m_EventLoopList.Stop();
+	eventLoopList_.stop();
 
-	for (int i = 0; i < (int)m_TcpServerList.size(); i++)
-		m_TcpServerList[i]->Close();
+	for (int i = 0; i < (int)tcpServerList_.size(); i++)
+		tcpServerList_[i]->close();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建连接对象
 //-----------------------------------------------------------------------------
-void CMainTcpServer::OnCreateConnection(void *pParam, CTcpServer *pTcpServer,
-	SOCKET nSocketHandle, const CPeerAddress& PeerAddr, CBaseTcpConnection*& pConnection)
+void MainTcpServer::onCreateConnection(void *param, TcpServer *tcpServer,
+	SOCKET socketHandle, const InetAddress& peerAddr, BaseTcpConnection*& connection)
 {
-	pConnection = new CTcpConnection(pTcpServer, nSocketHandle, PeerAddr);
+	connection = new TcpConnection(tcpServer, socketHandle, peerAddr);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 收到新的连接
 // 注意:
-//   此回调在TCP服务器监听线程(CTcpListenerThread)中执行。
+//   此回调在TCP服务器监听线程(TcpListenerThread)中执行。
 //   为了避免TCP服务器的监听线程成为系统的瓶颈，故不应在此监听线程中触发
-//   pIseBusiness->OnTcpConnection() 回调。正确的做法是，将新产生的连接通知给
-//   CTcpEventLoop，再由事件循环线程(CTcpEventLoopThread)触发回调。
-//   这样做的另一个好处是，对于同一个TCP连接，pIseBusiness->OnTcpXXX() 系列回调
+//   iseBusiness->OnTcpConnection() 回调。正确的做法是，将新产生的连接通知给
+//   TcpEventLoop，再由事件循环线程(TcpEventLoopThread)触发回调。
+//   这样做的另一个好处是，对于同一个TCP连接，iseBusiness->OnTcpXXX() 系列回调
 //   均在同一个线程中执行。
 //-----------------------------------------------------------------------------
-void CMainTcpServer::OnAcceptConnection(void *pParam, CTcpServer *pTcpServer,
-	CBaseTcpConnection *pConnection)
+void MainTcpServer::onAcceptConnection(void *param, TcpServer *tcpServer,
+	BaseTcpConnection *connection)
 {
-	CMainTcpServer *pThis = (CMainTcpServer*)pParam;
+	MainTcpServer *thisObj = (MainTcpServer*)param;
 
 	// round-robin
-	static int nIndex = 0;
-	CTcpEventLoop *pEventLoop = (CTcpEventLoop*)pThis->m_EventLoopList[nIndex];
-	nIndex = (nIndex >= pThis->m_EventLoopList.GetCount() - 1 ? 0 : nIndex + 1);
+	static int index = 0;
+	TcpEventLoop *eventLoop = (TcpEventLoop*)thisObj->eventLoopList_[index];
+	index = (index >= thisObj->eventLoopList_.getCount() - 1 ? 0 : index + 1);
 
-	((CTcpConnection*)pConnection)->SetEventLoop(pEventLoop);
+	((TcpConnection*)connection)->setEventLoop(eventLoop);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 开启服务器
 //-----------------------------------------------------------------------------
-void CMainTcpServer::Open()
+void MainTcpServer::open()
 {
-	if (!m_bActive)
+	if (!isActive_)
 	{
 		try
 		{
-			DoOpen();
-			m_bActive = true;
+			doOpen();
+			isActive_ = true;
 		}
 		catch (...)
 		{
-			DoClose();
+			doClose();
 			throw;
 		}
 	}
@@ -1633,12 +1633,12 @@ void CMainTcpServer::Open()
 //-----------------------------------------------------------------------------
 // 描述: 关闭服务器
 //-----------------------------------------------------------------------------
-void CMainTcpServer::Close()
+void MainTcpServer::close()
 {
-	if (m_bActive)
+	if (isActive_)
 	{
-		DoClose();
-		m_bActive = false;
+		doClose();
+		isActive_ = false;
 	}
 }
 

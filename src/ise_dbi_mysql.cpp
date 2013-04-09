@@ -33,15 +33,15 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlConnection
+// class MySqlConnection
 
-CMySqlConnection::CMySqlConnection(CDatabase* pDatabase) :
-	CDbConnection(pDatabase)
+MySqlConnection::MySqlConnection(Database* database) :
+	DbConnection(database)
 {
-	memset(&m_ConnObject, 0, sizeof(m_ConnObject));
+	memset(&connObject_, 0, sizeof(connObject_));
 }
 
-CMySqlConnection::~CMySqlConnection()
+MySqlConnection::~MySqlConnection()
 {
 	// nothing
 }
@@ -49,153 +49,153 @@ CMySqlConnection::~CMySqlConnection()
 //-----------------------------------------------------------------------------
 // 描述: 建立连接 (若失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CMySqlConnection::DoConnect()
+void MySqlConnection::doConnect()
 {
-	static CCriticalSection s_Lock;
-	CAutoLocker Locker(s_Lock);
+	static CriticalSection s_Lock;
+	AutoLocker locker(s_Lock);
 
-	if (mysql_init(&m_ConnObject) == NULL)
-		IseThrowDbException(SEM_MYSQL_INIT_ERROR);
+	if (mysql_init(&connObject_) == NULL)
+		iseThrowDbException(SEM_MYSQL_INIT_ERROR);
 
-	Logger().WriteFmt(SEM_MYSQL_CONNECTING, &m_ConnObject);
+	logger().writeFmt(SEM_MYSQL_CONNECTING, &connObject_);
 
-	int nValue = 0;
-	mysql_options(&m_ConnObject, MYSQL_OPT_RECONNECT, (char*)&nValue);
+	int value = 0;
+	mysql_options(&connObject_, MYSQL_OPT_RECONNECT, (char*)&value);
 
-	if (mysql_real_connect(&m_ConnObject,
-		m_pDatabase->GetDbConnParams()->GetHostName().c_str(),
-		m_pDatabase->GetDbConnParams()->GetUserName().c_str(),
-		m_pDatabase->GetDbConnParams()->GetPassword().c_str(),
-		m_pDatabase->GetDbConnParams()->GetDbName().c_str(),
-		m_pDatabase->GetDbConnParams()->GetPort(), NULL, 0) == NULL)
+	if (mysql_real_connect(&connObject_,
+		database_->getDbConnParams()->getHostName().c_str(),
+		database_->getDbConnParams()->getUserName().c_str(),
+		database_->getDbConnParams()->getPassword().c_str(),
+		database_->getDbConnParams()->getDbName().c_str(),
+		database_->getDbConnParams()->getPort(), NULL, 0) == NULL)
 	{
-		mysql_close(&m_ConnObject);
-		IseThrowDbException(FormatString(SEM_MYSQL_REAL_CONNECT_ERROR, mysql_error(&m_ConnObject)).c_str());
+		mysql_close(&connObject_);
+		iseThrowDbException(formatString(SEM_MYSQL_REAL_CONNECT_ERROR, mysql_error(&connObject_)).c_str());
 	}
 
 	// for MYSQL 5.0.7 or higher
-	string strInitialCharSet = m_pDatabase->GetDbOptions()->GetInitialCharSet();
+	string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
 	if (!strInitialCharSet.empty())
-		mysql_set_character_set(&m_ConnObject, strInitialCharSet.c_str());
+		mysql_set_character_set(&connObject_, strInitialCharSet.c_str());
 
-	Logger().WriteFmt(SEM_MYSQL_CONNECTED, &m_ConnObject);
+	logger().writeFmt(SEM_MYSQL_CONNECTED, &connObject_);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开连接
 //-----------------------------------------------------------------------------
-void CMySqlConnection::DoDisconnect()
+void MySqlConnection::doDisconnect()
 {
-	mysql_close(&m_ConnObject);
+	mysql_close(&connObject_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlField
+// class MySqlField
 
-CMySqlField::CMySqlField()
+MySqlField::MySqlField()
 {
-	m_pDataPtr = NULL;
-	m_nDataSize = 0;
+	dataPtr_ = NULL;
+	dataSize_ = 0;
 }
 
-void CMySqlField::SetData(void *pDataPtr, int nDataSize)
+void MySqlField::setData(void *dataPtr, int dataSize)
 {
-	m_pDataPtr = (char*)pDataPtr;
-	m_nDataSize = nDataSize;
+	dataPtr_ = (char*)dataPtr;
+	dataSize_ = dataSize;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 以字符串型返回字段值
 //-----------------------------------------------------------------------------
-string CMySqlField::AsString() const
+string MySqlField::asString() const
 {
-	string strResult;
+	string result;
 
-	if (m_pDataPtr && m_nDataSize > 0)
-		strResult.assign(m_pDataPtr, m_nDataSize);
+	if (dataPtr_ && dataSize_ > 0)
+		result.assign(dataPtr_, dataSize_);
 
-	return strResult;
+	return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlDataSet
+// class MySqlDataSet
 
-CMySqlDataSet::CMySqlDataSet(CDbQuery* pDbQuery) :
-	CDbDataSet(pDbQuery),
-	m_pRes(NULL),
-	m_pRow(NULL)
+MySqlDataSet::MySqlDataSet(DbQuery* dbQuery) :
+	DbDataSet(dbQuery),
+	res_(NULL),
+	row_(NULL)
 {
 	// nothing
 }
 
-CMySqlDataSet::~CMySqlDataSet()
+MySqlDataSet::~MySqlDataSet()
 {
-	FreeDataSet();
+	freeDataSet();
 }
 
-MYSQL& CMySqlDataSet::GetConnObject()
+MYSQL& MySqlDataSet::getConnObject()
 {
-	return ((CMySqlConnection*)m_pDbQuery->GetDbConnection())->GetConnObject();
+	return ((MySqlConnection*)dbQuery_->getDbConnection())->getConnObject();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 释放数据集
 //-----------------------------------------------------------------------------
-void CMySqlDataSet::FreeDataSet()
+void MySqlDataSet::freeDataSet()
 {
-	if (m_pRes)
-		mysql_free_result(m_pRes);
-	m_pRes = NULL;
+	if (res_)
+		mysql_free_result(res_);
+	res_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化数据集 (若初始化失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CMySqlDataSet::InitDataSet()
+void MySqlDataSet::initDataSet()
 {
 	// 从MySQL服务器一次性获取所有行
-	m_pRes = mysql_store_result(&GetConnObject());
+	res_ = mysql_store_result(&getConnObject());
 
 	// 如果获取失败
-	if (!m_pRes)
+	if (!res_)
 	{
-		IseThrowDbException(FormatString(SEM_MYSQL_STORE_RESULT_ERROR,
-			mysql_error(&GetConnObject())).c_str());
+		iseThrowDbException(formatString(SEM_MYSQL_STORE_RESULT_ERROR,
+			mysql_error(&getConnObject())).c_str());
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化数据集各字段的定义
 //-----------------------------------------------------------------------------
-void CMySqlDataSet::InitFieldDefs()
+void MySqlDataSet::initFieldDefs()
 {
 	MYSQL_FIELD *pMySqlFields;
-	CDbFieldDef* pFieldDef;
+	DbFieldDef* fieldDef;
 	int nFieldCount;
 
-	m_DbFieldDefList.Clear();
-	nFieldCount = mysql_num_fields(m_pRes);
-	pMySqlFields = mysql_fetch_fields(m_pRes);
+	dbFieldDefList_.clear();
+	nFieldCount = mysql_num_fields(res_);
+	pMySqlFields = mysql_fetch_fields(res_);
 
 	if (nFieldCount <= 0)
-		IseThrowDbException(SEM_MYSQL_NUM_FIELDS_ERROR);
+		iseThrowDbException(SEM_MYSQL_NUM_FIELDS_ERROR);
 
 	for (int i = 0; i < nFieldCount; i++)
 	{
-		pFieldDef = new CDbFieldDef();
-		pFieldDef->SetData(pMySqlFields[i].name, pMySqlFields[i].type);
-		m_DbFieldDefList.Add(pFieldDef);
+		fieldDef = new DbFieldDef();
+		fieldDef->setData(pMySqlFields[i].name, pMySqlFields[i].type);
+		dbFieldDefList_.add(fieldDef);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 将游标指向起始位置(第一条记录之前)
 //-----------------------------------------------------------------------------
-bool CMySqlDataSet::Rewind()
+bool MySqlDataSet::rewind()
 {
-	if (GetRecordCount() > 0)
+	if (getRecordCount() > 0)
 	{
-		mysql_data_seek(m_pRes, 0);
+		mysql_data_seek(res_, 0);
 		return true;
 	}
 	else
@@ -205,45 +205,45 @@ bool CMySqlDataSet::Rewind()
 //-----------------------------------------------------------------------------
 // 描述: 将游标指向下一条记录
 //-----------------------------------------------------------------------------
-bool CMySqlDataSet::Next()
+bool MySqlDataSet::next()
 {
-	m_pRow = mysql_fetch_row(m_pRes);
-	if (m_pRow)
+	row_ = mysql_fetch_row(res_);
+	if (row_)
 	{
-		CMySqlField* pField;
+		MySqlField* field;
 		int nFieldCount;
 		unsigned long* pLengths;
 
-		nFieldCount = mysql_num_fields(m_pRes);
-		pLengths = (unsigned long*)mysql_fetch_lengths(m_pRes);
+		nFieldCount = mysql_num_fields(res_);
+		pLengths = (unsigned long*)mysql_fetch_lengths(res_);
 
 		for (int i = 0; i < nFieldCount; i++)
 		{
-			if (i < m_DbFieldList.GetCount())
+			if (i < dbFieldList_.getCount())
 			{
-				pField = (CMySqlField*)m_DbFieldList[i];
+				field = (MySqlField*)dbFieldList_[i];
 			}
 			else
 			{
-				pField = new CMySqlField();
-				m_DbFieldList.Add(pField);
+				field = new MySqlField();
+				dbFieldList_.add(field);
 			}
 
-			pField->SetData(m_pRow[i], pLengths[i]);
+			field->setData(row_[i], pLengths[i]);
 		}
 	}
 
-	return (m_pRow != NULL);
+	return (row_ != NULL);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得记录总数
 // 备注: mysql_num_rows 实际上只是直接返回 m_pRes->row_count，所以效率很高。
 //-----------------------------------------------------------------------------
-UINT64 CMySqlDataSet::GetRecordCount()
+UINT64 MySqlDataSet::getRecordCount()
 {
-	if (m_pRes)
-		return (UINT64)mysql_num_rows(m_pRes);
+	if (res_)
+		return (UINT64)mysql_num_rows(res_);
 	else
 		return 0;
 }
@@ -251,34 +251,34 @@ UINT64 CMySqlDataSet::GetRecordCount()
 //-----------------------------------------------------------------------------
 // 描述: 返回数据集是否为空
 //-----------------------------------------------------------------------------
-bool CMySqlDataSet::IsEmpty()
+bool MySqlDataSet::isEmpty()
 {
-	return (GetRecordCount() == 0);
+	return (getRecordCount() == 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlQuery
+// class MySqlQuery
 
-CMySqlQuery::CMySqlQuery(CDatabase* pDatabase) :
-	CDbQuery(pDatabase)
+MySqlQuery::MySqlQuery(Database* database) :
+	DbQuery(database)
 {
 	// nothing
 }
 
-CMySqlQuery::~CMySqlQuery()
+MySqlQuery::~MySqlQuery()
 {
 	// nothing
 }
 
-MYSQL& CMySqlQuery::GetConnObject()
+MYSQL& MySqlQuery::getConnObject()
 {
-	return ((CMySqlConnection*)m_pDbConnection)->GetConnObject();
+	return ((MySqlConnection*)dbConnection_)->getConnObject();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 执行SQL (若 pResultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
+// 描述: 执行SQL (若 resultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CMySqlQuery::DoExecute(CDbDataSet *pResultDataSet)
+void MySqlQuery::doExecute(DbDataSet *resultDataSet)
 {
 	/*
 	摘自MYSQL官方手册:
@@ -302,7 +302,7 @@ void CMySqlQuery::DoExecute(CDbDataSet *pResultDataSet)
 
 	for (int nTimes = 0; nTimes < 2; nTimes++)
 	{
-		int r = mysql_real_query(&GetConnObject(), m_strSql.c_str(), (int)m_strSql.length());
+		int r = mysql_real_query(&getConnObject(), sql_.c_str(), (int)sql_.length());
 
 		// 如果执行SQL失败
 		if (r != 0)
@@ -310,27 +310,27 @@ void CMySqlQuery::DoExecute(CDbDataSet *pResultDataSet)
 			// 如果是首次，并且错误类型为连接丢失，则重试连接
 			if (nTimes == 0)
 			{
-				int nErrNo = mysql_errno(&GetConnObject());
+				int nErrNo = mysql_errno(&getConnObject());
 				if (nErrNo == CR_SERVER_GONE_ERROR || nErrNo == CR_SERVER_LOST)
 				{
-					Logger().WriteStr(SEM_MYSQL_LOST_CONNNECTION);
+					logger().writeStr(SEM_MYSQL_LOST_CONNNECTION);
 
 					// 强制重新连接
-					GetDbConnection()->ActivateConnection(true);
+					getDbConnection()->activateConnection(true);
 					continue;
 				}
 			}
 
 			// 否则抛出异常
-			string strSql(m_strSql);
-			if (strSql.length() > 1024*2)
+			string sql(sql_);
+			if (sql.length() > 1024*2)
 			{
-				strSql.resize(100);
-				strSql += "...";
+				sql.resize(100);
+				sql += "...";
 			}
 
-			string strErrMsg = FormatString("%s; Error: %s", strSql.c_str(), mysql_error(&GetConnObject()));
-			IseThrowDbException(strErrMsg.c_str());
+			string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
+			iseThrowDbException(errMsg.c_str());
 		}
 		else break;
 	}
@@ -339,47 +339,47 @@ void CMySqlQuery::DoExecute(CDbDataSet *pResultDataSet)
 //-----------------------------------------------------------------------------
 // 描述: 转换字符串使之在SQL中合法
 //-----------------------------------------------------------------------------
-string CMySqlQuery::EscapeString(const string& str)
+string MySqlQuery::escapeString(const string& str)
 {
 	if (str.empty()) return "";
 
 	int nSrcLen = (int)str.size();
-	CBuffer Buffer(nSrcLen * 2 + 1);
+	Buffer buffer(nSrcLen * 2 + 1);
 	char *pEnd;
 
-	EnsureConnected();
+	ensureConnected();
 
-	pEnd = (char*)Buffer.Data();
-	pEnd += mysql_real_escape_string(&GetConnObject(), pEnd, str.c_str(), nSrcLen);
+	pEnd = (char*)buffer.data();
+	pEnd += mysql_real_escape_string(&getConnObject(), pEnd, str.c_str(), nSrcLen);
 	*pEnd = '\0';
 
-	return (char*)Buffer.Data();
+	return (char*)buffer.data();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 获取执行SQL后受影响的行数
 //-----------------------------------------------------------------------------
-UINT CMySqlQuery::GetAffectedRowCount()
+UINT MySqlQuery::getAffectedRowCount()
 {
-	UINT nResult = 0;
+	UINT result = 0;
 
-	if (m_pDbConnection)
-		nResult = (UINT)mysql_affected_rows(&GetConnObject());
+	if (dbConnection_)
+		result = (UINT)mysql_affected_rows(&getConnObject());
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 获取最后一条插入语句的自增ID的值
 //-----------------------------------------------------------------------------
-UINT64 CMySqlQuery::GetLastInsertId()
+UINT64 MySqlQuery::getLastInsertId()
 {
-	UINT64 nResult = 0;
+	UINT64 result = 0;
 
-	if (m_pDbConnection)
-		nResult = (UINT64)mysql_insert_id(&GetConnObject());
+	if (dbConnection_)
+		result = (UINT64)mysql_insert_id(&getConnObject());
 
-	return nResult;
+	return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

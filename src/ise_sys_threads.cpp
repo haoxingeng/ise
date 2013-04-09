@@ -32,93 +32,93 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysThread
+// class SysThread
 
-CSysThread::CSysThread(CSysThreadMgr& ThreadMgr) :
-	m_ThreadMgr(ThreadMgr)
+SysThread::SysThread(SysThreadMgr& threadMgr) :
+	threadMgr_(threadMgr)
 {
-	SetFreeOnTerminate(true);
-	m_ThreadMgr.RegisterThread(this);
+	setFreeOnTerminate(true);
+	threadMgr_.registerThread(this);
 }
 
-CSysThread::~CSysThread()
+SysThread::~SysThread()
 {
-	m_ThreadMgr.UnregisterThread(this);
+	threadMgr_.unregisterThread(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysDaemonThread
+// class SysDaemonThread
 
-void CSysDaemonThread::Execute()
+void SysDaemonThread::execute()
 {
-	int nSecondCount = 0;
+	int secondCount = 0;
 
-	while (!GetTerminated())
+	while (!isTerminated())
 	{
 		try
 		{
-			pIseBusiness->DaemonThreadExecute(*this, nSecondCount);
+			iseBusiness->daemonThreadExecute(*this, secondCount);
 		}
-		catch (CException& e)
+		catch (Exception& e)
 		{
-			Logger().WriteException(e);
+			logger().writeException(e);
 		}
 
-		nSecondCount++;
-		this->Sleep(1);
+		secondCount++;
+		this->sleep(1);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysSchedulerThread
+// class SysSchedulerThread
 
-void CSysSchedulerThread::Execute()
+void SysSchedulerThread::execute()
 {
-	IseApplication.GetScheduleTaskMgr().Execute(*this);
+	iseApplication.getScheduleTaskMgr().execute(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSysThreadMgr
+// class SysThreadMgr
 
-void CSysThreadMgr::RegisterThread(CSysThread *pThread)
+void SysThreadMgr::registerThread(SysThread *thread)
 {
-	m_ThreadList.Add(pThread);
+	threadList_.add(thread);
 }
 
 //-----------------------------------------------------------------------------
 
-void CSysThreadMgr::UnregisterThread(CSysThread *pThread)
+void SysThreadMgr::unregisterThread(SysThread *thread)
 {
-	m_ThreadList.Remove(pThread);
+	threadList_.remove(thread);
 }
 
 //-----------------------------------------------------------------------------
 
-void CSysThreadMgr::Initialize()
+void SysThreadMgr::initialize()
 {
-	m_ThreadList.Clear();
-	CThread *pThread;
+	threadList_.clear();
+	Thread *thread;
 
-	pThread = new CSysDaemonThread(*this);
-	m_ThreadList.Add(pThread);
-	pThread->Run();
+	thread = new SysDaemonThread(*this);
+	threadList_.add(thread);
+	thread->run();
 
-	pThread = new CSysSchedulerThread(*this);
-	m_ThreadList.Add(pThread);
-	pThread->Run();
+	thread = new SysSchedulerThread(*this);
+	threadList_.add(thread);
+	thread->run();
 }
 
 //-----------------------------------------------------------------------------
 
-void CSysThreadMgr::Finalize()
+void SysThreadMgr::finalize()
 {
 	const int MAX_WAIT_FOR_SECS = 5;
-	int nKilledCount = 0;
+	int killedCount = 0;
 
-	m_ThreadList.WaitForAllThreads(MAX_WAIT_FOR_SECS, &nKilledCount);
+	threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
 
-	if (nKilledCount > 0)
-		Logger().WriteFmt(SEM_THREAD_KILLED, nKilledCount, "system");
+	if (killedCount > 0)
+		logger().writeFmt(SEM_THREAD_KILLED, killedCount, "system");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

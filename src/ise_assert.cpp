@@ -38,10 +38,10 @@ namespace ise
 //-----------------------------------------------------------------------------
 // 描述: 内部使用的断言函数。输出日志，并抛出异常。
 //-----------------------------------------------------------------------------
-void InternalAssert(const char *pCondition, const char *pFileName, int nLineNumber)
+void internalAssert(const char *condition, const char *fileName, int lineNumber)
 {
-	CSimpleException e(FormatString("Assertion failed: %s", pCondition).c_str(), pFileName, nLineNumber);
-	Logger().WriteException(e);
+	SimpleException e(formatString("Assertion failed: %s", condition).c_str(), fileName, lineNumber);
+	logger().writeException(e);
 	throw e;
 }
 

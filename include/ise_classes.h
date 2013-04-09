@@ -22,33 +22,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // ise_classes.h
-// Classes:
-//   * CBuffer
-//   * CDateTime
-//   * CAutoInvokable
-//   * CAutoInvoker
-//   * CAutoLocker
-//   * CCriticalSection
-//   * CSemaphore
-//   * CSignalMasker
-//   * CSeqNumberAlloc
-//   * CStream
-//   * CMemoryStream
-//   * CFileStream
-//   * CList
-//   * CPropertyList
-//   * CStrings
-//   * CStrList
-//   * CCustomObjectList
-//   * CObjectList
-//   * CUrl
-//   * CPacket
-//   * IEventHandler
-//   * CEventInvoker
-//   * CCallBackDef
-//   * CCallBackList
-//   * CCustomParams
-//   * CLogger
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef _ISE_CLASSES_H_
@@ -95,283 +68,283 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // class declares
 
-class CBuffer;
-class CDateTime;
-class CAutoInvoker;
-class CAutoInvokable;
-class CCriticalSection;
-class CSemaphore;
-class CSignalMasker;
-class CSeqNumberAlloc;
-class CStream;
-class CMemoryStream;
-class CFileStream;
-class CList;
-class CPropertyList;
-class CStrings;
-class CStrList;
-class CUrl;
-class CPacket;
-template<typename ObjectType> class CCustomObjectList;
-template<typename ObjectType> class CObjectList;
-template<typename CallBackType> class CCallBackDef;
-template<typename CallBackType> class CCallBackList;
-class CCustomParams;
-class CLogger;
+class Buffer;
+class DateTime;
+class AutoInvoker;
+class AutoInvokable;
+class CriticalSection;
+class Semaphore;
+class SignalMasker;
+class SeqNumberAlloc;
+class Stream;
+class MemoryStream;
+class FileStream;
+class PointerList;
+class PropertyList;
+class Strings;
+class StrList;
+class Url;
+class Packet;
+template<typename ObjectType> class CustomObjectList;
+template<typename ObjectType> class ObjectList;
+template<typename CallbackType> class CallbackDef;
+template<typename CallbackType> class CallbackList;
+class CustomParams;
+class Logger;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CBuffer - 缓存类
+// class Buffer - 缓存类
 
-class CBuffer
+class Buffer
 {
 protected:
-	void *m_pBuffer;
-	int m_nSize;
-	int m_nPosition;
+	void *buffer_;
+	int size_;
+	int position_;
 private:
-	inline void Init() { m_pBuffer = NULL; m_nSize = 0; m_nPosition = 0; }
-	void Assign(const CBuffer& src);
-	void VerifyPosition();
+	inline void init() { buffer_ = NULL; size_ = 0; position_ = 0; }
+	void assign(const Buffer& src);
+	void verifyPosition();
 public:
-	CBuffer();
-	CBuffer(const CBuffer& src);
-	explicit CBuffer(int nSize);
-	CBuffer(const void *pBuffer, int nSize);
-	virtual ~CBuffer();
+	Buffer();
+	Buffer(const Buffer& src);
+	explicit Buffer(int size);
+	Buffer(const void *buffer, int size);
+	virtual ~Buffer();
 
-	CBuffer& operator = (const CBuffer& rhs);
-	const char& operator[] (int nIndex) const { return ((char*)m_pBuffer)[nIndex]; }
-	char& operator[] (int nIndex) { return const_cast<char&>(((const CBuffer&)(*this))[nIndex]); }
-	operator char*() const { return (char*)m_pBuffer; }
-	char* Data() const { return (char*)m_pBuffer; }
+	Buffer& operator = (const Buffer& rhs);
+	const char& operator[] (int index) const { return ((char*)buffer_)[index]; }
+	char& operator[] (int index) { return const_cast<char&>(((const Buffer&)(*this))[index]); }
+	operator char*() const { return (char*)buffer_; }
+	char* data() const { return (char*)buffer_; }
 	char* c_str() const;
-	void Assign(const void *pBuffer, int nSize);
-	void Clear() { SetSize(0); }
-	void SetSize(int nSize, bool bInitZero = false);
-	int GetSize() const { return m_nSize; }
-	void EnsureSize(int nSize) { if (GetSize() < nSize) SetSize(nSize); }
-	void SetPosition(int nPosition);
-	int GetPosition() const { return m_nPosition; }
+	void assign(const void *buffer, int size);
+	void clear() { setSize(0); }
+	void setSize(int size, bool initZero = false);
+	int getSize() const { return size_; }
+	void ensureSize(int size) { if (getSize() < size) setSize(size); }
+	void setPosition(int position);
+	int getPosition() const { return position_; }
 
-	bool LoadFromStream(CStream& Stream);
-	bool LoadFromFile(const string& strFileName);
-	bool SaveToStream(CStream& Stream);
-	bool SaveToFile(const string& strFileName);
+	bool loadFromStream(Stream& stream);
+	bool loadFromFile(const string& fileName);
+	bool saveToStream(Stream& stream);
+	bool saveToFile(const string& fileName);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDateTime - 日期时间类
+// class DateTime - 日期时间类
 
-class CDateTime
+class DateTime
 {
 private:
-	time_t m_tTime;     // (从1970-01-01 00:00:00 算起的秒数，UTC时间)
+	time_t time_;     // (从1970-01-01 00:00:00 算起的秒数，UTC时间)
 
 public:
-	CDateTime() { m_tTime = 0; }
-	CDateTime(const CDateTime& src) { m_tTime = src.m_tTime; }
-	explicit CDateTime(time_t src) { m_tTime = src; }
-	explicit CDateTime(const string& src) { *this = src; }
+	DateTime() { time_ = 0; }
+	DateTime(const DateTime& src) { time_ = src.time_; }
+	explicit DateTime(time_t src) { time_ = src; }
+	explicit DateTime(const string& src) { *this = src; }
 
-	static CDateTime CurrentDateTime();
+	static DateTime currentDateTime();
 
-	CDateTime& operator = (const CDateTime& rhs)
-		{ m_tTime = rhs.m_tTime; return *this; }
-	CDateTime& operator = (const time_t rhs)
-		{ m_tTime = rhs; return *this; }
-	CDateTime& operator = (const string& strDateTime);
+	DateTime& operator = (const DateTime& rhs)
+		{ time_ = rhs.time_; return *this; }
+	DateTime& operator = (const time_t rhs)
+		{ time_ = rhs; return *this; }
+	DateTime& operator = (const string& dateTimeStr);
 
-	CDateTime operator + (const CDateTime& rhs) const { return CDateTime(m_tTime + rhs.m_tTime); }
-	CDateTime operator + (time_t rhs) const { return CDateTime(m_tTime + rhs); }
-	CDateTime operator - (const CDateTime& rhs) const { return CDateTime(m_tTime - rhs.m_tTime); }
-	CDateTime operator - (time_t rhs) const { return CDateTime(m_tTime - rhs); }
+	DateTime operator + (const DateTime& rhs) const { return DateTime(time_ + rhs.time_); }
+	DateTime operator + (time_t rhs) const { return DateTime(time_ + rhs); }
+	DateTime operator - (const DateTime& rhs) const { return DateTime(time_ - rhs.time_); }
+	DateTime operator - (time_t rhs) const { return DateTime(time_ - rhs); }
 
-	bool operator == (const CDateTime& rhs) const { return m_tTime == rhs.m_tTime; }
-	bool operator != (const CDateTime& rhs) const { return m_tTime != rhs.m_tTime; }
-	bool operator > (const CDateTime& rhs) const  { return m_tTime > rhs.m_tTime; }
-	bool operator < (const CDateTime& rhs) const  { return m_tTime < rhs.m_tTime; }
-	bool operator >= (const CDateTime& rhs) const { return m_tTime >= rhs.m_tTime; }
-	bool operator <= (const CDateTime& rhs) const { return m_tTime <= rhs.m_tTime; }
+	bool operator == (const DateTime& rhs) const { return time_ == rhs.time_; }
+	bool operator != (const DateTime& rhs) const { return time_ != rhs.time_; }
+	bool operator > (const DateTime& rhs) const  { return time_ > rhs.time_; }
+	bool operator < (const DateTime& rhs) const  { return time_ < rhs.time_; }
+	bool operator >= (const DateTime& rhs) const { return time_ >= rhs.time_; }
+	bool operator <= (const DateTime& rhs) const { return time_ <= rhs.time_; }
 
-	operator time_t() const { return m_tTime; }
+	operator time_t() const { return time_; }
 
-	void EncodeDateTime(int nYear, int nMonth, int nDay,
-		int nHour = 0, int nMinute = 0, int nSecond = 0);
-	void DecodeDateTime(int *pYear, int *pMonth, int *pDay,
-		int *pHour, int *pMinute, int *pSecond,
-		int *pWeekDay = NULL, int *pYearDay = NULL) const;
+	void encodeDateTime(int year, int month, int day,
+		int hour = 0, int minute = 0, int second = 0);
+	void decodeDateTime(int *year, int *month, int *day,
+		int *hour, int *minute, int *second,
+		int *weekDay = NULL, int *yearDay = NULL) const;
 
-	string DateString(const string& strDateSep = "-") const;
-	string DateTimeString(const string& strDateSep = "-",
-		const string& strDateTimeSep = " ", const string& strTimeSep = ":") const;
+	string dateString(const string& dateSep = "-") const;
+	string dateTimeString(const string& dateSep = "-",
+		const string& dateTimeSep = " ", const string& timeSep = ":") const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAutoInvokable/CAutoInvoker - 自动被调对象/自动调用者
+// class AutoInvokable/AutoInvoker - 自动被调对象/自动调用者
 //
 // 说明:
 // 1. 这两个类联合使用，可以起到和 "智能指针" 类似的作用，即利用栈对象自动销毁的特性，在栈
-//    对象的生命周期中自动调用 CAutoInvokable::InvokeInitialize() 和 InvokeFinalize()。
+//    对象的生命周期中自动调用 AutoInvokable::invokeInitialize() 和 invokeFinalize()。
 //    此二类一般使用在重要资源的对称性操作场合(比如加锁/解锁)。
-// 2. 使用者需继承 CAutoInvokable 类，重写 InvokeInitialize() 和 InvokeFinalize()
-//    函数。并在需要调用的地方定义 CAutoInvoker 的栈对象。
+// 2. 使用者需继承 AutoInvokable 类，重写 invokeInitialize() 和 invokeFinalize()
+//    函数。并在需要调用的地方定义 AutoInvoker 的栈对象。
 
-class CAutoInvokable
+class AutoInvokable
 {
 public:
-	friend class CAutoInvoker;
+	friend class AutoInvoker;
 
 protected:
-	virtual void InvokeInitialize() {}
-	virtual void InvokeFinalize() {}
+	virtual void invokeInitialize() {}
+	virtual void invokeFinalize() {}
 public:
-	virtual ~CAutoInvokable() {}
+	virtual ~AutoInvokable() {}
 };
 
-class CAutoInvoker
+class AutoInvoker
 {
 private:
-	CAutoInvokable *m_pObject;
+	AutoInvokable *object_;
 public:
-	explicit CAutoInvoker(CAutoInvokable& Object)
-		{ m_pObject = &Object; m_pObject->InvokeInitialize(); }
+	explicit AutoInvoker(AutoInvokable& object)
+		{ object_ = &object; object_->invokeInitialize(); }
 
-	explicit CAutoInvoker(CAutoInvokable *pObject)
-		{ m_pObject = pObject; if (m_pObject) m_pObject->InvokeInitialize(); }
+	explicit AutoInvoker(AutoInvokable *object)
+		{ object_ = object; if (object_) object_->invokeInitialize(); }
 
-	virtual ~CAutoInvoker()
-		{ if (m_pObject) m_pObject->InvokeFinalize(); }
+	virtual ~AutoInvoker()
+		{ if (object_) object_->invokeFinalize(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CAutoLocker - 线程自动互斥类
+// class AutoLocker - 线程自动互斥类
 //
 // 说明:
 // 1. 此类利用C++的栈对象自动销毁的特性，在多线程环境下进行局部范围临界区互斥；
 // 2. 使用方法: 在需要互斥的范围中以局部变量方式定义此类对象即可；
 //
 // 使用范例:
-//   假设已定义: CCriticalSection m_Lock;
+//   假设已定义: CriticalSection lock_;
 //   自动加锁和解锁:
 //   {
-//       CAutoLocker Locker(m_Lock);
+//       AutoLocker locker(lock_);
 //       //...
 //   }
 
-typedef CAutoInvoker CAutoLocker;
+typedef AutoInvoker AutoLocker;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CCriticalSection - 线程临界区互斥类
+// class CriticalSection - 线程临界区互斥类
 //
 // 说明:
 // 1. 此类用于多线程环境下临界区互斥，基本操作有 Lock、Unlock 和 TryLock；
 // 2. 线程内允许嵌套调用 Lock，嵌套调用后必须调用相同次数的 Unlock 才可解锁；
 
-class CCriticalSection : public CAutoInvokable
+class CriticalSection : public AutoInvokable
 {
 private:
 #ifdef ISE_WIN32
-	CRITICAL_SECTION m_Lock;
+	CRITICAL_SECTION lock_;
 #endif
 #ifdef ISE_LINUX
-	pthread_mutex_t m_Lock;
+	pthread_mutex_t lock_;
 #endif
 
 protected:
-	virtual void InvokeInitialize() { Lock(); }
-	virtual void InvokeFinalize() { Unlock(); }
+	virtual void invokeInitialize() { lock(); }
+	virtual void invokeFinalize() { unlock(); }
 
 public:
-	CCriticalSection();
-	virtual ~CCriticalSection();
+	CriticalSection();
+	virtual ~CriticalSection();
 
 	// 加锁
-	void Lock();
+	void lock();
 	// 解锁
-	void Unlock();
+	void unlock();
 	// 尝试加锁 (若已经处于加锁状态则立即返回 false)
-	bool TryLock();
+	bool tryLock();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSemaphore - 线程旗标类
+// class Semaphore - 线程旗标类
 
-class CSemaphore
+class Semaphore
 {
 private:
 #ifdef ISE_WIN32
-	HANDLE m_Sem;
+	HANDLE sem_;
 #endif
 #ifdef ISE_LINUX
-	sem_t m_Sem;
+	sem_t sem_;
 #endif
 
-	UINT m_nInitValue;
+	UINT initValue_;
 private:
-	void DoCreateSem();
-	void DoDestroySem();
+	void doCreateSem();
+	void doDestroySem();
 public:
-	explicit CSemaphore(UINT nInitValue = 0);
-	virtual ~CSemaphore();
+	explicit Semaphore(UINT initValue = 0);
+	virtual ~Semaphore();
 
-	void Increase();
-	void Wait();
-	void Reset();
+	void increase();
+	void wait();
+	void reset();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSignalMasker - 信号屏蔽类
+// class SignalMasker - 信号屏蔽类
 
 #ifdef ISE_LINUX
-class CSignalMasker
+class SignalMasker
 {
 private:
-	sigset_t m_OldSet;
-	sigset_t m_NewSet;
-	bool m_bBlock;
-	bool m_bAutoRestore;
+	sigset_t oldSet_;
+	sigset_t newSet_;
+	bool isBlock_;
+	bool isAutoRestore_;
 
-	int SigProcMask(int nHow, const sigset_t *pNewSet, sigset_t *pOldSet);
+	int sigProcMask(int how, const sigset_t *newSet, sigset_t *oldSet);
 public:
-	explicit CSignalMasker(bool bAutoRestore = false);
-	virtual ~CSignalMasker();
+	explicit SignalMasker(bool isAutoRestore = false);
+	virtual ~SignalMasker();
 
 	// 设置 Block/UnBlock 操作所需的信号集合
-	void SetSignals(int nSigCount, ...);
-	void SetSignals(int nSigCount, va_list argList);
+	void setSignals(int sigCount, ...);
+	void setSignals(int sigCount, va_list argList);
 
-	// 在进程当前阻塞信号集中添加 SetSignals 设置的信号
-	void Block();
-	// 在进程当前阻塞信号集中解除 SetSignals 设置的信号
-	void UnBlock();
+	// 在进程当前阻塞信号集中添加 setSignals 设置的信号
+	void block();
+	// 在进程当前阻塞信号集中解除 setSignals 设置的信号
+	void unBlock();
 
 	// 将进程阻塞信号集恢复为 Block/UnBlock 之前的状态
-	void Restore();
+	void restore();
 };
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CSeqNumberAlloc - 整数序列号分配器类
+// class SeqNumberAlloc - 整数序列号分配器类
 //
 // 说明:
 // 1. 此类以线程安全方式生成一个不断递增的整数序列，用户可以指定序列的起始值；
 // 2. 此类一般用于数据包的顺序号控制；
 
-class CSeqNumberAlloc
+class SeqNumberAlloc
 {
 private:
-	CCriticalSection m_Lock;
-	UINT m_nCurrentId;
+	CriticalSection lock_;
+	UINT currentId_;
 
 public:
-	explicit CSeqNumberAlloc(UINT nStartId = 0);
+	explicit SeqNumberAlloc(UINT startId = 0);
 
 	// 返回一个新分配的ID
-	UINT AllocId();
+	UINT allocId();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CStream - 流 基类
+// class Stream - 流 基类
 
 enum SEEK_ORIGIN
 {
@@ -380,65 +353,65 @@ enum SEEK_ORIGIN
 	SO_END          = 2
 };
 
-class CStream
+class Stream
 {
 public:
-	virtual ~CStream() {}
+	virtual ~Stream() {}
 
-	virtual int Read(void *pBuffer, int nCount) = 0;
-	virtual int Write(const void *pBuffer, int nCount) = 0;
-	virtual INT64 Seek(INT64 nOffset, SEEK_ORIGIN nSeekOrigin) = 0;
+	virtual int read(void *buffer, int count) = 0;
+	virtual int write(const void *buffer, int count) = 0;
+	virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin) = 0;
 
-	void ReadBuffer(void *pBuffer, int nCount);
-	void WriteBuffer(const void *pBuffer, int nCount);
+	void readBuffer(void *buffer, int count);
+	void writeBuffer(const void *buffer, int count);
 
-	INT64 GetPosition() { return Seek(0, SO_CURRENT); }
-	void SetPosition(INT64 nPos) { Seek(nPos, SO_BEGINNING); }
+	INT64 getPosition() { return seek(0, SO_CURRENT); }
+	void setPosition(INT64 pos) { seek(pos, SO_BEGINNING); }
 
-	virtual INT64 GetSize();
-	virtual void SetSize(INT64 nSize) {}
+	virtual INT64 getSize();
+	virtual void setSize(INT64 size) {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMemoryStream - 内存流类
+// class MemoryStream - 内存流类
 
-class CMemoryStream : public CStream
+class MemoryStream : public Stream
 {
 public:
 	enum { DEFAULT_MEMORY_DELTA = 1024 };    // 缺省内存增长步长 (字节数，必须是 2 的 N 次方)
 	enum { MIN_MEMORY_DELTA = 256 };         // 最小内存增长步长
 
 private:
-	char *m_pMemory;
-	int m_nCapacity;
-	int m_nSize;
-	int m_nPosition;
-	int m_nMemoryDelta;
+	char *memory_;
+	int capacity_;
+	int size_;
+	int position_;
+	int memoryDelta_;
 private:
-	void SetMemoryDelta(int nNewMemoryDelta);
-	void SetPointer(char *pMemory, int nSize);
-	void SetCapacity(int nNewCapacity);
-	char* Realloc(int& nNewCapacity);
+	void setMemoryDelta(int newMemoryDelta);
+	void setPointer(char *memory, int size);
+	void setCapacity(int newCapacity);
+	char* realloc(int& newCapacity);
 public:
-	explicit CMemoryStream(int nMemoryDelta = DEFAULT_MEMORY_DELTA);
-	virtual ~CMemoryStream();
+	explicit MemoryStream(int memoryDelta = DEFAULT_MEMORY_DELTA);
+	virtual ~MemoryStream();
 
-	virtual int Read(void *pBuffer, int nCount);
-	virtual int Write(const void *pBuffer, int nCount);
-	virtual INT64 Seek(INT64 nOffset, SEEK_ORIGIN nSeekOrigin);
-	virtual void SetSize(INT64 nSize);
-	bool LoadFromStream(CStream& Stream);
-	bool LoadFromFile(const string& strFileName);
-	bool SaveToStream(CStream& Stream);
-	bool SaveToFile(const string& strFileName);
-	void Clear();
-	char* GetMemory() { return m_pMemory; }
+	virtual int read(void *buffer, int count);
+	virtual int write(const void *buffer, int count);
+	virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin);
+	virtual void setSize(INT64 size);
+	bool loadFromStream(Stream& stream);
+	bool loadFromFile(const string& fileName);
+	bool saveToStream(Stream& stream);
+	bool saveToFile(const string& fileName);
+	void clear();
+	char* getMemory() { return memory_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CFileStream - 文件流类
+// class FileStream - 文件流类
 
-// 文件流打开方式 (UINT nOpenMode)
+// 文件流打开方式 (UINT openMode)
 #ifdef ISE_WIN32
 enum
 {
@@ -466,7 +439,7 @@ enum
 };
 #endif
 
-// 缺省文件存取权限 (nRights)
+// 缺省文件存取权限 (rights)
 #ifdef ISE_WIN32
 enum { DEFAULT_FILE_ACCESS_RIGHTS = 0 };
 #endif
@@ -474,40 +447,40 @@ enum { DEFAULT_FILE_ACCESS_RIGHTS = 0 };
 enum { DEFAULT_FILE_ACCESS_RIGHTS = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH };
 #endif
 
-class CFileStream : public CStream
+class FileStream : public Stream
 {
 private:
-	string m_strFileName;
-	HANDLE m_hHandle;
+	string fileName_;
+	HANDLE handle_;
 private:
-	void Init();
-	HANDLE FileCreate(const string& strFileName, UINT nRights);
-	HANDLE FileOpen(const string& strFileName, UINT nOpenMode);
-	void FileClose(HANDLE hHandle);
-	int FileRead(HANDLE hHandle, void *pBuffer, int nCount);
-	int FileWrite(HANDLE hHandle, const void *pBuffer, int nCount);
-	INT64 FileSeek(HANDLE hHandle, INT64 nOffset, SEEK_ORIGIN nSeekOrigin);
+	void init();
+	HANDLE fileCreate(const string& fileName, UINT rights);
+	HANDLE fileOpen(const string& fileName, UINT openMode);
+	void fileClose(HANDLE handle);
+	int fileRead(HANDLE handle, void *buffer, int count);
+	int fileWrite(HANDLE handle, const void *buffer, int count);
+	INT64 fileSeek(HANDLE handle, INT64 offset, SEEK_ORIGIN seekOrigin);
 public:
-	CFileStream();
-	CFileStream(const string& strFileName, UINT nOpenMode, UINT nRights = DEFAULT_FILE_ACCESS_RIGHTS);
-	virtual ~CFileStream();
+	FileStream();
+	FileStream(const string& fileName, UINT openMode, UINT rights = DEFAULT_FILE_ACCESS_RIGHTS);
+	virtual ~FileStream();
 
-	bool Open(const string& strFileName, UINT nOpenMode,
-		UINT nRights = DEFAULT_FILE_ACCESS_RIGHTS, CFileException* pException = NULL);
-	void Close();
+	bool open(const string& fileName, UINT openMode,
+		UINT rights = DEFAULT_FILE_ACCESS_RIGHTS, FileException* exception = NULL);
+	void close();
 
-	virtual int Read(void *pBuffer, int nCount);
-	virtual int Write(const void *pBuffer, int nCount);
-	virtual INT64 Seek(INT64 nOffset, SEEK_ORIGIN nSeekOrigin);
-	virtual void SetSize(INT64 nSize);
+	virtual int read(void *buffer, int count);
+	virtual int write(const void *buffer, int count);
+	virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin);
+	virtual void setSize(INT64 size);
 
-	string GetFileName() const { return m_strFileName; }
-	HANDLE GetHandle() const { return m_hHandle; }
-	bool IsOpen() const;
+	string getFileName() const { return fileName_; }
+	HANDLE getHandle() const { return handle_; }
+	bool isOpen() const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CList - 列表类
+// class PointerList - 列表类
 //
 // 说明:
 // 1. 此类的实现原理与 Delphi::TList 完全相同；
@@ -520,53 +493,53 @@ public:
 //    a. 不支持头部和中部的快速增删元素；
 //    b. 只支持单一类型元素(Pointer类型)；
 
-class CList
+class PointerList
 {
 private:
-	POINTER *m_pList;
-	int m_nCount;
-	int m_nCapacity;
+	POINTER *list_;
+	int count_;
+	int capacity_;
 
 protected:
-	virtual void Grow();
+	virtual void grow();
 
-	POINTER Get(int nIndex) const;
-	void Put(int nIndex, POINTER Item);
-	void SetCapacity(int nNewCapacity);
-	void SetCount(int nNewCount);
+	POINTER get(int index) const;
+	void put(int index, POINTER item);
+	void setCapacity(int newCapacity);
+	void setCount(int newCount);
 
 public:
-	CList();
-	virtual ~CList();
+	PointerList();
+	virtual ~PointerList();
 
-	int Add(POINTER Item);
-	void Insert(int nIndex, POINTER Item);
-	void Delete(int nIndex);
-	int Remove(POINTER Item);
-	POINTER Extract(POINTER Item);
-	void Move(int nCurIndex, int nNewIndex);
-	void Resize(int nCount);
-	void Clear();
+	int add(POINTER item);
+	void insert(int index, POINTER item);
+	void del(int index);
+	int remove(POINTER item);
+	POINTER extract(POINTER item);
+	void move(int curIndex, int newIndex);
+	void resize(int count);
+	void clear();
 
-	POINTER First() const;
-	POINTER Last() const;
-	int IndexOf(POINTER Item) const;
-	int GetCount() const;
-	bool IsEmpty() const { return (GetCount() <= 0); }
+	POINTER first() const;
+	POINTER last() const;
+	int indexOf(POINTER item) const;
+	int getCount() const;
+	bool isEmpty() const { return (getCount() <= 0); }
 
-	CList& operator = (const CList& rhs);
-	const POINTER& operator[] (int nIndex) const;
-	POINTER& operator[] (int nIndex);
+	PointerList& operator = (const PointerList& rhs);
+	const POINTER& operator[] (int index) const;
+	POINTER& operator[] (int index);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CPropertyList - 属性列表类
+// class PropertyList - 属性列表类
 //
 // 说明:
 // 1. 属性列表中的每个项目由属性名(Name)和属性值(Value)组成。
 // 2. 属性名不可重复，不区分大小写，且其中不可含有等号"="。属性值可为任意值。
 
-class CPropertyList
+class PropertyList
 {
 public:
 	enum { NAME_VALUE_SEP = '=' };        // Name 和 Value 之间的分隔符
@@ -575,47 +548,47 @@ public:
 
 	struct CPropertyItem
 	{
-		string strName, strValue;
+		string name, value;
 	public:
 		CPropertyItem(const CPropertyItem& src) :
-			strName(src.strName), strValue(src.strValue) {}
-		CPropertyItem(const string& strNameA, const string& strValueA) :
-			strName(strNameA), strValue(strValueA) {}
+			name(src.name), value(src.value) {}
+		CPropertyItem(const string& _name, const string& _value) :
+			name(_name), value(_value) {}
 	};
 
 private:
-	CList m_Items;                        // (CPropertyItem* [])
+	PointerList items_;                        // (CPropertyItem* [])
 private:
-	CPropertyItem* Find(const string& strName);
-	static bool IsReservedChar(char ch);
-	static bool HasReservedChar(const string& str);
-	static char* ScanStr(char *pStr, char ch);
-	static string MakeQuotedStr(const string& str);
-	static string ExtractQuotedStr(char*& pStr);
+	CPropertyItem* find(const string& name);
+	static bool isReservedChar(char ch);
+	static bool hasReservedChar(const string& str);
+	static char* scanStr(char *str, char ch);
+	static string makeQuotedStr(const string& str);
+	static string extractQuotedStr(char*& strPtr);
 public:
-	CPropertyList();
-	virtual ~CPropertyList();
+	PropertyList();
+	virtual ~PropertyList();
 
-	void Add(const string& strName, const string& strValue);
-	bool Remove(const string& strName);
-	void Clear();
-	int IndexOf(const string& strName) const;
-	bool NameExists(const string& strName) const;
-	bool GetValue(const string& strName, string& strValue) const;
-	int GetCount() const { return m_Items.GetCount(); }
-	bool IsEmpty() const { return (GetCount() <= 0); }
-	const CPropertyItem& GetItems(int nIndex) const;
-	string GetPropString() const;
-	void SetPropString(const string& strPropString);
+	void add(const string& name, const string& value);
+	bool remove(const string& name);
+	void clear();
+	int indexOf(const string& name) const;
+	bool nameExists(const string& name) const;
+	bool getValue(const string& name, string& value) const;
+	int getCount() const { return items_.getCount(); }
+	bool isEmpty() const { return (getCount() <= 0); }
+	const CPropertyItem& getItems(int index) const;
+	string getPropString() const;
+	void setPropString(const string& propString);
 
-	CPropertyList& operator = (const CPropertyList& rhs);
-	string& operator[] (const string& strName);
+	PropertyList& operator = (const PropertyList& rhs);
+	string& operator[] (const string& name);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CStrings - 字符串列表抽象类
+// class Strings - 字符串列表抽象类
 
-class CStrings
+class Strings
 {
 private:
 	enum STRINGS_DEFINED
@@ -627,106 +600,106 @@ private:
 	};
 
 public:
-	// Calls BeginUpdate() and EndUpdate() automatically in a scope.
-	class CAutoUpdater
+	// Calls beginUpdate() and endUpdate() automatically in a scope.
+	class AutoUpdater
 	{
 	private:
-		CStrings& m_Strings;
+		Strings& strings;
 	public:
-		CAutoUpdater(CStrings& Strings) : m_Strings(Strings)
-			{ m_Strings.BeginUpdate(); }
-		~CAutoUpdater()
-			{ m_Strings.EndUpdate(); }
+		AutoUpdater(Strings& _strings) : strings(_strings)
+			{ strings.beginUpdate(); }
+		~AutoUpdater()
+			{ strings.endUpdate(); }
 	};
 
 protected:
-	UINT m_nDefined;
-	char m_chDelimiter;
-	string m_strLineBreak;
-	char m_chQuoteChar;
-	char m_chNameValueSeparator;
-	int m_nUpdateCount;
+	UINT defined_;
+	char delimiter_;
+	string lineBreak_;
+	char quoteChar_;
+	char nameValueSeparator_;
+	int updateCount_;
 private:
-	void Assign(const CStrings& src);
+	void assign(const Strings& src);
 protected:
-	void Init();
-	void Error(const char* lpszMsg, int nData) const;
-	int GetUpdateCount() const { return m_nUpdateCount; }
-	string ExtractName(const char* lpszStr) const;
+	void init();
+	void error(const char* msg, int nData) const;
+	int getUpdateCount() const { return updateCount_; }
+	string extractName(const char* str) const;
 protected:
-	virtual void SetUpdateState(bool bUpdating) {}
-	virtual int CompareStrings(const char* str1, const char* str2) const;
+	virtual void setUpdateState(bool isUpdating) {}
+	virtual int compareStrings(const char* str1, const char* str2) const;
 public:
-	CStrings();
-	virtual ~CStrings() {}
+	Strings();
+	virtual ~Strings() {}
 
-	virtual int Add(const char* lpszStr);
-	virtual int Add(const char* lpszStr, POINTER pData);
-	virtual void AddStrings(const CStrings& Strings);
-	virtual void Insert(int nIndex, const char* lpszStr) = 0;
-	virtual void Insert(int nIndex, const char* lpszStr, POINTER pData);
-	virtual void Clear() = 0;
-	virtual void Delete(int nIndex) = 0;
-	virtual bool Equals(const CStrings& Strings);
-	virtual void Exchange(int nIndex1, int nIndex2);
-	virtual void Move(int nCurIndex, int nNewIndex);
-	virtual bool Exists(const char* lpszStr) const;
-	virtual int IndexOf(const char* lpszStr) const;
-	virtual int IndexOfName(const char* lpszName) const;
-	virtual int IndexOfData(POINTER pData) const;
+	virtual int add(const char* str);
+	virtual int add(const char* str, POINTER data);
+	virtual void addStrings(const Strings& strings);
+	virtual void insert(int index, const char* str) = 0;
+	virtual void insert(int index, const char* str, POINTER data);
+	virtual void clear() = 0;
+	virtual void del(int index) = 0;
+	virtual bool equals(const Strings& strings);
+	virtual void exchange(int index1, int index2);
+	virtual void move(int curIndex, int newIndex);
+	virtual bool exists(const char* str) const;
+	virtual int indexOf(const char* str) const;
+	virtual int indexOfName(const char* name) const;
+	virtual int indexOfData(POINTER data) const;
 
-	virtual bool LoadFromStream(CStream& Stream);
-	virtual bool LoadFromFile(const char* lpszFileName);
-	virtual bool SaveToStream(CStream& Stream) const;
-	virtual bool SaveToFile(const char* lpszFileName) const;
+	virtual bool loadFromStream(Stream& stream);
+	virtual bool loadFromFile(const char* fileName);
+	virtual bool saveToStream(Stream& stream) const;
+	virtual bool saveToFile(const char* fileName) const;
 
-	virtual int GetCapacity() const { return GetCount(); }
-	virtual void SetCapacity(int nValue) {}
-	virtual int GetCount() const = 0;
-	bool IsEmpty() const { return (GetCount() <= 0); }
-	char GetDelimiter() const;
-	void SetDelimiter(char chValue);
-	string GetLineBreak() const;
-	void SetLineBreak(const char* lpszValue);
-	char GetQuoteChar() const;
-	void SetQuoteChar(char chValue);
-	char GetNameValueSeparator() const;
-	void SetNameValueSeparator(char chValue);
-	string CombineNameValue(const char* lpszName, const char* lpszValue) const;
-	string GetName(int nIndex) const;
-	string GetValue(const char* lpszName) const;
-	string GetValue(int nIndex) const;
-	void SetValue(const char* lpszName, const char* lpszValue);
-	void SetValue(int nIndex, const char* lpszValue);
-	virtual POINTER GetData(int nIndex) const { return NULL; }
-	virtual void SetData(int nIndex, POINTER pData) {}
-	virtual string GetText() const;
-	virtual void SetText(const char* lpszValue);
-	string GetCommaText() const;
-	void SetCommaText(const char* lpszValue);
-	string GetDelimitedText() const;
-	void SetDelimitedText(const char* lpszValue);
-	virtual const string& GetString(int nIndex) const = 0;
-	virtual void SetString(int nIndex, const char* lpszValue);
+	virtual int getCapacity() const { return getCount(); }
+	virtual void setCapacity(int value) {}
+	virtual int getCount() const = 0;
+	bool isEmpty() const { return (getCount() <= 0); }
+	char getDelimiter() const;
+	void setDelimiter(char value);
+	string getLineBreak() const;
+	void setLineBreak(const char* value);
+	char getQuoteChar() const;
+	void setQuoteChar(char value);
+	char getNameValueSeparator() const;
+	void setNameValueSeparator(char value);
+	string combineNameValue(const char* name, const char* value) const;
+	string getName(int index) const;
+	string getValue(const char* name) const;
+	string getValue(int index) const;
+	void setValue(const char* name, const char* value);
+	void setValue(int index, const char* value);
+	virtual POINTER getData(int index) const { return NULL; }
+	virtual void setData(int index, POINTER data) {}
+	virtual string getText() const;
+	virtual void setText(const char* value);
+	string getCommaText() const;
+	void setCommaText(const char* value);
+	string getDelimitedText() const;
+	void setDelimitedText(const char* value);
+	virtual const string& getString(int index) const = 0;
+	virtual void setString(int index, const char* value);
 
-	void BeginUpdate();
-	void EndUpdate();
+	void beginUpdate();
+	void endUpdate();
 
-	CStrings& operator = (const CStrings& rhs);
-	const string& operator[] (int nIndex) const { return GetString(nIndex); }
+	Strings& operator = (const Strings& rhs);
+	const string& operator[] (int index) const { return getString(index); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CStrList - 字符串列表类
+// class StrList - 字符串列表类
 
-class CStrList : public CStrings
+class StrList : public Strings
 {
 public:
-	friend int StringListCompareProc(const CStrList& StringList, int nIndex1, int nIndex2);
+	friend int stringListCompareProc(const StrList& stringList, int index1, int index2);
 
 public:
 	/// The comparison function prototype that used by Sort().
-	typedef int (*STRINGLIST_COMPARE_PROC)(const CStrList& StringList, int nIndex1, int nIndex2);
+	typedef int (*STRINGLIST_COMPARE_PROC)(const StrList& stringList, int index1, int index2);
 
 	/// Indicates the response when an application attempts to add a duplicate entry to a list.
 	enum DUPLICATE_MODE
@@ -737,77 +710,77 @@ public:
 	};
 
 private:
-	struct CStringItem
+	struct StringItem
 	{
-		string *pStr;
-		POINTER pData;
+		string *str;
+		POINTER data;
 	};
 
 private:
-	CStringItem *m_pList;
-	int m_nCount;
-	int m_nCapacity;
-	DUPLICATE_MODE m_nDupMode;
-	bool m_bSorted;
-	bool m_bCaseSensitive;
+	StringItem *list_;
+	int count_;
+	int capacity_;
+	DUPLICATE_MODE dupMode_;
+	bool isSorted_;
+	bool isCaseSensitive_;
 private:
-	void Init();
-	void Assign(const CStrList& src);
-	void InternalClear();
-	string& StringObjectNeeded(int nIndex) const;
-	void ExchangeItems(int nIndex1, int nIndex2);
-	void Grow();
-	void QuickSort(int l, int r, STRINGLIST_COMPARE_PROC pfnCompareProc);
+	void init();
+	void assign(const StrList& src);
+	void internalClear();
+	string& stringObjectNeeded(int index) const;
+	void exchangeItems(int index1, int index2);
+	void grow();
+	void quickSort(int l, int r, STRINGLIST_COMPARE_PROC compareProc);
 protected: // override
-	virtual void SetUpdateState(bool bUpdating);
-	virtual int CompareStrings(const char* str1, const char* str2) const;
+	virtual void setUpdateState(bool isUpdating);
+	virtual int compareStrings(const char* str1, const char* str2) const;
 protected: // virtual
 	/// Occurs immediately before the list of strings changes.
-	virtual void OnChanging() {}
+	virtual void onChanging() {}
 	/// Occurs immediately after the list of strings changes.
-	virtual void OnChanged() {}
+	virtual void onChanged() {}
 	/// Internal method used to insert a string to the list.
-	virtual void InsertItem(int nIndex, const char* lpszStr, POINTER pData);
+	virtual void insertItem(int index, const char* str, POINTER data);
 public:
-	CStrList();
-	CStrList(const CStrList& src);
-	virtual ~CStrList();
+	StrList();
+	StrList(const StrList& src);
+	virtual ~StrList();
 
-	virtual int Add(const char* lpszStr);
-	virtual int Add(const char* lpszStr, POINTER pData);
-	virtual void Clear();
-	virtual void Delete(int nIndex);
-	virtual void Exchange(int nIndex1, int nIndex2);
-	virtual int IndexOf(const char* lpszStr) const;
-	virtual void Insert(int nIndex, const char* lpszStr);
-	virtual void Insert(int nIndex, const char* lpszStr, POINTER pData);
+	virtual int add(const char* str);
+	virtual int add(const char* str, POINTER data);
+	virtual void clear();
+	virtual void del(int index);
+	virtual void exchange(int index1, int index2);
+	virtual int indexOf(const char* str) const;
+	virtual void insert(int index, const char* str);
+	virtual void insert(int index, const char* str, POINTER data);
 
-	virtual int GetCapacity() const { return m_nCapacity; }
-	virtual void SetCapacity(int nValue);
-	virtual int GetCount() const { return m_nCount; }
-	virtual POINTER GetData(int nIndex) const;
-	virtual void SetData(int nIndex, POINTER pData);
-	virtual const string& GetString(int nIndex) const;
-	virtual void SetString(int nIndex, const char* lpszValue);
+	virtual int getCapacity() const { return capacity_; }
+	virtual void setCapacity(int value);
+	virtual int getCount() const { return count_; }
+	virtual POINTER getData(int index) const;
+	virtual void setData(int index, POINTER data);
+	virtual const string& getString(int index) const;
+	virtual void setString(int index, const char* value);
 
-	virtual bool Find(const char* lpszStr, int& nIndex) const;
-	virtual void Sort();
-	virtual void Sort(STRINGLIST_COMPARE_PROC pfnCompareProc);
+	virtual bool find(const char* str, int& index) const;
+	virtual void sort();
+	virtual void sort(STRINGLIST_COMPARE_PROC compareProc);
 
-	DUPLICATE_MODE GetDupMode() const { return m_nDupMode; }
-	void SetDupMode(DUPLICATE_MODE nValue) { m_nDupMode = nValue; }
-	bool GetSorted() const { return m_bSorted; }
-	virtual void SetSorted(bool bValue);
-	bool GetCaseSensitive() const { return m_bCaseSensitive; }
-	virtual void SetCaseSensitive(bool bValue);
+	DUPLICATE_MODE getDupMode() const { return dupMode_; }
+	void setDupMode(DUPLICATE_MODE value) { dupMode_ = value; }
+	bool getSorted() const { return isSorted_; }
+	virtual void setSorted(bool value);
+	bool getCaseSensitive() const { return isCaseSensitive_; }
+	virtual void setCaseSensitive(bool value);
 
-	CStrList& operator = (const CStrList& rhs);
+	StrList& operator = (const StrList& rhs);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUrl - URL解析类
+// class Url - URL解析类
 
-class CUrl
+class Url
 {
 public:
 	// The URL parts.
@@ -826,469 +799,469 @@ public:
 	};
 
 private:
-	string m_strProtocol;
-	string m_strHost;
-	string m_strPort;
-	string m_strPath;
-	string m_strFileName;
-	string m_strBookmark;
-	string m_strUserName;
-	string m_strPassword;
-	string m_strParams;
+	string protocol_;
+	string host_;
+	string port_;
+	string path_;
+	string fileName_;
+	string bookmark_;
+	string userName_;
+	string password_;
+	string params_;
 public:
-	CUrl(const string& strUrl = "");
-	CUrl(const CUrl& src);
-	virtual ~CUrl() {}
+	Url(const string& url = "");
+	Url(const Url& src);
+	virtual ~Url() {}
 
-	void Clear();
-	CUrl& operator = (const CUrl& rhs);
+	void clear();
+	Url& operator = (const Url& rhs);
 
-	string GetUrl() const;
-	string GetUrl(UINT nParts);
-	void SetUrl(const string& strValue);
+	string getUrl() const;
+	string getUrl(UINT parts);
+	void setUrl(const string& value);
 
-	const string& GetProtocol() const { return m_strProtocol; }
-	const string& GetHost() const { return m_strHost; }
-	const string& GetPort() const { return m_strPort; }
-	const string& GetPath() const { return m_strPath; }
-	const string& GetFileName() const { return m_strFileName; }
-	const string& GetBookmark() const { return m_strBookmark; }
-	const string& GetUserName() const { return m_strUserName; }
-	const string& GetPassword() const { return m_strPassword; }
-	const string& GetParams() const { return m_strParams; }
+	const string& getProtocol() const { return protocol_; }
+	const string& getHost() const { return host_; }
+	const string& getPort() const { return port_; }
+	const string& getPath() const { return path_; }
+	const string& getFileName() const { return fileName_; }
+	const string& getBookmark() const { return bookmark_; }
+	const string& getUserName() const { return userName_; }
+	const string& getPassword() const { return password_; }
+	const string& getParams() const { return params_; }
 
-	void SetProtocol(const string& strValue) { m_strProtocol = strValue; }
-	void SetHost(const string& strValue) { m_strHost = strValue; }
-	void SetPort(const string& strValue) { m_strPort = strValue; }
-	void SetPath(const string& strValue) { m_strPath = strValue; }
-	void SetFileName(const string& strValue) { m_strFileName = strValue; }
-	void SetBookmark(const string& strValue) { m_strBookmark = strValue; }
-	void SetUserName(const string& strValue) { m_strUserName = strValue; }
-	void SetPassword(const string& strValue) { m_strPassword = strValue; }
-	void SetParams(const string& strValue) { m_strParams = strValue; }
+	void setProtocol(const string& value) { protocol_ = value; }
+	void setHost(const string& value) { host_ = value; }
+	void setPort(const string& value) { port_ = value; }
+	void setPath(const string& value) { path_ = value; }
+	void setFileName(const string& value) { fileName_ = value; }
+	void setBookmark(const string& value) { bookmark_ = value; }
+	void setUserName(const string& value) { userName_ = value; }
+	void setPassword(const string& value) { password_ = value; }
+	void setParams(const string& value) { params_ = value; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CPacket - 数据包基类
+// class Packet - 数据包基类
 
-class CPacket
+class Packet
 {
 public:
 	// 缺省内存增长步长 (字节数，必须是 2 的 N 次方)
 	enum { DEFAULT_MEMORY_DELTA = 1024 };
 
 private:
-	void Init();
+	void init();
 protected:
-	CMemoryStream *m_pStream;
-	bool m_bAvailable;
-	bool m_bIsPacked;
+	MemoryStream *stream_;
+	bool isAvailable_;
+	bool isPacked_;
 protected:
-	void ThrowUnpackError();
-	void ThrowPackError();
-	void CheckUnsafeSize(int nValue);
+	void throwUnpackError();
+	void throwPackError();
+	void checkUnsafeSize(int value);
 
-	void ReadBuffer(void *pBuffer, int nBytes);
-	void ReadINT8(INT8& nValue) { ReadBuffer(&nValue, sizeof(INT8)); }
-	void ReadINT16(INT16& nValue) { ReadBuffer(&nValue, sizeof(INT16)); }
-	void ReadINT32(INT32& nValue) { ReadBuffer(&nValue, sizeof(INT32)); }
-	void ReadINT64(INT64& nValue) { ReadBuffer(&nValue, sizeof(INT64)); }
-	void ReadString(std::string& str);
-	void ReadBlob(std::string& str);
-	void ReadBlob(CStream& Stream);
-	void ReadBlob(CBuffer& Buffer);
-	INT8 ReadINT8() { INT8 v; ReadINT8(v); return v; }
-	INT16 ReadINT16() { INT16 v; ReadINT16(v); return v; }
-	INT32 ReadINT32() { INT32 v; ReadINT32(v); return v; }
-	INT64 ReadINT64() { INT64 v; ReadINT64(v); return v; }
-	bool ReadBool() { INT8 v; ReadINT8(v); return (v? true : false); }
-	std::string ReadString() { std::string v; ReadString(v); return v; }
+	void readBuffer(void *buffer, int bytes);
+	void readINT8(INT8& value) { readBuffer(&value, sizeof(INT8)); }
+	void readINT16(INT16& value) { readBuffer(&value, sizeof(INT16)); }
+	void readINT32(INT32& value) { readBuffer(&value, sizeof(INT32)); }
+	void readINT64(INT64& value) { readBuffer(&value, sizeof(INT64)); }
+	void readString(std::string& str);
+	void readBlob(std::string& str);
+	void readBlob(Stream& stream);
+	void readBlob(Buffer& buffer);
+	INT8 readINT8() { INT8 v; readINT8(v); return v; }
+	INT16 readINT16() { INT16 v; readINT16(v); return v; }
+	INT32 readINT32() { INT32 v; readINT32(v); return v; }
+	INT64 readINT64() { INT64 v; readINT64(v); return v; }
+	bool readBool() { INT8 v; readINT8(v); return (v? true : false); }
+	std::string readString() { std::string v; readString(v); return v; }
 
-	void WriteBuffer(const void *pBuffer, int nBytes);
-	void WriteINT8(const INT8& nValue) { WriteBuffer(&nValue, sizeof(INT8)); }
-	void WriteINT16(const INT16& nValue) { WriteBuffer(&nValue, sizeof(INT16)); }
-	void WriteINT32(const INT32& nValue) { WriteBuffer(&nValue, sizeof(INT32)); }
-	void WriteINT64(const INT64& nValue) { WriteBuffer(&nValue, sizeof(INT64)); }
-	void WriteBool(bool bValue) { WriteINT8(bValue ? 1 : 0); }
-	void WriteString(const std::string& str);
-	void WriteBlob(void *pBuffer, int nBytes);
-	void WriteBlob(const CBuffer& Buffer);
+	void writeBuffer(const void *buffer, int bytes);
+	void writeINT8(const INT8& value) { writeBuffer(&value, sizeof(INT8)); }
+	void writeINT16(const INT16& value) { writeBuffer(&value, sizeof(INT16)); }
+	void writeINT32(const INT32& value) { writeBuffer(&value, sizeof(INT32)); }
+	void writeINT64(const INT64& value) { writeBuffer(&value, sizeof(INT64)); }
+	void writeBool(bool value) { writeINT8(value ? 1 : 0); }
+	void writeString(const std::string& str);
+	void writeBlob(void *buffer, int bytes);
+	void writeBlob(const Buffer& buffer);
 
-	void FixStrLength(std::string& str, int nLength);
-	void TruncString(std::string& str, int nMaxLength);
+	void fixStrLength(std::string& str, int length);
+	void truncString(std::string& str, int maxLength);
 protected:
-	virtual void DoPack() {}
-	virtual void DoUnpack() {}
-	virtual void DoAfterPack() {}
-	virtual void DoEncrypt() {}
-	virtual void DoDecrypt() {}
-	virtual void DoCompress() {}
-	virtual void DoDecompress() {}
+	virtual void doPack() {}
+	virtual void doUnpack() {}
+	virtual void doAfterPack() {}
+	virtual void doEncrypt() {}
+	virtual void doDecrypt() {}
+	virtual void doCompress() {}
+	virtual void doDecompress() {}
 public:
-	CPacket();
-	virtual ~CPacket();
+	Packet();
+	virtual ~Packet();
 
-	bool Pack();
-	bool Unpack(void *pBuffer, int nBytes);
-	bool Unpack(const CBuffer& Buffer);
-	void Clear();
-	void EnsurePacked();
+	bool pack();
+	bool unpack(void *buffer, int bytes);
+	bool unpack(const Buffer& buffer);
+	void clear();
+	void ensurePacked();
 
-	char* GetBuffer() const { return (m_pStream? (char*)m_pStream->GetMemory() : NULL); }
-	int GetSize() const { return (m_pStream? (int)m_pStream->GetSize() : 0); }
-	bool Available() const { return m_bAvailable; }
-	bool IsPacked() const { return m_bIsPacked; }
+	char* getBuffer() const { return (stream_? (char*)stream_->getMemory() : NULL); }
+	int getSize() const { return (stream_? (int)stream_->getSize() : 0); }
+	bool isAvailable() const { return isAvailable_; }
+	bool IsPacked() const { return isPacked_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CCustomObjectList - 对象列表基类
+// class CustomObjectList - 对象列表基类
 
 template<typename ObjectType>
-class CCustomObjectList
+class CustomObjectList
 {
 public:
-	class CLock : public CAutoInvokable
+	class Lock : public AutoInvokable
 	{
 	private:
-		CCriticalSection *m_pLock;
+		CriticalSection *lock_;
 	protected:
-		virtual void InvokeInitialize() { if (m_pLock) m_pLock->Lock(); }
-		virtual void InvokeFinalize() { if (m_pLock) m_pLock->Unlock(); }
+		virtual void invokeInitialize() { if (lock_) lock_->lock(); }
+		virtual void invokeFinalize() { if (lock_) lock_->unlock(); }
 	public:
-		CLock(bool bActive) : m_pLock(NULL) { if (bActive) m_pLock = new CCriticalSection(); }
-		virtual ~CLock() { delete m_pLock; }
+		Lock(bool active) : lock_(NULL) { if (active) lock_ = new CriticalSection(); }
+		virtual ~Lock() { delete lock_; }
 	};
 
 	typedef ObjectType* ObjectPtr;
 
 protected:
-	CList m_Items;            // 对象列表
-	bool m_bOwnsObjects;      // 元素被删除时，是否自动释放元素对象
-	mutable CLock m_Lock;
+	PointerList items_;       // 对象列表
+	bool isOwnsObjects_;      // 元素被删除时，是否自动释放元素对象
+	mutable Lock lock_;
 
 protected:
-	virtual void NotifyDelete(int nIndex)
+	virtual void notifyDelete(int index)
 	{
-		if (m_bOwnsObjects)
+		if (isOwnsObjects_)
 		{
-			ObjectPtr pItem = (ObjectPtr)m_Items[nIndex];
-			m_Items[nIndex] = NULL;
-			delete pItem;
+			ObjectPtr item = (ObjectPtr)items_[index];
+			items_[index] = NULL;
+			delete item;
 		}
 	}
 protected:
-	int Add(ObjectPtr pItem, bool bAllowDuplicate = true)
+	int add(ObjectPtr item, bool allowDuplicate = true)
 	{
-		ISE_ASSERT(pItem);
-		CAutoLocker Locker(m_Lock);
+		ISE_ASSERT(item);
+		AutoLocker locker(lock_);
 
-		if (bAllowDuplicate || m_Items.IndexOf(pItem) == -1)
-			return m_Items.Add(pItem);
+		if (allowDuplicate || items_.indexOf(item) == -1)
+			return items_.add(item);
 		else
 			return -1;
 	}
 
-	int Remove(ObjectPtr pItem)
+	int remove(ObjectPtr item)
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
-		int nResult = m_Items.IndexOf(pItem);
-		if (nResult >= 0)
+		int result = items_.indexOf(item);
+		if (result >= 0)
 		{
-			NotifyDelete(nResult);
-			m_Items.Delete(nResult);
+			notifyDelete(result);
+			items_.del(result);
 		}
-		return nResult;
+		return result;
 	}
 
-	ObjectPtr Extract(ObjectPtr pItem)
+	ObjectPtr extract(ObjectPtr item)
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
-		ObjectPtr pResult = NULL;
-		int i = m_Items.Remove(pItem);
+		ObjectPtr result = NULL;
+		int i = items_.remove(item);
 		if (i >= 0)
-			pResult = pItem;
-		return pResult;
+			result = item;
+		return result;
 	}
 
-	ObjectPtr Extract(int nIndex)
+	ObjectPtr extract(int index)
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
-		ObjectPtr pResult = NULL;
-		if (nIndex >= 0 && nIndex < m_Items.GetCount())
+		ObjectPtr result = NULL;
+		if (index >= 0 && index < items_.getCount())
 		{
-			pResult = (ObjectPtr)m_Items[nIndex];
-			m_Items.Delete(nIndex);
+			result = (ObjectPtr)items_[index];
+			items_.del(index);
 		}
-		return pResult;
+		return result;
 	}
 
-	void Delete (int nIndex)
+	void del(int index)
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
-		if (nIndex >= 0 && nIndex < m_Items.GetCount())
+		if (index >= 0 && index < items_.getCount())
 		{
-			NotifyDelete(nIndex);
-			m_Items.Delete(nIndex);
-		}
-	}
-
-	void Insert(int nIndex, ObjectPtr pItem)
-	{
-		ISE_ASSERT(pItem);
-		CAutoLocker Locker(m_Lock);
-		m_Items.Insert(nIndex, pItem);
-	}
-
-	int IndexOf(ObjectPtr pItem) const
-	{
-		CAutoLocker Locker(m_Lock);
-		return m_Items.IndexOf(pItem);
-	}
-
-	bool Exists(ObjectPtr pItem) const
-	{
-		CAutoLocker Locker(m_Lock);
-		return m_Items.IndexOf(pItem) >= 0;
-	}
-
-	ObjectPtr First() const
-	{
-		CAutoLocker Locker(m_Lock);
-		return (ObjectPtr)m_Items.First();
-	}
-
-	ObjectPtr Last() const
-	{
-		CAutoLocker Locker(m_Lock);
-		return (ObjectPtr)m_Items.Last();
-	}
-
-	void Clear()
-	{
-		CAutoLocker Locker(m_Lock);
-
-		for (int i = m_Items.GetCount() - 1; i >= 0; i--)
-			NotifyDelete(i);
-		m_Items.Clear();
-	}
-
-	void FreeObjects()
-	{
-		CAutoLocker Locker(m_Lock);
-
-		for (int i = m_Items.GetCount() - 1; i >= 0; i--)
-		{
-			ObjectPtr pItem = (ObjectPtr)m_Items[i];
-			m_Items[i] = NULL;
-			delete pItem;
+			notifyDelete(index);
+			items_.del(index);
 		}
 	}
 
-	int GetCount() const { return m_Items.GetCount(); }
-	ObjectPtr& GetItem(int nIndex) const { return (ObjectPtr&)m_Items[nIndex]; }
-	CCustomObjectList& operator = (const CCustomObjectList& rhs) { m_Items = rhs.m_Items; return *this; }
-	ObjectPtr& operator[] (int nIndex) const { return GetItem(nIndex); }
-	bool IsEmpty() const { return (GetCount() <= 0); }
-	void SetOwnsObjects(bool bValue) { m_bOwnsObjects = bValue; }
+	void insert(int index, ObjectPtr item)
+	{
+		ISE_ASSERT(item);
+		AutoLocker locker(lock_);
+		items_.insert(index, item);
+	}
+
+	int indexOf(ObjectPtr item) const
+	{
+		AutoLocker locker(lock_);
+		return items_.indexOf(item);
+	}
+
+	bool exists(ObjectPtr item) const
+	{
+		AutoLocker locker(lock_);
+		return items_.indexOf(item) >= 0;
+	}
+
+	ObjectPtr first() const
+	{
+		AutoLocker locker(lock_);
+		return (ObjectPtr)items_.first();
+	}
+
+	ObjectPtr last() const
+	{
+		AutoLocker locker(lock_);
+		return (ObjectPtr)items_.last();
+	}
+
+	void clear()
+	{
+		AutoLocker locker(lock_);
+
+		for (int i = items_.getCount() - 1; i >= 0; i--)
+			notifyDelete(i);
+		items_.clear();
+	}
+
+	void freeObjects()
+	{
+		AutoLocker locker(lock_);
+
+		for (int i = items_.getCount() - 1; i >= 0; i--)
+		{
+			ObjectPtr item = (ObjectPtr)items_[i];
+			items_[i] = NULL;
+			delete item;
+		}
+	}
+
+	int getCount() const { return items_.getCount(); }
+	ObjectPtr& getItem(int index) const { return (ObjectPtr&)items_[index]; }
+	CustomObjectList& operator = (const CustomObjectList& rhs) { items_ = rhs.items_; return *this; }
+	ObjectPtr& operator[] (int index) const { return getItem(index); }
+	bool isEmpty() const { return (getCount() <= 0); }
+	void setOwnsObjects(bool value) { isOwnsObjects_ = value; }
 public:
-	CCustomObjectList() :
-	  m_Lock(false), m_bOwnsObjects(true) {}
+	CustomObjectList() :
+		lock_(false), isOwnsObjects_(true) {}
 
-	CCustomObjectList(bool bThreadSafe, bool bOwnsObjects) :
-	m_Lock(bThreadSafe), m_bOwnsObjects(bOwnsObjects) {}
+	CustomObjectList(bool isThreadSafe, bool isOwnsObjects) :
+		lock_(isThreadSafe), isOwnsObjects_(isOwnsObjects) {}
 
-	virtual ~CCustomObjectList() { Clear(); }
+	virtual ~CustomObjectList() { clear(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CObjectList - 对象列表类
+// class ObjectList - 对象列表类
 
 template<typename ObjectType>
-class CObjectList : public CCustomObjectList<ObjectType>
+class ObjectList : public CustomObjectList<ObjectType>
 {
 public:
-	CObjectList() :
-		CCustomObjectList<ObjectType>(false, true) {}
-	CObjectList(bool bThreadSafe, bool bOwnsObjects) :
-		CCustomObjectList<ObjectType>(bThreadSafe, bOwnsObjects) {}
-	virtual ~CObjectList() {}
+	ObjectList() :
+		CustomObjectList<ObjectType>(false, true) {}
+	ObjectList(bool isThreadSafe, bool isOwnsObjects) :
+		CustomObjectList<ObjectType>(isThreadSafe, isOwnsObjects) {}
+	virtual ~ObjectList() {}
 
-	using CCustomObjectList<ObjectType>::Add;
-	using CCustomObjectList<ObjectType>::Remove;
-	using CCustomObjectList<ObjectType>::Extract;
-	using CCustomObjectList<ObjectType>::Delete;
-	using CCustomObjectList<ObjectType>::Insert;
-	using CCustomObjectList<ObjectType>::IndexOf;
-	using CCustomObjectList<ObjectType>::Exists;
-	using CCustomObjectList<ObjectType>::First;
-	using CCustomObjectList<ObjectType>::Last;
-	using CCustomObjectList<ObjectType>::Clear;
-	using CCustomObjectList<ObjectType>::FreeObjects;
-	using CCustomObjectList<ObjectType>::GetCount;
-	using CCustomObjectList<ObjectType>::GetItem;
-	using CCustomObjectList<ObjectType>::operator=;
-	using CCustomObjectList<ObjectType>::operator[];
-	using CCustomObjectList<ObjectType>::IsEmpty;
-	using CCustomObjectList<ObjectType>::SetOwnsObjects;
+	using CustomObjectList<ObjectType>::add;
+	using CustomObjectList<ObjectType>::remove;
+	using CustomObjectList<ObjectType>::extract;
+	using CustomObjectList<ObjectType>::del;
+	using CustomObjectList<ObjectType>::insert;
+	using CustomObjectList<ObjectType>::indexOf;
+	using CustomObjectList<ObjectType>::exists;
+	using CustomObjectList<ObjectType>::first;
+	using CustomObjectList<ObjectType>::last;
+	using CustomObjectList<ObjectType>::clear;
+	using CustomObjectList<ObjectType>::freeObjects;
+	using CustomObjectList<ObjectType>::getCount;
+	using CustomObjectList<ObjectType>::getItem;
+	using CustomObjectList<ObjectType>::operator=;
+	using CustomObjectList<ObjectType>::operator[];
+	using CustomObjectList<ObjectType>::isEmpty;
+	using CustomObjectList<ObjectType>::setOwnsObjects;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IEventHandler/CEventInvoker - C++事件支持类
+// class EventHandler/EventInvoker - C++事件支持类
 
 // 空事件参数定义
-class CNullSender {};
-class CNullParam {};
+class NullSender {};
+class NullParam {};
 
 // 事件处理器接口
 template<class SenderType, class ParamType>
-class IEventHandler
+class EventHandler
 {
 public:
-	virtual ~IEventHandler() {}
-	virtual void HandleEvent(const SenderType& Sender, const ParamType& Param) = 0;
+	virtual ~EventHandler() {}
+	virtual void handleEvent(const SenderType& sender, const ParamType& param) = 0;
 };
 
 // 事件发起者
 template<class SenderType, class ParamType>
-class CEventInvoker
+class EventInvoker
 {
 public:
-	typedef IEventHandler<SenderType, ParamType> EventHanderType;
+	typedef EventHandler<SenderType, ParamType> EventHanderType;
 private:
-	CList m_HandlerList;       // (EventHanderType*)[]
+	PointerList handlerList_;       // (EventHanderType*)[]
 public:
-	virtual ~CEventInvoker() {}
+	virtual ~EventInvoker() {}
 
-	virtual void RegisterHandler(EventHanderType *pHandler)
+	virtual void registerHandler(EventHanderType *handler)
 	{
-		if (pHandler && m_HandlerList.IndexOf(pHandler) == -1)
-			m_HandlerList.Add(pHandler);
+		if (handler && handlerList_.indexOf(handler) == -1)
+			handlerList_.add(handler);
 	}
 
-	virtual void UnregisterHandler(EventHanderType *pHandler)
+	virtual void unregisterHandler(EventHanderType *handler)
 	{
-		m_HandlerList.Remove(pHandler);
+		handlerList_.remove(handler);
 	}
 
-	virtual void Invoke(const SenderType& Sender, const ParamType& Param)
+	virtual void invoke(const SenderType& sender, const ParamType& param)
 	{
-		for (register int i = 0; i < m_HandlerList.GetCount(); i++)
-			((EventHanderType*)m_HandlerList[i])->HandleEvent(Sender, Param);
+		for (int i = 0; i < handlerList_.getCount(); i++)
+			((EventHanderType*)handlerList_[i])->handleEvent(sender, param);
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CCallBackDef - 回调定义
+// class CallbackDef - 回调定义
 
-template<typename CallBackType>
-class CCallBackDef
+template<typename CallbackType>
+class CallbackDef
 {
 public:
-	CallBackType pProc;
-	void *pParam;
+	CallbackType proc;
+	void *param;
 public:
-	CCallBackDef() { Clear(); }
-	CCallBackDef(CallBackType pProc_, void *pParam_) : pProc(pProc_), pParam(pParam_) {}
-	void Clear() { pProc = NULL; pParam = NULL; }
+	CallbackDef() { clear(); }
+	CallbackDef(CallbackType _proc, void *_param) : proc(_proc), param(_param) {}
+	void clear() { proc = NULL; param = NULL; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CCallBackList - 回调列表
+// class CallbackList - 回调列表
 
-template<typename CallBackType>
-class CCallBackList
+template<typename CallbackType>
+class CallbackList
 {
 public:
-	typedef CCallBackDef<CallBackType> CALLBACK_ITEM;
-	typedef CObjectList<CALLBACK_ITEM> CALLBACK_LIST;
+	typedef CallbackDef<CallbackType> CALLBACK_ITEM;
+	typedef ObjectList<CALLBACK_ITEM> CALLBACK_LIST;
 private:
-	CALLBACK_LIST m_Items;
+	CALLBACK_LIST items_;
 private:
-	bool Exists(CallBackType pProc)
+	bool exists(CallbackType proc)
 	{
-		for (int i = 0; i < m_Items.GetCount(); i++)
-			if (m_Items[i]->pProc == pProc) return true;
+		for (int i = 0; i < items_.getCount(); i++)
+			if (items_[i]->proc == proc) return true;
 		return false;
 	}
 public:
-	CCallBackList() : m_Items(true, true) {}
+	CallbackList() : items_(true, true) {}
 
-	void Register(CallBackType pProc, void *pParam = NULL)
+	void registerCallback(CallbackType proc, void *param = NULL)
 	{
-		if (pProc && !Exists(pProc))
-			m_Items.Add(new CALLBACK_ITEM(pProc, pParam));
+		if (proc && !exists(proc))
+			items_.add(new CALLBACK_ITEM(proc, param));
 	}
 
-	int GetCount() const { return m_Items.GetCount(); }
-	const CALLBACK_ITEM& GetItem(int nIndex) const { return *m_Items[nIndex]; }
+	int getCount() const { return items_.getCount(); }
+	const CALLBACK_ITEM& getItem(int index) const { return *items_[index]; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CCustomParams - 用户自定义参数
+// class CustomParams - 用户自定义参数
 
-class CCustomParams
+class CustomParams
 {
 public:
 	enum { MAX_PARAM_COUNT = 8 };
 private:
-	int m_nCount;
-	PVOID m_pParams[MAX_PARAM_COUNT];
+	int count_;
+	PVOID params_[MAX_PARAM_COUNT];
 private:
-	inline void Init();
+	inline void init();
 public:
-	CCustomParams();
-	CCustomParams(const CCustomParams& src);
-	CCustomParams(int nCount, ...);
+	CustomParams();
+	CustomParams(const CustomParams& src);
+	CustomParams(int count, ...);
 
-	bool Add(PVOID pValue);
-	void Clear();
-	int GetCount() const { return m_nCount; }
+	bool add(PVOID value);
+	void clear();
+	int getCount() const { return count_; }
 
-	CCustomParams& operator = (const CCustomParams& rhs);
-	PVOID& operator[] (int nIndex);
-	const PVOID& operator[] (int nIndex) const;
+	CustomParams& operator = (const CustomParams& rhs);
+	PVOID& operator[] (int index);
+	const PVOID& operator[] (int index) const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CLogger - 日志类
+// class Logger - 日志类
 
-class CLogger
+class Logger
 {
 private:
-	string m_strFileName;        // 日志文件名
-	bool m_bNewFileDaily;        // 是否每天用一个单独的文件存储日志
-	CCriticalSection m_Lock;
+	string fileName_;            // 日志文件名
+	bool isNewFileDaily_;        // 是否每天用一个单独的文件存储日志
+	CriticalSection lock_;
 private:
-	string GetLogFileName();
-	bool OpenFile(CFileStream& FileStream, const string& strFileName);
-	void WriteToFile(const string& strString);
+	string getLogFileName();
+	bool openFile(FileStream& fileStream, const string& fileName);
+	void writeToFile(const string& str);
 private:
-	CLogger();
+	Logger();
 public:
-	~CLogger() {}
-	static CLogger& Instance();
+	~Logger() {}
+	static Logger& instance();
 
-	void SetFileName(const string& strFileName, bool bNewFileDaily = false);
+	void setFileName(const string& fileName, bool isNewFileDaily = false);
 
-	void WriteStr(const char *sString);
-	void WriteStr(const string& str) { WriteStr(str.c_str()); }
-	void WriteFmt(const char *sFormatString, ...);
-	void WriteException(const CException& e);
+	void writeStr(const char *str);
+	void writeStr(const string& str) { writeStr(str.c_str()); }
+	void writeFmt(const char *format, ...);
+	void writeException(const Exception& e);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // 常量定义
 
-extern const CCustomParams EMPTY_PARAMS;
+extern const CustomParams EMPTY_PARAMS;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 全局函数
 
-inline CLogger& Logger() { return CLogger::Instance(); }
+inline Logger& logger() { return Logger::instance(); }
 
 ///////////////////////////////////////////////////////////////////////////////
 

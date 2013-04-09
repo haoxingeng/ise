@@ -33,69 +33,69 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbConnParams
+// class DbConnParams
 
-CDbConnParams::CDbConnParams() :
-	m_nPort(0)
+DbConnParams::DbConnParams() :
+	port_(0)
 {
 	// nothing
 }
 
-CDbConnParams::CDbConnParams(const CDbConnParams& src)
+DbConnParams::DbConnParams(const DbConnParams& src)
 {
-	m_strHostName = src.m_strHostName;
-	m_strUserName = src.m_strUserName;
-	m_strPassword = src.m_strPassword;
-	m_strDbName = src.m_strDbName;
-	m_nPort = src.m_nPort;
+	hostName_ = src.hostName_;
+	userName_ = src.userName_;
+	password_ = src.password_;
+	dbName_ = src.dbName_;
+	port_ = src.port_;
 }
 
-CDbConnParams::CDbConnParams(const string& strHostName, const string& strUserName,
-	const string& strPassword, const string& strDbName, int nPort)
+DbConnParams::DbConnParams(const string& hostName, const string& userName,
+	const string& password, const string& dbName, int port)
 {
-	m_strHostName = strHostName;
-	m_strUserName = strUserName;
-	m_strPassword = strPassword;
-	m_strDbName = strDbName;
-	m_nPort = nPort;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// class CDbOptions
-
-CDbOptions::CDbOptions()
-{
-	SetMaxDbConnections(DEF_MAX_DB_CONNECTIONS);
-}
-
-void CDbOptions::SetMaxDbConnections(int nValue)
-{
-	if (nValue < 1) nValue = 1;
-	m_nMaxDbConnections = nValue;
-}
-
-void CDbOptions::SetInitialSqlCmd(const string& strValue)
-{
-	m_InitialSqlCmdList.Clear();
-	m_InitialSqlCmdList.Add(strValue.c_str());
-}
-
-void CDbOptions::SetInitialCharSet(const string& strValue)
-{
-	m_strInitialCharSet = strValue;
+	hostName_ = hostName;
+	userName_ = userName;
+	password_ = password;
+	dbName_ = dbName;
+	port_ = port;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbConnection
+// class DbOptions
 
-CDbConnection::CDbConnection(CDatabase *pDatabase)
+DbOptions::DbOptions()
 {
-	m_pDatabase = pDatabase;
-	m_bConnected = false;
-	m_bBusy = false;
+	setMaxDbConnections(DEF_MAX_DB_CONNECTIONS);
 }
 
-CDbConnection::~CDbConnection()
+void DbOptions::setMaxDbConnections(int value)
+{
+	if (value < 1) value = 1;
+	maxDbConnections_ = value;
+}
+
+void DbOptions::setInitialSqlCmd(const string& value)
+{
+	initialSqlCmdList_.clear();
+	initialSqlCmdList_.add(value.c_str());
+}
+
+void DbOptions::setInitialCharSet(const string& value)
+{
+	initialCharSet_ = value;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class DbConnection
+
+DbConnection::DbConnection(Database *database)
+{
+	database_ = database;
+	isConnected_ = false;
+	isBusy_ = false;
+}
+
+DbConnection::~DbConnection()
 {
 	// nothing
 }
@@ -103,53 +103,53 @@ CDbConnection::~CDbConnection()
 //-----------------------------------------------------------------------------
 // 描述: 建立数据库连接并进行相关设置 (若失败则抛出异常)
 //-----------------------------------------------------------------------------
-void CDbConnection::Connect()
+void DbConnection::connect()
 {
-	if (!m_bConnected)
+	if (!isConnected_)
 	{
-		DoConnect();
-		ExecCmdOnConnected();
-		m_bConnected = true;
+		doConnect();
+		execCmdOnConnected();
+		isConnected_ = true;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开数据库连接并进行相关设置
 //-----------------------------------------------------------------------------
-void CDbConnection::Disconnect()
+void DbConnection::disconnect()
 {
-	if (m_bConnected)
+	if (isConnected_)
 	{
-		DoDisconnect();
-		m_bConnected = false;
+		doDisconnect();
+		isConnected_ = false;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 刚建立连接时执行命令
 //-----------------------------------------------------------------------------
-void CDbConnection::ExecCmdOnConnected()
+void DbConnection::execCmdOnConnected()
 {
 	try
 	{
-		CStrList& CmdList = m_pDatabase->GetDbOptions()->InitialSqlCmdList();
-		if (!CmdList.IsEmpty())
+		StrList& cmdList = database_->getDbOptions()->initialSqlCmdList();
+		if (!cmdList.isEmpty())
 		{
-			CDbQueryWrapper Query(m_pDatabase->CreateDbQuery());
-			Query->m_pDbConnection = this;
+			DbQueryWrapper query(database_->createDbQuery());
+			query->dbConnection_ = this;
 
-			for (int i = 0; i < CmdList.GetCount(); ++i)
+			for (int i = 0; i < cmdList.getCount(); ++i)
 			{
 				try
 				{
-					Query->SetSql(CmdList[i]);
-					Query->Execute();
+					query->setSql(cmdList[i]);
+					query->execute();
 				}
 				catch (...)
 				{}
 			}
 
-			Query->m_pDbConnection = NULL;
+			query->dbConnection_ = NULL;
 		}
 	}
 	catch (...)
@@ -159,12 +159,12 @@ void CDbConnection::ExecCmdOnConnected()
 //-----------------------------------------------------------------------------
 // 描述: 借用连接 (由 ConnectionPool 调用)
 //-----------------------------------------------------------------------------
-bool CDbConnection::GetDbConnection()
+bool DbConnection::getDbConnection()
 {
-	if (!m_bBusy)
+	if (!isBusy_)
 	{
-		ActivateConnection();
-		m_bBusy = true;
+		activateConnection();
+		isBusy_ = true;
 		return true;
 	}
 
@@ -174,202 +174,202 @@ bool CDbConnection::GetDbConnection()
 //-----------------------------------------------------------------------------
 // 描述: 归还连接 (由 ConnectionPool 调用)
 //-----------------------------------------------------------------------------
-void CDbConnection::ReturnDbConnection()
+void DbConnection::returnDbConnection()
 {
-	m_bBusy = false;
+	isBusy_ = false;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回连接是否被借用 (由 ConnectionPool 调用)
 //-----------------------------------------------------------------------------
-bool CDbConnection::IsBusy()
+bool DbConnection::isBusy()
 {
-	return m_bBusy;
+	return isBusy_;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 激活数据库连接
 // 参数:
-//   bForce - 是否强制激活
+//   force - 是否强制激活
 //-----------------------------------------------------------------------------
-void CDbConnection::ActivateConnection(bool bForce)
+void DbConnection::activateConnection(bool force)
 {
 	// 没有连接数据库则建立连接
-	if (!m_bConnected || bForce)
+	if (!isConnected_ || force)
 	{
-		Disconnect();
-		Connect();
+		disconnect();
+		connect();
 		return;
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbConnectionPool
+// class DbConnectionPool
 
-CDbConnectionPool::CDbConnectionPool(CDatabase *pDatabase) :
-	m_pDatabase(pDatabase)
+DbConnectionPool::DbConnectionPool(Database *database) :
+	database_(database)
 {
 	// nothing
 }
 
-CDbConnectionPool::~CDbConnectionPool()
+DbConnectionPool::~DbConnectionPool()
 {
-	ClearPool();
+	clearPool();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 清空连接池
 //-----------------------------------------------------------------------------
-void CDbConnectionPool::ClearPool()
+void DbConnectionPool::clearPool()
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	for (int i = 0; i < m_DbConnectionList.GetCount(); i++)
+	for (int i = 0; i < dbConnectionList_.getCount(); i++)
 	{
-		CDbConnection *pDbConnection;
-		pDbConnection = (CDbConnection*)m_DbConnectionList[i];
-		pDbConnection->DoDisconnect();
-		delete pDbConnection;
+		DbConnection *dbConnection;
+		dbConnection = (DbConnection*)dbConnectionList_[i];
+		dbConnection->doDisconnect();
+		delete dbConnection;
 	}
 
-	m_DbConnectionList.Clear();
+	dbConnectionList_.clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 分配一个可用的空闲连接 (若失败则抛出异常)
 // 返回: 连接对象指针
 //-----------------------------------------------------------------------------
-CDbConnection* CDbConnectionPool::GetConnection()
+DbConnection* DbConnectionPool::getConnection()
 {
-	CDbConnection *pDbConnection = NULL;
-	bool bResult = false;
+	DbConnection *dbConnection = NULL;
+	bool result = false;
 
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
 		// 检查现有的连接是否能用
-		for (int i = 0; i < m_DbConnectionList.GetCount(); i++)
+		for (int i = 0; i < dbConnectionList_.getCount(); i++)
 		{
-			pDbConnection = (CDbConnection*)m_DbConnectionList[i];
-			bResult = pDbConnection->GetDbConnection();  // 借出连接
-			if (bResult) break;
+			dbConnection = (DbConnection*)dbConnectionList_[i];
+			result = dbConnection->getDbConnection();  // 借出连接
+			if (result) break;
 		}
 
 		// 如果借出失败，则增加新的数据库连接到连接池
-		if (!bResult && (m_DbConnectionList.GetCount() < m_pDatabase->GetDbOptions()->GetMaxDbConnections()))
+		if (!result && (dbConnectionList_.getCount() < database_->getDbOptions()->getMaxDbConnections()))
 		{
-			pDbConnection = m_pDatabase->CreateDbConnection();
-			m_DbConnectionList.Add(pDbConnection);
-			bResult = pDbConnection->GetDbConnection();
+			dbConnection = database_->createDbConnection();
+			dbConnectionList_.add(dbConnection);
+			result = dbConnection->getDbConnection();
 		}
 	}
 
-	if (!bResult)
-		IseThrowDbException(SEM_GET_CONN_FROM_POOL_ERROR);
+	if (!result)
+		iseThrowDbException(SEM_GET_CONN_FROM_POOL_ERROR);
 
-	return pDbConnection;
+	return dbConnection;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 归还数据库连接
 //-----------------------------------------------------------------------------
-void CDbConnectionPool::ReturnConnection(CDbConnection *pDbConnection)
+void DbConnectionPool::returnConnection(DbConnection *dbConnection)
 {
-	CAutoLocker Locker(m_Lock);
-	pDbConnection->ReturnDbConnection();
+	AutoLocker locker(lock_);
+	dbConnection->returnDbConnection();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbFieldDef
+// class DbFieldDef
 
-CDbFieldDef::CDbFieldDef(const string& strName, int nType)
+DbFieldDef::DbFieldDef(const string& name, int type)
 {
-	m_strName = strName;
-	m_nType = nType;
+	name_ = name;
+	type_ = type;
 }
 
-CDbFieldDef::CDbFieldDef(const CDbFieldDef& src)
+DbFieldDef::DbFieldDef(const DbFieldDef& src)
 {
-	m_strName = src.m_strName;
-	m_nType = src.m_nType;
+	name_ = src.name_;
+	type_ = src.type_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbFieldDefList
+// class DbFieldDefList
 
-CDbFieldDefList::CDbFieldDefList()
+DbFieldDefList::DbFieldDefList()
 {
 	// nothing
 }
 
-CDbFieldDefList::~CDbFieldDefList()
+DbFieldDefList::~DbFieldDefList()
 {
-	Clear();
+	clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 添加一个字段定义对象
 //-----------------------------------------------------------------------------
-void CDbFieldDefList::Add(CDbFieldDef *pFieldDef)
+void DbFieldDefList::add(DbFieldDef *fieldDef)
 {
-	if (pFieldDef != NULL)
-		m_Items.Add(pFieldDef);
+	if (fieldDef != NULL)
+		items_.add(fieldDef);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 释放并清空所有字段定义对象
 //-----------------------------------------------------------------------------
-void CDbFieldDefList::Clear()
+void DbFieldDefList::clear()
 {
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		delete (CDbFieldDef*)m_Items[i];
-	m_Items.Clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		delete (DbFieldDef*)items_[i];
+	items_.clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回字段名对应的字段序号(0-based)，若未找到则返回-1.
 //-----------------------------------------------------------------------------
-int CDbFieldDefList::IndexOfName(const string& strName)
+int DbFieldDefList::indexOfName(const string& name)
 {
-	int nIndex = -1;
+	int index = -1;
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
+	for (int i = 0; i < items_.getCount(); i++)
 	{
-		if (SameText(((CDbFieldDef*)m_Items[i])->GetName(), strName))
+		if (sameText(((DbFieldDef*)items_[i])->getName(), name))
 		{
-			nIndex = i;
+			index = i;
 			break;
 		}
 	}
 
-	return nIndex;
+	return index;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回全部字段名
 //-----------------------------------------------------------------------------
-void CDbFieldDefList::GetFieldNameList(CStrList& List)
+void DbFieldDefList::getFieldNameList(StrList& list)
 {
-	List.Clear();
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		List.Add(((CDbFieldDef*)m_Items[i])->GetName().c_str());
+	list.clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		list.add(((DbFieldDef*)items_[i])->getName().c_str());
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 根据下标号返回字段定义对象 (nIndex: 0-based)
+// 描述: 根据下标号返回字段定义对象 (index: 0-based)
 //-----------------------------------------------------------------------------
-CDbFieldDef* CDbFieldDefList::operator[] (int nIndex)
+DbFieldDef* DbFieldDefList::operator[] (int index)
 {
-	if (nIndex >= 0 && nIndex < m_Items.GetCount())
-		return (CDbFieldDef*)m_Items[nIndex];
+	if (index >= 0 && index < items_.getCount())
+		return (DbFieldDef*)items_[index];
 	else
 		return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbField
+// class DbField
 
-CDbField::CDbField()
+DbField::DbField()
 {
 	// nothing
 }
@@ -377,189 +377,189 @@ CDbField::CDbField()
 //-----------------------------------------------------------------------------
 // 描述: 以整型返回字段值 (若转换失败则返回缺省值)
 //-----------------------------------------------------------------------------
-int CDbField::AsInteger(int nDefault) const
+int DbField::asInteger(int defaultVal) const
 {
-	return StrToInt(AsString(), nDefault);
+	return strToInt(asString(), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 以64位整型返回字段值 (若转换失败则返回缺省值)
 //-----------------------------------------------------------------------------
-INT64 CDbField::AsInt64(INT64 nDefault) const
+INT64 DbField::asInt64(INT64 defaultVal) const
 {
-	return StrToInt64(AsString(), nDefault);
+	return strToInt64(asString(), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 以浮点型返回字段值 (若转换失败则返回缺省值)
 //-----------------------------------------------------------------------------
-double CDbField::AsFloat(double fDefault) const
+double DbField::asFloat(double defaultVal) const
 {
-	return StrToFloat(AsString(), fDefault);
+	return strToFloat(asString(), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 以布尔型返回字段值 (若转换失败则返回缺省值)
 //-----------------------------------------------------------------------------
-bool CDbField::AsBoolean(bool bDefault) const
+bool DbField::asBoolean(bool defaultVal) const
 {
-	return AsInteger(bDefault? 1 : 0) != 0;
+	return asInteger(defaultVal? 1 : 0) != 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbFieldList
+// class DbFieldList
 
-CDbFieldList::CDbFieldList()
+DbFieldList::DbFieldList()
 {
 	// nothing
 }
 
-CDbFieldList::~CDbFieldList()
+DbFieldList::~DbFieldList()
 {
-	Clear();
+	clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 添加一个字段数据对象
 //-----------------------------------------------------------------------------
-void CDbFieldList::Add(CDbField *pField)
+void DbFieldList::add(DbField *field)
 {
-	m_Items.Add(pField);
+	items_.add(field);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 释放并清空所有字段数据对象
 //-----------------------------------------------------------------------------
-void CDbFieldList::Clear()
+void DbFieldList::clear()
 {
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		delete (CDbField*)m_Items[i];
-	m_Items.Clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		delete (DbField*)items_[i];
+	items_.clear();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 根据下标号返回字段数据对象 (nIndex: 0-based)
+// 描述: 根据下标号返回字段数据对象 (index: 0-based)
 //-----------------------------------------------------------------------------
-CDbField* CDbFieldList::operator[] (int nIndex)
+DbField* DbFieldList::operator[] (int index)
 {
-	if (nIndex >= 0 && nIndex < m_Items.GetCount())
-		return (CDbField*)m_Items[nIndex];
+	if (index >= 0 && index < items_.getCount())
+		return (DbField*)items_[index];
 	else
 		return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbParamList
+// class DbParamList
 
-CDbParamList::CDbParamList(CDbQuery *pDbQuery) :
-	m_pDbQuery(pDbQuery)
+DbParamList::DbParamList(DbQuery *dbQuery) :
+	dbQuery_(dbQuery)
 {
 	// nothing
 }
 
-CDbParamList::~CDbParamList()
+DbParamList::~DbParamList()
 {
-	Clear();
+	clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据参数名称在列表中查找参数对象
 //-----------------------------------------------------------------------------
-CDbParam* CDbParamList::FindParam(const string& strName)
+DbParam* DbParamList::findParam(const string& name)
 {
-	CDbParam *pResult = NULL;
+	DbParam *result = NULL;
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		if (SameText(((CDbParam*)m_Items[i])->m_strName, strName))
+	for (int i = 0; i < items_.getCount(); i++)
+		if (sameText(((DbParam*)items_[i])->name_, name))
 		{
-			pResult = (CDbParam*)m_Items[i];
+			result = (DbParam*)items_[i];
 			break;
 		}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据参数序号在列表中查找参数对象
 //-----------------------------------------------------------------------------
-CDbParam* CDbParamList::FindParam(int nNumber)
+DbParam* DbParamList::findParam(int number)
 {
-	CDbParam *pResult = NULL;
+	DbParam *result = NULL;
 
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		if (((CDbParam*)m_Items[i])->m_nNumber == nNumber)
+	for (int i = 0; i < items_.getCount(); i++)
+		if (((DbParam*)items_[i])->number_ == number)
 		{
-			pResult = (CDbParam*)m_Items[i];
+			result = (DbParam*)items_[i];
 			break;
 		}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 创建一个参数对象并返回
 //-----------------------------------------------------------------------------
-CDbParam* CDbParamList::CreateParam(const string& strName, int nNumber)
+DbParam* DbParamList::createParam(const string& name, int number)
 {
-	CDbParam *pResult = m_pDbQuery->GetDatabase()->CreateDbParam();
+	DbParam *result = dbQuery_->getDatabase()->createDbParam();
 
-	pResult->m_pDbQuery = m_pDbQuery;
-	pResult->m_strName = strName;
-	pResult->m_nNumber = nNumber;
+	result->dbQuery_ = dbQuery_;
+	result->name_ = name;
+	result->number_ = number;
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据名称返回对应的参数对象，若无则返回NULL
 //-----------------------------------------------------------------------------
-CDbParam* CDbParamList::ParamByName(const string& strName)
+DbParam* DbParamList::paramByName(const string& name)
 {
-	CDbParam *pResult = FindParam(strName);
-	if (!pResult)
+	DbParam *result = findParam(name);
+	if (!result)
 	{
-		pResult = CreateParam(strName, 0);
-		m_Items.Add(pResult);
+		result = createParam(name, 0);
+		items_.add(result);
 	}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据序号(1-based)返回对应的参数对象，若无则返回NULL
 //-----------------------------------------------------------------------------
-CDbParam* CDbParamList::ParamByNumber(int nNumber)
+DbParam* DbParamList::paramByNumber(int number)
 {
-	CDbParam *pResult = FindParam(nNumber);
-	if (!pResult)
+	DbParam *result = findParam(number);
+	if (!result)
 	{
-		pResult = CreateParam("", nNumber);
-		m_Items.Add(pResult);
+		result = createParam("", number);
+		items_.add(result);
 	}
 
-	return pResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 释放并清空所有字段数据对象
 //-----------------------------------------------------------------------------
-void CDbParamList::Clear()
+void DbParamList::clear()
 {
-	for (int i = 0; i < m_Items.GetCount(); i++)
-		delete (CDbParam*)m_Items[i];
-	m_Items.Clear();
+	for (int i = 0; i < items_.getCount(); i++)
+		delete (DbParam*)items_[i];
+	items_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbDataSet
+// class DbDataSet
 
-CDbDataSet::CDbDataSet(CDbQuery *pDbQuery) :
-	m_pDbQuery(pDbQuery)
+DbDataSet::DbDataSet(DbQuery *dbQuery) :
+	dbQuery_(dbQuery)
 {
 	// nothing
 }
 
-CDbDataSet::~CDbDataSet()
+DbDataSet::~DbDataSet()
 {
 	// nothing
 }
@@ -567,51 +567,51 @@ CDbDataSet::~CDbDataSet()
 //-----------------------------------------------------------------------------
 // 描述: 取得当前数据集中的记录总数
 //-----------------------------------------------------------------------------
-UINT64 CDbDataSet::GetRecordCount()
+UINT64 DbDataSet::getRecordCount()
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return 0;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回数据集是否为空
 //-----------------------------------------------------------------------------
-bool CDbDataSet::IsEmpty()
+bool DbDataSet::isEmpty()
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return true;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得当前记录中的字段总数
 //-----------------------------------------------------------------------------
-int CDbDataSet::GetFieldCount()
+int DbDataSet::getFieldCount()
 {
-	return m_DbFieldDefList.GetCount();
+	return dbFieldDefList_.getCount();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得当前记录中某个字段的定义 (nIndex: 0-based)
+// 描述: 取得当前记录中某个字段的定义 (index: 0-based)
 //-----------------------------------------------------------------------------
-CDbFieldDef* CDbDataSet::GetFieldDefs(int nIndex)
+DbFieldDef* DbDataSet::getFieldDefs(int index)
 {
-	if (nIndex >= 0 && nIndex < m_DbFieldDefList.GetCount())
-		return m_DbFieldDefList[nIndex];
+	if (index >= 0 && index < dbFieldDefList_.getCount())
+		return dbFieldDefList_[index];
 	else
-		IseThrowDbException(SEM_INDEX_ERROR);
+		iseThrowDbException(SEM_INDEX_ERROR);
 
 	return NULL;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得当前记录中某个字段的数据 (nIndex: 0-based)
+// 描述: 取得当前记录中某个字段的数据 (index: 0-based)
 //-----------------------------------------------------------------------------
-CDbField* CDbDataSet::GetFields(int nIndex)
+DbField* DbDataSet::getFields(int index)
 {
-	if (nIndex >= 0 && nIndex < m_DbFieldList.GetCount())
-		return m_DbFieldList[nIndex];
+	if (index >= 0 && index < dbFieldList_.getCount())
+		return dbFieldList_[index];
 	else
-		IseThrowDbException(SEM_INDEX_ERROR);
+		iseThrowDbException(SEM_INDEX_ERROR);
 
 	return NULL;
 }
@@ -619,72 +619,72 @@ CDbField* CDbDataSet::GetFields(int nIndex)
 //-----------------------------------------------------------------------------
 // 描述: 取得当前记录中某个字段的数据
 // 参数:
-//   strName - 字段名
+//   name - 字段名
 //-----------------------------------------------------------------------------
-CDbField* CDbDataSet::GetFields(const string& strName)
+DbField* DbDataSet::getFields(const string& name)
 {
-	int nIndex = m_DbFieldDefList.IndexOfName(strName);
+	int index = dbFieldDefList_.indexOfName(name);
 
-	if (nIndex >= 0)
-		return GetFields(nIndex);
+	if (index >= 0)
+		return getFields(index);
 	else
 	{
-		CStrList FieldNames;
-		m_DbFieldDefList.GetFieldNameList(FieldNames);
-		string strFieldNameList = FieldNames.GetCommaText();
+		StrList fieldNames;
+		dbFieldDefList_.getFieldNameList(fieldNames);
+		string fieldNameList = fieldNames.getCommaText();
 
-		string strErrMsg = FormatString(SEM_FIELD_NAME_ERROR, strName.c_str(), strFieldNameList.c_str());
-		IseThrowDbException(strErrMsg.c_str());
+		string errMsg = formatString(SEM_FIELD_NAME_ERROR, name.c_str(), fieldNameList.c_str());
+		iseThrowDbException(errMsg.c_str());
 	}
 
 	return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDbQuery
+// class DbQuery
 
-CDbQuery::CDbQuery(CDatabase *pDatabase) :
-	m_pDatabase(pDatabase),
-	m_pDbConnection(NULL),
-	m_pDbParamList(NULL)
+DbQuery::DbQuery(Database *database) :
+	database_(database),
+	dbConnection_(NULL),
+	dbParamList_(NULL)
 {
-	m_pDbParamList = pDatabase->CreateDbParamList(this);
+	dbParamList_ = database->createDbParamList(this);
 }
 
-CDbQuery::~CDbQuery()
+DbQuery::~DbQuery()
 {
-	delete m_pDbParamList;
+	delete dbParamList_;
 
-	if (m_pDbConnection)
-		m_pDatabase->GetDbConnectionPool()->ReturnConnection(m_pDbConnection);
+	if (dbConnection_)
+		database_->getDbConnectionPool()->returnConnection(dbConnection_);
 }
 
-void CDbQuery::EnsureConnected()
+void DbQuery::ensureConnected()
 {
-	if (!m_pDbConnection)
-		m_pDbConnection = m_pDatabase->GetDbConnectionPool()->GetConnection();
+	if (!dbConnection_)
+		dbConnection_ = database_->getDbConnectionPool()->getConnection();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 设置SQL语句
 //-----------------------------------------------------------------------------
-void CDbQuery::SetSql(const string& strSql)
+void DbQuery::setSql(const string& sql)
 {
-	m_strSql = strSql;
-	m_pDbParamList->Clear();
+	sql_ = sql;
+	dbParamList_->clear();
 
-	DoSetSql(strSql);
+	doSetSql(sql);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据名称取得参数对象
 // 备注:
 //   缺省情况下此功能不可用，子类若要启用此功能，可调用：
-//   return m_pDbParamList->ParamByName(strName);
+//   return dbParamList_->ParamByName(name);
 //-----------------------------------------------------------------------------
-CDbParam* CDbQuery::ParamByName(const string& strName)
+DbParam* DbQuery::paramByName(const string& name)
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return NULL;
 }
 
@@ -692,129 +692,129 @@ CDbParam* CDbQuery::ParamByName(const string& strName)
 // 描述: 根据序号(1-based)取得参数对象
 // 备注:
 //   缺省情况下此功能不可用，子类若要启用此功能，可调用：
-//   return m_pDbParamList->ParamByNumber(nNumber);
+//   return dbParamList_->ParamByNumber(number);
 //-----------------------------------------------------------------------------
-CDbParam* CDbQuery::ParamByNumber(int nNumber)
+DbParam* DbQuery::paramByNumber(int number)
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return NULL;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 执行SQL (无返回结果)
 //-----------------------------------------------------------------------------
-void CDbQuery::Execute()
+void DbQuery::execute()
 {
-	EnsureConnected();
-	DoExecute(NULL);
+	ensureConnected();
+	doExecute(NULL);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 执行SQL (返回数据集)
 //-----------------------------------------------------------------------------
-CDbDataSet* CDbQuery::Query()
+DbDataSet* DbQuery::query()
 {
-	EnsureConnected();
+	ensureConnected();
 
-	CDbDataSet *pDataSet = m_pDatabase->CreateDbDataSet(this);
+	DbDataSet *dataSet = database_->createDbDataSet(this);
 	try
 	{
 		// 执行查询
-		DoExecute(pDataSet);
+		doExecute(dataSet);
 		// 初始化数据集
-		pDataSet->InitDataSet();
+		dataSet->initDataSet();
 		// 初始化数据集各字段的定义
-		pDataSet->InitFieldDefs();
+		dataSet->initFieldDefs();
 	}
-	catch (CException&)
+	catch (Exception&)
 	{
-		delete pDataSet;
-		pDataSet = NULL;
+		delete dataSet;
+		dataSet = NULL;
 		throw;
 	}
 
-	return pDataSet;
+	return dataSet;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 转换字符串使之在SQL中合法 (str 中可含 '\0' 字符)
 //-----------------------------------------------------------------------------
-string CDbQuery::EscapeString(const string& str)
+string DbQuery::escapeString(const string& str)
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return "";
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得执行SQL后受影响的行数
 //-----------------------------------------------------------------------------
-UINT CDbQuery::GetAffectedRowCount()
+UINT DbQuery::getAffectedRowCount()
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return 0;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得最后一条插入语句的自增ID的值
 //-----------------------------------------------------------------------------
-UINT64 CDbQuery::GetLastInsertId()
+UINT64 DbQuery::getLastInsertId()
 {
-	IseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
 	return 0;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得查询器所用的数据库连接
 //-----------------------------------------------------------------------------
-CDbConnection* CDbQuery::GetDbConnection()
+DbConnection* DbQuery::getDbConnection()
 {
-	EnsureConnected();
-	return m_pDbConnection;
+	ensureConnected();
+	return dbConnection_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CDatabase
+// class Database
 
-CDatabase::CDatabase()
+Database::Database()
 {
-	m_pDbConnParams = NULL;
-	m_pDbOptions = NULL;
-	m_pDbConnectionPool = NULL;
+	dbConnParams_ = NULL;
+	dbOptions_ = NULL;
+	dbConnectionPool_ = NULL;
 }
 
-CDatabase::~CDatabase()
+Database::~Database()
 {
-	delete m_pDbConnParams;
-	delete m_pDbOptions;
-	delete m_pDbConnectionPool;
+	delete dbConnParams_;
+	delete dbOptions_;
+	delete dbConnectionPool_;
 }
 
-void CDatabase::EnsureInited()
+void Database::ensureInited()
 {
-	if (!m_pDbConnParams)
+	if (!dbConnParams_)
 	{
-		m_pDbConnParams = CreateDbConnParams();
-		m_pDbOptions = CreateDbOptions();
-		m_pDbConnectionPool = CreateDbConnectionPool();
+		dbConnParams_ = createDbConnParams();
+		dbOptions_ = createDbOptions();
+		dbConnectionPool_ = createDbConnectionPool();
 	}
 }
 
-CDbConnParams* CDatabase::GetDbConnParams()
+DbConnParams* Database::getDbConnParams()
 {
-	EnsureInited();
-	return m_pDbConnParams;
+	ensureInited();
+	return dbConnParams_;
 }
 
-CDbOptions* CDatabase::GetDbOptions()
+DbOptions* Database::getDbOptions()
 {
-	EnsureInited();
-	return m_pDbOptions;
+	ensureInited();
+	return dbOptions_;
 }
 
-CDbConnectionPool* CDatabase::GetDbConnectionPool()
+DbConnectionPool* Database::getDbConnectionPool()
 {
-	EnsureInited();
-	return m_pDbConnectionPool;
+	ensureInited();
+	return dbConnectionPool_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

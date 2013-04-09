@@ -65,6 +65,7 @@
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
 #define _CRT_SECURE_NO_WARNINGS
+#define NOMINMAX
 #pragma warning(disable: 4355)
 #pragma warning(disable: 4244)
 #pragma warning(disable: 4311)

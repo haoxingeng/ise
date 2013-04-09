@@ -124,7 +124,7 @@ const unsigned int FA_ANY_FILE      = 0x0000003F;
 #define MAXWORD     0xffff
 #define MAXDWORD    0xffffffff
 
-// CStrings 相关常量定义
+// Strings 相关常量定义
 #define DEFAULT_DELIMITER            ','
 #define DEFAULT_QUOTE_CHAR           '\"'
 #define DEFAULT_NAME_VALUE_SEP       '='

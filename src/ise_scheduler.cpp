@@ -32,17 +32,17 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseScheduleTask
+// class IseScheduleTask
 
-CIseScheduleTask::CIseScheduleTask(UINT nTaskId, ISE_SCHEDULE_TASK_TYPE nTaskType,
-	UINT nAfterSeconds, const SCH_TASK_TRIGGRE_CALLBACK& OnTrigger,
-	const CCustomParams& CustomParams) :
-		m_nTaskId(nTaskId),
-		m_nTaskType(nTaskType),
-		m_nAfterSeconds(nAfterSeconds),
-		m_OnTrigger(OnTrigger),
-		m_CustomParams(CustomParams),
-		m_nLastTriggerTime(0)
+IseScheduleTask::IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
+	UINT afterSeconds, const SCH_TASK_TRIGGRE_CALLBACK& onTrigger,
+	const CustomParams& customParams) :
+		taskId_(taskId),
+		taskType_(taskType),
+		afterSeconds_(afterSeconds),
+		onTrigger_(onTrigger),
+		customParams_(customParams),
+		lastTriggerTime_(0)
 {
 	// nothing
 }
@@ -50,171 +50,171 @@ CIseScheduleTask::CIseScheduleTask(UINT nTaskId, ISE_SCHEDULE_TASK_TYPE nTaskTyp
 //-----------------------------------------------------------------------------
 // 描述: 尝试处理此任务 (每秒执行一次)
 //-----------------------------------------------------------------------------
-void CIseScheduleTask::Process()
+void IseScheduleTask::process()
 {
-	int nCurYear, nCurMonth, nCurDay, nCurHour, nCurMinute, nCurSecond, nCurWeekDay, nCurYearDay;
-	CDateTime::CurrentDateTime().DecodeDateTime(&nCurYear, &nCurMonth, &nCurDay,
-		&nCurHour, &nCurMinute, &nCurSecond, &nCurWeekDay, &nCurYearDay);
+	int curYear, curMonth, curDay, curHour, curMinute, curSecond, curWeekDay, curYearDay;
+	DateTime::currentDateTime().decodeDateTime(&curYear, &curMonth, &curDay,
+		&curHour, &curMinute, &curSecond, &curWeekDay, &curYearDay);
 
-	int nLastYear = -1, nLastMonth = -1, nLastDay = -1, nLastHour = -1, nLastWeekDay = -1;
-	if (m_nLastTriggerTime != 0)
+	int lastYear = -1, lastMonth = -1, lastDay = -1, lastHour = -1, lastWeekDay = -1;
+	if (lastTriggerTime_ != 0)
 	{
-		CDateTime(m_nLastTriggerTime).DecodeDateTime(&nLastYear, &nLastMonth, &nLastDay,
-			&nLastHour, NULL, NULL, &nLastWeekDay);
+		DateTime(lastTriggerTime_).decodeDateTime(&lastYear, &lastMonth, &lastDay,
+			&lastHour, NULL, NULL, &lastWeekDay);
 	}
 
-	UINT nElapsedSecs = (UINT)(-1);
+	UINT elapsedSecs = (UINT)(-1);
 
-	switch (m_nTaskType)
+	switch (taskType_)
 	{
 	case STT_EVERY_HOUR:
-		if (nCurHour != nLastHour)
+		if (curHour != lastHour)
 		{
-			nElapsedSecs = nCurMinute * SECONDS_PER_MINUTE + nCurSecond;
+			elapsedSecs = curMinute * SECONDS_PER_MINUTE + curSecond;
 		}
 		break;
 
 	case STT_EVERY_DAY:
-		if (nCurDay != nLastDay)
+		if (curDay != lastDay)
 		{
-			nElapsedSecs = nCurHour * SECONDS_PER_HOUR + nCurMinute * SECONDS_PER_MINUTE + nCurSecond;
+			elapsedSecs = curHour * SECONDS_PER_HOUR + curMinute * SECONDS_PER_MINUTE + curSecond;
 		}
 		break;
 
 	case STT_EVERY_WEEK:
-		if (nCurWeekDay != nLastWeekDay)
+		if (curWeekDay != lastWeekDay)
 		{
-			nElapsedSecs = nCurWeekDay * SECONDS_PER_DAY + nCurHour * SECONDS_PER_HOUR +
-				nCurMinute * SECONDS_PER_MINUTE + nCurSecond;
+			elapsedSecs = curWeekDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
+				curMinute * SECONDS_PER_MINUTE + curSecond;
 		}
 		break;
 
 	case STT_EVERY_MONTH:
-		if (nCurMonth != nLastMonth)
+		if (curMonth != lastMonth)
 		{
-			nElapsedSecs = nCurDay * SECONDS_PER_DAY + nCurHour * SECONDS_PER_HOUR +
-				nCurMinute * SECONDS_PER_MINUTE + nCurSecond;
+			elapsedSecs = curDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
+				curMinute * SECONDS_PER_MINUTE + curSecond;
 		}
 		break;
 
 	case STT_EVERY_YEAR:
-		if (nCurYear != nLastYear)
+		if (curYear != lastYear)
 		{
-			nElapsedSecs = nCurYearDay * SECONDS_PER_DAY + nCurHour * SECONDS_PER_HOUR +
-				nCurMinute * SECONDS_PER_MINUTE + nCurSecond;
+			elapsedSecs = curYearDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
+				curMinute * SECONDS_PER_MINUTE + curSecond;
 		}
 		break;
 	}
 
-	bool bTrigger = false;
-	if (nElapsedSecs != (UINT)(-1))
+	bool trigger = false;
+	if (elapsedSecs != (UINT)(-1))
 	{
-		if (m_nLastTriggerTime == 0)
+		if (lastTriggerTime_ == 0)
 		{
 			// 如果之前从未触发过，若当前时间已越过时间点，则只可以在时间点附近触发
 			const int MAX_SPAN_SECS = 10;
-			bTrigger = (nElapsedSecs >= m_nAfterSeconds && nElapsedSecs <= m_nAfterSeconds + MAX_SPAN_SECS);
+			trigger = (elapsedSecs >= afterSeconds_ && elapsedSecs <= afterSeconds_ + MAX_SPAN_SECS);
 		}
 		else
-			bTrigger = (nElapsedSecs >= m_nAfterSeconds);
+			trigger = (elapsedSecs >= afterSeconds_);
 	}
 
-	if (bTrigger)
+	if (trigger)
 	{
-		m_nLastTriggerTime = time(NULL);
+		lastTriggerTime_ = time(NULL);
 
-		if (m_OnTrigger.pProc)
-			m_OnTrigger.pProc(m_OnTrigger.pParam, m_nTaskId, m_CustomParams);
+		if (onTrigger_.proc)
+			onTrigger_.proc(onTrigger_.param, taskId_, customParams_);
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CIseScheduleTaskMgr
+// class IseScheduleTaskMgr
 
-CIseScheduleTaskMgr::CIseScheduleTaskMgr() :
-	m_TaskList(false, true),
-	m_TaskIdAlloc(1)
+IseScheduleTaskMgr::IseScheduleTaskMgr() :
+	taskList_(false, true),
+	taskIdAlloc_(1)
 {
 	// nothing
 }
 
-CIseScheduleTaskMgr::~CIseScheduleTaskMgr()
+IseScheduleTaskMgr::~IseScheduleTaskMgr()
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
 
-CIseScheduleTaskMgr& CIseScheduleTaskMgr::Instance()
+IseScheduleTaskMgr& IseScheduleTaskMgr::instance()
 {
-	static CIseScheduleTaskMgr obj;
+	static IseScheduleTaskMgr obj;
 	return obj;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 由系统定时任务线程执行
 //-----------------------------------------------------------------------------
-void CIseScheduleTaskMgr::Execute(CThread& ExecutorThread)
+void IseScheduleTaskMgr::execute(Thread& ExecutorThread)
 {
-	while (!ExecutorThread.GetTerminated())
+	while (!ExecutorThread.isTerminated())
 	{
 		try
 		{
-			CAutoLocker Locker(m_Lock);
-			for (int i = 0; i < m_TaskList.GetCount(); i++)
-				m_TaskList[i]->Process();
+			AutoLocker locker(lock_);
+			for (int i = 0; i < taskList_.getCount(); i++)
+				taskList_[i]->process();
 		}
 		catch (...)
 		{}
 
-		SleepSec(1);
+		sleepSec(1);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 添加一个任务
 //-----------------------------------------------------------------------------
-UINT CIseScheduleTaskMgr::AddTask(ISE_SCHEDULE_TASK_TYPE nTaskType, UINT nAfterSeconds,
-	const SCH_TASK_TRIGGRE_CALLBACK& OnTrigger, const CCustomParams& CustomParams)
+UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
+	const SCH_TASK_TRIGGRE_CALLBACK& onTrigger, const CustomParams& customParams)
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	UINT nResult = m_TaskIdAlloc.AllocId();
-	CIseScheduleTask *pTask = new CIseScheduleTask(nResult, nTaskType,
-		nAfterSeconds, OnTrigger, CustomParams);
-	m_TaskList.Add(pTask);
+	UINT result = taskIdAlloc_.allocId();
+	IseScheduleTask *task = new IseScheduleTask(result, taskType,
+		afterSeconds, onTrigger, customParams);
+	taskList_.add(task);
 
-	return nResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 删除一个任务
 //-----------------------------------------------------------------------------
-bool CIseScheduleTaskMgr::RemoveTask(UINT nTaskId)
+bool IseScheduleTaskMgr::removeTask(UINT taskId)
 {
-	CAutoLocker Locker(m_Lock);
-	bool bResult = false; 
+	AutoLocker locker(lock_);
+	bool result = false; 
 
-	for (int i = 0; i < m_TaskList.GetCount(); i++)
+	for (int i = 0; i < taskList_.getCount(); i++)
 	{
-		if (m_TaskList[i]->GetTaskId() == nTaskId)
+		if (taskList_[i]->getTaskId() == taskId)
 		{
-			m_TaskList.Delete(i);
-			bResult = true;
+			taskList_.del(i);
+			result = true;
 			break;
 		}
 	}
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 清空全部任务
 //-----------------------------------------------------------------------------
-void CIseScheduleTaskMgr::Clear()
+void IseScheduleTaskMgr::clear()
 {
-	CAutoLocker Locker(m_Lock);
-	m_TaskList.Clear();
+	AutoLocker locker(lock_);
+	taskList_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

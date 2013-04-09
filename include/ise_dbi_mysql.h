@@ -23,11 +23,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 // ise_dbi_mysql.h
 // Classes:
-//   * CMySqlConnection       - 数据库连接类
-//   * CMySqlField            - 字段数据类
-//   * CMySqlDataSet          - 数据集类
-//   * CMySqlQuery            - 数据查询器类
-//   * CMySqlDatabase         - 数据库类
+//   * MySqlConnection       - 数据库连接类
+//   * MySqlField            - 字段数据类
+//   * MySqlDataSet          - 数据集类
+//   * MySqlQuery            - 数据查询器类
+//   * MySqlDatabase         - 数据库类
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef _ISE_DBI_MYSQL_H_
@@ -44,107 +44,107 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CMySqlConnection;
-class CMySqlField;
-class CMySqlDataSet;
-class CMySqlQuery;
-class CMySqlDatabase;
+class MySqlConnection;
+class MySqlField;
+class MySqlDataSet;
+class MySqlQuery;
+class MySqlDatabase;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlConnection - 数据库连接类
+// class MySqlConnection - 数据库连接类
 
-class CMySqlConnection : public CDbConnection
+class MySqlConnection : public DbConnection
 {
 private:
-	MYSQL m_ConnObject;            // 连接对象
+	MYSQL connObject_;            // 连接对象
 
 public:
-	CMySqlConnection(CDatabase *pDatabase);
-	virtual ~CMySqlConnection();
+	MySqlConnection(Database *database);
+	virtual ~MySqlConnection();
 
 	// 建立连接 (若失败则抛出异常)
-	virtual void DoConnect();
+	virtual void doConnect();
 	// 断开连接
-	virtual void DoDisconnect();
+	virtual void doDisconnect();
 
 	// 取得MySQL连接对象
-	MYSQL& GetConnObject() { return m_ConnObject; }
+	MYSQL& getConnObject() { return connObject_; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlField - 字段数据类
+// class MySqlField - 字段数据类
 
-class CMySqlField : public CDbField
+class MySqlField : public DbField
 {
 private:
-	char* m_pDataPtr;               // 指向字段数据
-	int m_nDataSize;                // 字段数据的总字节数
+	char* dataPtr_;               // 指向字段数据
+	int dataSize_;                // 字段数据的总字节数
 public:
-	CMySqlField();
-	virtual ~CMySqlField() {}
+	MySqlField();
+	virtual ~MySqlField() {}
 
-	void SetData(void *pDataPtr, int nDataSize);
-	virtual bool IsNull() const { return (m_pDataPtr == NULL); }
-	virtual string AsString() const;
+	void setData(void *dataPtr, int dataSize);
+	virtual bool isNull() const { return (dataPtr_ == NULL); }
+	virtual string asString() const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlDataSet - 数据集类
+// class MySqlDataSet - 数据集类
 
-class CMySqlDataSet : public CDbDataSet
+class MySqlDataSet : public DbDataSet
 {
 private:
-	MYSQL_RES* m_pRes;      // MySQL查询结果集
-	MYSQL_ROW m_pRow;       // MySQL查询结果行
+	MYSQL_RES* res_;      // MySQL查询结果集
+	MYSQL_ROW row_;       // MySQL查询结果行
 
 private:
-	MYSQL& GetConnObject();
-	void FreeDataSet();
+	MYSQL& getConnObject();
+	void freeDataSet();
 
 protected:
-	virtual void InitDataSet();
-	virtual void InitFieldDefs();
+	virtual void initDataSet();
+	virtual void initFieldDefs();
 
 public:
-	CMySqlDataSet(CDbQuery* pDbQuery);
-	virtual ~CMySqlDataSet();
+	MySqlDataSet(DbQuery* dbQuery);
+	virtual ~MySqlDataSet();
 
-	virtual bool Rewind();
-	virtual bool Next();
+	virtual bool rewind();
+	virtual bool next();
 
-	virtual UINT64 GetRecordCount();
-	virtual bool IsEmpty();
+	virtual UINT64 getRecordCount();
+	virtual bool isEmpty();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlQuery - 查询器类
+// class MySqlQuery - 查询器类
 
-class CMySqlQuery : public CDbQuery
+class MySqlQuery : public DbQuery
 {
 private:
-	MYSQL& GetConnObject();
+	MYSQL& getConnObject();
 
 protected:
-	virtual void DoExecute(CDbDataSet *pResultDataSet);
+	virtual void doExecute(DbDataSet *resultDataSet);
 
 public:
-	CMySqlQuery(CDatabase *pDatabase);
-	virtual ~CMySqlQuery();
+	MySqlQuery(Database *database);
+	virtual ~MySqlQuery();
 
-	virtual string EscapeString(const string& str);
-	virtual UINT GetAffectedRowCount();
-	virtual UINT64 GetLastInsertId();
+	virtual string escapeString(const string& str);
+	virtual UINT getAffectedRowCount();
+	virtual UINT64 getLastInsertId();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMySqlDatabase
+// class MySqlDatabase
 
-class CMySqlDatabase : public CDatabase
+class MySqlDatabase : public Database
 {
 public:
-	virtual CDbConnection* CreateDbConnection() { return new CMySqlConnection(this); }
-	virtual CDbDataSet* CreateDbDataSet(CDbQuery* pDbQuery) { return new CMySqlDataSet(pDbQuery); }
-	virtual CDbQuery* CreateDbQuery() { return new CMySqlQuery(this); }
+	virtual DbConnection* createDbConnection() { return new MySqlConnection(this); }
+	virtual DbDataSet* createDbDataSet(DbQuery* dbQuery) { return new MySqlDataSet(dbQuery); }
+	virtual DbQuery* createDbQuery() { return new MySqlQuery(this); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

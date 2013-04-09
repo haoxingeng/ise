@@ -72,8 +72,8 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class CBuffer;
-class CStrList;
+class Buffer;
+class StrList;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
@@ -81,9 +81,9 @@ class CStrList;
 // 文件查找记录
 struct FILE_FIND_ITEM
 {
-	INT64 nFileSize;         // 文件大小
-	string strFileName;      // 文件名(不含路径)
-	UINT nAttr;              // 文件属性
+	INT64 fileSize;         // 文件大小
+	string fileName;        // 文件名(不含路径)
+	UINT attr;              // 文件属性
 };
 
 typedef vector<FILE_FIND_ITEM> FILE_FIND_RESULT;
@@ -94,94 +94,96 @@ typedef vector<FILE_FIND_ITEM> FILE_FIND_RESULT;
 //-----------------------------------------------------------------------------
 //-- 字符串函数:
 
-bool IsIntStr(const string& str);
-bool IsInt64Str(const string& str);
-bool IsFloatStr(const string& str);
-bool IsBoolStr(const string& str);
+bool isIntStr(const string& str);
+bool isInt64Str(const string& str);
+bool isFloatStr(const string& str);
+bool isBoolStr(const string& str);
 
-int StrToInt(const string& str, int nDefault = 0);
-INT64 StrToInt64(const string& str, INT64 nDefault = 0);
-string IntToStr(int nValue);
-string IntToStr(INT64 nValue);
-double StrToFloat(const string& str, double fDefault = 0);
-string FloatToStr(double fValue, const char *sFormat = "%f");
-bool StrToBool(const string& str, bool bDefault = false);
-string BoolToStr(bool bValue, bool bUseBoolStrs = false);
+int strToInt(const string& str, int defaultVal = 0);
+INT64 strToInt64(const string& str, INT64 defaultVal = 0);
+string intToStr(int value);
+string intToStr(INT64 value);
+double strToFloat(const string& str, double defaultVal = 0);
+string floatToStr(double value, const char *format = "%f");
+bool strToBool(const string& str, bool defaultVal = false);
+string boolToStr(bool value, bool useBoolStrs = false);
 
-void FormatStringV(string& strResult, const char *sFormatString, va_list argList);
-string FormatString(const char *sFormatString, ...);
+void formatStringV(string& result, const char *format, va_list argList);
+string formatString(const char *format, ...);
 
-bool SameText(const string& str1, const string& str2);
-int CompareText(const char* str1, const char* str2);
-string TrimString(const string& str);
-string UpperCase(const string& str);
-string LowerCase(const string& str);
-string RepalceString(const string& strSource, const string& strOldPattern,
-	const string& strNewPattern, bool bReplaceAll = false, bool bCaseSensitive = true);
-void SplitString(const string& strSource, char chSplitter, CStrList& StrList,
-	bool bTrimResult = false);
-void SplitStringToInt(const string& strSource, char chSplitter, IntegerArray& IntList);
-char* StrNCopy(char *pDest, const char *pSource, int nMaxBytes);
-char* StrNZCopy(char *pDest, const char *pSource, int nDestSize);
-string FetchStr(string& strInput, char chDelimiter = ' ', bool bDelete = true);
-string AddThousandSep(const INT64& nNumber);
+bool sameText(const string& str1, const string& str2);
+int compareText(const char* str1, const char* str2);
+string trimString(const string& str);
+string upperCase(const string& str);
+string lowerCase(const string& str);
+string repalceString(const string& sourceStr, const string& oldPattern,
+	const string& newPattern, bool replaceAll = false, bool caseSensitive = true);
+void splitString(const string& sourceStr, char splitter, StrList& strList,
+	bool trimResult = false);
+void splitStringToInt(const string& sourceStr, char splitter, IntegerArray& intList);
+char* strNCopy(char *dest, const char *source, int maxBytes);
+char* strNZCopy(char *dest, const char *source, int destSize);
+string fetchStr(string& inputStr, char delimiter = ' ', bool del = true);
+string addThousandSep(const INT64& number);
 
-string GetQuotedStr(const char* lpszStr, char chQuote = '"');
-string ExtractQuotedStr(const char*& lpszStr, char chQuote = '"');
-string GetDequotedStr(const char* lpszStr, char chQuote = '"');
+string getQuotedStr(const char* str, char quoteChar = '"');
+string extractQuotedStr(const char*& str, char quoteChar = '"');
+string getDequotedStr(const char* str, char quoteChar = '"');
 
 //-----------------------------------------------------------------------------
 //-- 文件和目录:
 
-bool FileExists(const string& strFileName);
-bool DirectoryExists(const string& strDir);
-bool CreateDir(const string& strDir);
-bool DeleteDir(const string& strDir, bool bRecursive = false);
-string ExtractFilePath(const string& strFileName);
-string ExtractFileName(const string& strFileName);
-string ExtractFileExt(const string& strFileName);
-string ChangeFileExt(const string& strFileName, const string& strExt);
-bool ForceDirectories(string strDir);
-bool DeleteFile(const string& strFileName);
-bool RemoveFile(const string& strFileName);
-bool RenameFile(const string& strOldFileName, const string& strNewFileName);
-INT64 GetFileSize(const string& strFileName);
-void FindFiles(const string& strPath, UINT nAttr, FILE_FIND_RESULT& FindResult);
-string PathWithSlash(const string& strPath);
-string PathWithoutSlash(const string& strPath);
+bool fileExists(const string& fileName);
+bool directoryExists(const string& dir);
+bool createDir(const string& dir);
+bool deleteDir(const string& dir, bool recursive = false);
+string extractFilePath(const string& fileName);
+string extractFileName(const string& fileName);
+string extractFileExt(const string& fileName);
+string changeFileExt(const string& fileName, const string& ext);
+bool forceDirectories(string dir);
+bool deleteFile(const string& fileName);
+bool removeFile(const string& fileName);
+bool renameFile(const string& oldFileName, const string& newFileName);
+INT64 getFileSize(const string& fileName);
+void findFiles(const string& path, UINT attr, FILE_FIND_RESULT& findResult);
+string pathWithSlash(const string& path);
+string pathWithoutSlash(const string& path);
 string GetAppExeName();
-string GetAppPath();
-string GetAppSubPath(const string& strSubDir = "");
+string getAppPath();
+string getAppSubPath(const string& subDir = "");
 
 //-----------------------------------------------------------------------------
 //-- 系统相关:
 
-int GetLastSysError();
-string SysErrorMessage(int nErrorCode);
-void SleepSec(double fSeconds, bool AllowInterrupt = true);
-UINT GetCurTicks();
-UINT GetTickDiff(UINT nOldTicks, UINT nNewTicks);
+int getLastSysError();
+string sysErrorMessage(int errorCode);
+void sleepSec(double seconds, bool allowInterrupt = true);
+UINT getCurTicks();
+UINT getTickDiff(UINT oldTicks, UINT newTicks);
 
 //-----------------------------------------------------------------------------
 //-- 其它函数:
 
-void Randomize();
-int GetRandom(int nMin, int nMax);
-void GenerateRandomList(int nStartNumber, int nEndNumber, int *pRandomList);
+void randomize();
+int getRandom(int min, int max);
+void generateRandomList(int startNumber, int endNumber, int *randomList);
 
 template <typename T>
-inline const T& Min(const T& a, const T& b) { return ((a < b)? a : b); }
+const T& min(const T& a, const T& b) { return ((a < b)? a : b); }
 
 template <typename T>
-inline const T& Max(const T& a, const T& b) { return ((a < b)? b : a); }
+const T& max(const T& a, const T& b) { return ((a < b)? b : a); }
 
 template <typename T>
-inline const T& EnsureRange(const T& Value, const T& Min, const T& Max)
-	{ return (Value > Max) ? Max : (Value < Min ? Min : Value); }
+const T& ensureRange(const T& value, const T& minVal, const T& maxVal)
+	{ return (value > maxVal) ? maxVal : (value < minVal ? minVal : value); }
 
 template <typename T>
-inline void Swap(T& v1, T& v2)
-	{ T temp; temp = v1; v1 = v2; v2 = temp; }
+void swap(T& a, T& b) { T temp(a); a=b; b=temp; }
+
+template <typename T>
+int compare(const T& a, const T& b) { return (a < b) ? -1 : (a > b ? 1 : 0); }
 
 ///////////////////////////////////////////////////////////////////////////////
 

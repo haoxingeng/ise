@@ -35,13 +35,13 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CThreadTimeOutChecker
+// class ThreadTimeOutChecker
 
-CThreadTimeOutChecker::CThreadTimeOutChecker(CThread *pThread) :
-	m_pThread(pThread),
-	m_tStartTime(0),
-	m_bStarted(false),
-	m_nTimeOutSecs(0)
+ThreadTimeOutChecker::ThreadTimeOutChecker(Thread *thread) :
+	thread_(thread),
+	startTime_(0),
+	started_(false),
+	timeoutSecs_(0)
 {
 	// nothing
 }
@@ -49,139 +49,139 @@ CThreadTimeOutChecker::CThreadTimeOutChecker(CThread *pThread) :
 //-----------------------------------------------------------------------------
 // 描述: 开始计时
 //-----------------------------------------------------------------------------
-void CThreadTimeOutChecker::Start()
+void ThreadTimeOutChecker::start()
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	m_tStartTime = time(NULL);
-	m_bStarted = true;
+	startTime_ = time(NULL);
+	started_ = true;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 停止计时
 //-----------------------------------------------------------------------------
-void CThreadTimeOutChecker::Stop()
+void ThreadTimeOutChecker::stop()
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	m_bStarted = false;
+	started_ = false;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 检测线程是否已超时，若超时则通知其退出
 //-----------------------------------------------------------------------------
-bool CThreadTimeOutChecker::Check()
+bool ThreadTimeOutChecker::check()
 {
-	bool bResult = false;
+	bool result = false;
 
-	if (m_bStarted && m_nTimeOutSecs > 0)
+	if (started_ && timeoutSecs_ > 0)
 	{
-		if ((UINT)time(NULL) - m_tStartTime >= m_nTimeOutSecs)
+		if ((UINT)time(NULL) - startTime_ >= timeoutSecs_)
 		{
-			if (!m_pThread->GetTerminated()) m_pThread->Terminate();
-			bResult = true;
+			if (!thread_->isTerminated()) thread_->terminate();
+			result = true;
 		}
 	}
 
-	return bResult;
+	return result;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 返回是否已开始计时
 //-----------------------------------------------------------------------------
-bool CThreadTimeOutChecker::GetStarted()
+bool ThreadTimeOutChecker::getStarted()
 {
-	CAutoLocker Locker(m_Lock);
+	AutoLocker locker(lock_);
 
-	return m_bStarted;
+	return started_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpPacket
+// class UdpPacket
 
-void CUdpPacket::SetPacketBuffer(void *pPakcetBuffer, int nPacketSize)
+void UdpPacket::setPacketBuffer(void *pPakcetBuffer, int packetSize)
 {
-	if (m_pPacketBuffer)
+	if (packetBuffer_)
 	{
-		free(m_pPacketBuffer);
-		m_pPacketBuffer = NULL;
+		free(packetBuffer_);
+		packetBuffer_ = NULL;
 	}
 
-	m_pPacketBuffer = malloc(nPacketSize);
-	if (!m_pPacketBuffer)
-		IseThrowMemoryException();
+	packetBuffer_ = malloc(packetSize);
+	if (!packetBuffer_)
+		iseThrowMemoryException();
 
-	memcpy(m_pPacketBuffer, pPakcetBuffer, nPacketSize);
+	memcpy(packetBuffer_, pPakcetBuffer, packetSize);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpRequestQueue
+// class UdpRequestQueue
 
 //-----------------------------------------------------------------------------
 // 描述: 构造函数
 // 参数:
-//   pOwnGroup - 指定所属组别
+//   ownGroup - 指定所属组别
 //-----------------------------------------------------------------------------
-CUdpRequestQueue::CUdpRequestQueue(CUdpRequestGroup *pOwnGroup)
+UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup)
 {
-	int nGroupIndex;
+	int groupIndex;
 
-	m_pOwnGroup = pOwnGroup;
-	nGroupIndex = pOwnGroup->GetGroupIndex();
-	m_nCapacity = IseApplication.GetIseOptions().GetUdpRequestQueueCapacity(nGroupIndex);
-	m_nEffWaitTime = IseApplication.GetIseOptions().GetUdpRequestEffWaitTime();
-	m_nPacketCount = 0;
+	ownGroup_ = ownGroup;
+	groupIndex = ownGroup->getGroupIndex();
+	capacity_ = iseApplication.getIseOptions().getUdpRequestQueueCapacity(groupIndex);
+	effWaitTime_ = iseApplication.getIseOptions().getUdpRequestEffWaitTime();
+	packetCount_ = 0;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 向队列中添加数据包
 //-----------------------------------------------------------------------------
-void CUdpRequestQueue::AddPacket(CUdpPacket *pPacket)
+void UdpRequestQueue::addPacket(UdpPacket *pPacket)
 {
-	if (m_nCapacity <= 0) return;
-	bool bRemoved = false;
+	if (capacity_ <= 0) return;
+	bool removed = false;
 
 	{
-		CAutoLocker Locker(m_Lock);
+		AutoLocker locker(lock_);
 
-		if (m_nPacketCount >= m_nCapacity)
+		if (packetCount_ >= capacity_)
 		{
-			CUdpPacket *p;
-			p = m_PacketList.front();
+			UdpPacket *p;
+			p = packetList_.front();
 			delete p;
-			m_PacketList.pop_front();
-			m_nPacketCount--;
-			bRemoved = true;
+			packetList_.pop_front();
+			packetCount_--;
+			removed = true;
 		}
 
-		m_PacketList.push_back(pPacket);
-		m_nPacketCount++;
+		packetList_.push_back(pPacket);
+		packetCount_++;
 	}
 
-	if (!bRemoved) m_Semaphore.Increase();
+	if (!removed) semaphore_.increase();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 从队列中取出数据包 (取出后应自行释放，若失败则返回 NULL)
 // 备注: 若队列中尚没有数据包，则一直等待。
 //-----------------------------------------------------------------------------
-CUdpPacket* CUdpRequestQueue::ExtractPacket()
+UdpPacket* UdpRequestQueue::extractPacket()
 {
-	m_Semaphore.Wait();
+	semaphore_.wait();
 
 	{
-		CAutoLocker Locker(m_Lock);
-		CUdpPacket *p, *pResult = NULL;
+		AutoLocker locker(lock_);
+		UdpPacket *p, *result = NULL;
 
-		while (m_nPacketCount > 0)
+		while (packetCount_ > 0)
 		{
-			p = m_PacketList.front();
-			m_PacketList.pop_front();
-			m_nPacketCount--;
+			p = packetList_.front();
+			packetList_.pop_front();
+			packetCount_--;
 
-			if (time(NULL) - (UINT)p->m_nRecvTimeStamp <= (UINT)m_nEffWaitTime)
+			if (time(NULL) - (UINT)p->recvTimeStamp_ <= (UINT)effWaitTime_)
 			{
-				pResult = p;
+				result = p;
 				break;
 			}
 			else
@@ -190,150 +190,150 @@ CUdpPacket* CUdpRequestQueue::ExtractPacket()
 			}
 		}
 
-		return pResult;
+		return result;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 清空队列
 //-----------------------------------------------------------------------------
-void CUdpRequestQueue::Clear()
+void UdpRequestQueue::clear()
 {
-	CAutoLocker Locker(m_Lock);
-	CUdpPacket *p;
+	AutoLocker locker(lock_);
+	UdpPacket *p;
 
-	for (UINT i = 0; i < m_PacketList.size(); i++)
+	for (UINT i = 0; i < packetList_.size(); i++)
 	{
-		p = m_PacketList[i];
+		p = packetList_[i];
 		delete p;
 	}
 
-	m_PacketList.clear();
-	m_nPacketCount = 0;
-	m_Semaphore.Reset();
+	packetList_.clear();
+	packetCount_ = 0;
+	semaphore_.reset();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 增加信号量的值，使等待数据的线程中断等待
 //-----------------------------------------------------------------------------
-void CUdpRequestQueue::BreakWaiting(int nSemCount)
+void UdpRequestQueue::breakWaiting(int semCount)
 {
-	for (int i = 0; i < nSemCount; i++)
-		m_Semaphore.Increase();
+	for (int i = 0; i < semCount; i++)
+		semaphore_.increase();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpWorkerThread
+// class UdpWorkerThread
 
-CUdpWorkerThread::CUdpWorkerThread(CUdpWorkerThreadPool *pThreadPool) :
-	m_pOwnPool(pThreadPool),
-	m_TimeOutChecker(this)
+UdpWorkerThread::UdpWorkerThread(UdpWorkerThreadPool *threadPool) :
+	ownPool_(threadPool),
+	timeoutChecker_(this)
 {
-	SetFreeOnTerminate(true);
+	setFreeOnTerminate(true);
 	// 启用超时检测
-	m_TimeOutChecker.SetTimeOutSecs(IseApplication.GetIseOptions().GetUdpWorkerThreadTimeOut());
+	timeoutChecker_.setTimeOutSecs(iseApplication.getIseOptions().getUdpWorkerThreadTimeOut());
 
-	m_pOwnPool->RegisterThread(this);
+	ownPool_->registerThread(this);
 }
 
-CUdpWorkerThread::~CUdpWorkerThread()
+UdpWorkerThread::~UdpWorkerThread()
 {
-	m_pOwnPool->UnregisterThread(this);
+	ownPool_->unregisterThread(this);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 线程的执行函数
 //-----------------------------------------------------------------------------
-void CUdpWorkerThread::Execute()
+void UdpWorkerThread::execute()
 {
-	int nGroupIndex;
-	CUdpRequestQueue *pRequestQueue;
-	CUdpPacket *pPacket;
+	int groupIndex;
+	UdpRequestQueue *requestQueue;
+	UdpPacket *packet;
 
-	nGroupIndex = m_pOwnPool->GetRequestGroup().GetGroupIndex();
-	pRequestQueue = &(m_pOwnPool->GetRequestGroup().GetRequestQueue());
+	groupIndex = ownPool_->getRequestGroup().getGroupIndex();
+	requestQueue = &(ownPool_->getRequestGroup().getRequestQueue());
 
-	while (!GetTerminated())
+	while (!isTerminated())
 	try
 	{
-		pPacket = pRequestQueue->ExtractPacket();
-		if (pPacket)
+		packet = requestQueue->extractPacket();
+		if (packet)
 		{
-			std::auto_ptr<CUdpPacket> AutoPtr(pPacket);
-			CAutoInvoker AutoInvoker(m_TimeOutChecker);
+			std::auto_ptr<UdpPacket> AutoPtr(packet);
+			AutoInvoker autoInvoker(timeoutChecker_);
 
 			// 分派数据包
-			if (!GetTerminated())
-				pIseBusiness->DispatchUdpPacket(*this, nGroupIndex, *pPacket);
+			if (!isTerminated())
+				iseBusiness->dispatchUdpPacket(*this, groupIndex, *packet);
 		}
 	}
-	catch (CException&)
+	catch (Exception&)
 	{}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 执行 Terminate() 前的附加操作
+// 描述: 执行 terminate() 前的附加操作
 //-----------------------------------------------------------------------------
-void CUdpWorkerThread::DoTerminate()
+void UdpWorkerThread::doTerminate()
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 执行 Kill() 前的附加操作
+// 描述: 执行 kill() 前的附加操作
 //-----------------------------------------------------------------------------
-void CUdpWorkerThread::DoKill()
+void UdpWorkerThread::doKill()
 {
 	// nothing
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpWorkerThreadPool
+// class UdpWorkerThreadPool
 
-CUdpWorkerThreadPool::CUdpWorkerThreadPool(CUdpRequestGroup *pOwnGroup) :
-	m_pOwnGroup(pOwnGroup)
+UdpWorkerThreadPool::UdpWorkerThreadPool(UdpRequestGroup *ownGroup) :
+	ownGroup_(ownGroup)
 {
 	// nothing
 }
 
-CUdpWorkerThreadPool::~CUdpWorkerThreadPool()
+UdpWorkerThreadPool::~UdpWorkerThreadPool()
 {
 	// nothing
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 创建 nCount 个线程
+// 描述: 创建 count 个线程
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::CreateThreads(int nCount)
+void UdpWorkerThreadPool::createThreads(int count)
 {
-	for (int i = 0; i < nCount; i++)
+	for (int i = 0; i < count; i++)
 	{
-		CUdpWorkerThread *pThread;
-		pThread = new CUdpWorkerThread(this);
-		pThread->Run();
+		UdpWorkerThread *thread;
+		thread = new UdpWorkerThread(this);
+		thread->run();
 	}
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 终止 nCount 个线程
+// 描述: 终止 count 个线程
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::TerminateThreads(int nCount)
+void UdpWorkerThreadPool::terminateThreads(int count)
 {
-	CAutoLocker Locker(m_ThreadList.GetLock());
+	AutoLocker locker(threadList_.getLock());
 
-	int nTermCount = 0;
-	if (nCount > m_ThreadList.GetCount())
-		nCount = m_ThreadList.GetCount();
+	int termCount = 0;
+	if (count > threadList_.getCount())
+		count = threadList_.getCount();
 
-	for (int i = m_ThreadList.GetCount() - 1; i >= 0; i--)
+	for (int i = threadList_.getCount() - 1; i >= 0; i--)
 	{
-		CUdpWorkerThread *pThread;
-		pThread = (CUdpWorkerThread*)m_ThreadList[i];
-		if (pThread->IsIdle())
+		UdpWorkerThread *thread;
+		thread = (UdpWorkerThread*)threadList_[i];
+		if (thread->isIdle())
 		{
-			pThread->Terminate();
-			nTermCount++;
-			if (nTermCount >= nCount) break;
+			thread->terminate();
+			termCount++;
+			if (termCount >= count) break;
 		}
 	}
 }
@@ -341,33 +341,33 @@ void CUdpWorkerThreadPool::TerminateThreads(int nCount)
 //-----------------------------------------------------------------------------
 // 描述: 检测线程是否工作超时 (超时线程: 因某一请求进入工作状态但长久未完成的线程)
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::CheckThreadTimeOut()
+void UdpWorkerThreadPool::checkThreadTimeout()
 {
-	CAutoLocker Locker(m_ThreadList.GetLock());
+	AutoLocker locker(threadList_.getLock());
 
-	for (int i = 0; i < m_ThreadList.GetCount(); i++)
+	for (int i = 0; i < threadList_.getCount(); i++)
 	{
-		CUdpWorkerThread *pThread;
-		pThread = (CUdpWorkerThread*)m_ThreadList[i];
-		pThread->GetTimeOutChecker().Check();
+		UdpWorkerThread *thread;
+		thread = (UdpWorkerThread*)threadList_[i];
+		thread->getTimeoutChecker().check();
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 强行杀死僵死的线程 (僵死线程: 已被通知退出但长久不退出的线程)
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::KillZombieThreads()
+void UdpWorkerThreadPool::killZombieThreads()
 {
-	CAutoLocker Locker(m_ThreadList.GetLock());
+	AutoLocker locker(threadList_.getLock());
 
-	for (int i = m_ThreadList.GetCount() - 1; i >= 0; i--)
+	for (int i = threadList_.getCount() - 1; i >= 0; i--)
 	{
-		CUdpWorkerThread *pThread;
-		pThread = (CUdpWorkerThread*)m_ThreadList[i];
-		if (pThread->GetTermElapsedSecs() >= MAX_THREAD_TERM_SECS)
+		UdpWorkerThread *thread;
+		thread = (UdpWorkerThread*)threadList_[i];
+		if (thread->getTermElapsedSecs() >= MAX_THREAD_TERM_SECS)
 		{
-			pThread->Kill();
-			m_ThreadList.Remove(pThread);
+			thread->kill();
+			threadList_.remove(thread);
 		}
 	}
 }
@@ -375,182 +375,182 @@ void CUdpWorkerThreadPool::KillZombieThreads()
 //-----------------------------------------------------------------------------
 // 描述: 注册线程
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::RegisterThread(CUdpWorkerThread *pThread)
+void UdpWorkerThreadPool::registerThread(UdpWorkerThread *thread)
 {
-	m_ThreadList.Add(pThread);
+	threadList_.add(thread);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 注销线程
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::UnregisterThread(CUdpWorkerThread *pThread)
+void UdpWorkerThreadPool::unregisterThread(UdpWorkerThread *thread)
 {
-	m_ThreadList.Remove(pThread);
+	threadList_.remove(thread);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据负载情况动态调整线程数量
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::AdjustThreadCount()
+void UdpWorkerThreadPool::AdjustThreadCount()
 {
-	int nPacketCount, nThreadCount;
-	int nMinThreads, nMaxThreads, nDeltaThreads;
-	int nPacketAlertLine;
+	int packetCount, threadCount;
+	int minThreads, maxThreads, deltaThreads;
+	int packetAlertLine;
 
 	// 取得线程数量上下限
-	IseApplication.GetIseOptions().GetUdpWorkerThreadCount(
-		m_pOwnGroup->GetGroupIndex(), nMinThreads, nMaxThreads);
+	iseApplication.getIseOptions().getUdpWorkerThreadCount(
+		ownGroup_->getGroupIndex(), minThreads, maxThreads);
 	// 取得请求队列中数据包数量警戒线
-	nPacketAlertLine = IseApplication.GetIseOptions().GetUdpRequestQueueAlertLine();
+	packetAlertLine = iseApplication.getIseOptions().getUdpRequestQueueAlertLine();
 
 	// 检测线程是否工作超时
-	CheckThreadTimeOut();
+	checkThreadTimeout();
 	// 强行杀死僵死的线程
-	KillZombieThreads();
+	killZombieThreads();
 
 	// 取得数据包数量和线程数量
-	nPacketCount = m_pOwnGroup->GetRequestQueue().GetCount();
-	nThreadCount = m_ThreadList.GetCount();
+	packetCount = ownGroup_->getRequestQueue().getCount();
+	threadCount = threadList_.getCount();
 
 	// 保证线程数量在上下限范围之内
-	if (nThreadCount < nMinThreads)
+	if (threadCount < minThreads)
 	{
-		CreateThreads(nMinThreads - nThreadCount);
-		nThreadCount = nMinThreads;
+		createThreads(minThreads - threadCount);
+		threadCount = minThreads;
 	}
-	if (nThreadCount > nMaxThreads)
+	if (threadCount > maxThreads)
 	{
-		TerminateThreads(nThreadCount - nMaxThreads);
-		nThreadCount = nMaxThreads;
+		terminateThreads(threadCount - maxThreads);
+		threadCount = maxThreads;
 	}
 
 	// 如果请求队列中的数量超过警戒线，则尝试增加线程数量
-	if (nThreadCount < nMaxThreads && nPacketCount >= nPacketAlertLine)
+	if (threadCount < maxThreads && packetCount >= packetAlertLine)
 	{
-		nDeltaThreads = Min(nMaxThreads - nThreadCount, 3);
-		CreateThreads(nDeltaThreads);
+		deltaThreads = ise::min(maxThreads - threadCount, 3);
+		createThreads(deltaThreads);
 	}
 
 	// 如果请求队列为空，则尝试减少线程数量
-	if (nThreadCount > nMinThreads && nPacketCount == 0)
+	if (threadCount > minThreads && packetCount == 0)
 	{
-		nDeltaThreads = 1;
-		TerminateThreads(nDeltaThreads);
+		deltaThreads = 1;
+		terminateThreads(deltaThreads);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知所有线程退出
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::TerminateAllThreads()
+void UdpWorkerThreadPool::terminateAllThreads()
 {
-	m_ThreadList.TerminateAllThreads();
+	threadList_.terminateAllThreads();
 
-	CAutoLocker Locker(m_ThreadList.GetLock());
+	AutoLocker locker(threadList_.getLock());
 
 	// 使线程从等待中解脱，尽快退出
-	GetRequestGroup().GetRequestQueue().BreakWaiting(m_ThreadList.GetCount());
+	getRequestGroup().getRequestQueue().breakWaiting(threadList_.getCount());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 等待所有线程退出
 //-----------------------------------------------------------------------------
-void CUdpWorkerThreadPool::WaitForAllThreads()
+void UdpWorkerThreadPool::waitForAllThreads()
 {
-	TerminateAllThreads();
+	terminateAllThreads();
 
-	int nKilledCount = 0;
-	m_ThreadList.WaitForAllThreads(MAX_THREAD_WAIT_FOR_SECS, &nKilledCount);
+	int killedCount = 0;
+	threadList_.waitForAllThreads(MAX_THREAD_WAIT_FOR_SECS, &killedCount);
 
-	if (nKilledCount)
-		Logger().WriteFmt(SEM_THREAD_KILLED, nKilledCount, "udp worker");
+	if (killedCount)
+		logger().writeFmt(SEM_THREAD_KILLED, killedCount, "udp worker");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CUdpRequestGroup
+// class UdpRequestGroup
 
-CUdpRequestGroup::CUdpRequestGroup(CMainUdpServer *pOwnMainUdpSvr, int nGroupIndex) :
-	m_pOwnMainUdpSvr(pOwnMainUdpSvr),
-	m_nGroupIndex(nGroupIndex),
-	m_RequestQueue(this),
-	m_ThreadPool(this)
+UdpRequestGroup::UdpRequestGroup(MainUdpServer *ownMainUdpSvr, int groupIndex) :
+	ownMainUdpSvr_(ownMainUdpSvr),
+	groupIndex_(groupIndex),
+	requestQueue_(this),
+	threadPool_(this)
 {
 	// nothing
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CMainUdpServer
+// class MainUdpServer
 
-CMainUdpServer::CMainUdpServer()
+MainUdpServer::MainUdpServer()
 {
-	InitUdpServer();
-	InitRequestGroupList();
+	initUdpServer();
+	initRequestGroupList();
 }
 
-CMainUdpServer::~CMainUdpServer()
+MainUdpServer::~MainUdpServer()
 {
-	ClearRequestGroupList();
+	clearRequestGroupList();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 初始化 m_UdpServer
+// 描述: 初始化 udpServer_
 //-----------------------------------------------------------------------------
-void CMainUdpServer::InitUdpServer()
+void MainUdpServer::initUdpServer()
 {
-	m_UdpServer.SetOnRecvDataCallBack(OnRecvData, this);
+	udpServer_.setOnRecvDataCallback(onRecvData, this);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 初始化请求组别列表
 //-----------------------------------------------------------------------------
-void CMainUdpServer::InitRequestGroupList()
+void MainUdpServer::initRequestGroupList()
 {
-	ClearRequestGroupList();
+	clearRequestGroupList();
 
-	m_nRequestGroupCount = IseApplication.GetIseOptions().GetUdpRequestGroupCount();
-	for (int nGroupIndex = 0; nGroupIndex < m_nRequestGroupCount; nGroupIndex++)
+	requestGroupCount_ = iseApplication.getIseOptions().getUdpRequestGroupCount();
+	for (int groupIndex = 0; groupIndex < requestGroupCount_; groupIndex++)
 	{
-		CUdpRequestGroup *p;
-		p = new CUdpRequestGroup(this, nGroupIndex);
-		m_RequestGroupList.push_back(p);
+		UdpRequestGroup *p;
+		p = new UdpRequestGroup(this, groupIndex);
+		requestGroupList_.push_back(p);
 	}
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 清空请求组别列表
 //-----------------------------------------------------------------------------
-void CMainUdpServer::ClearRequestGroupList()
+void MainUdpServer::clearRequestGroupList()
 {
-	for (UINT i = 0; i < m_RequestGroupList.size(); i++)
-		delete m_RequestGroupList[i];
-	m_RequestGroupList.clear();
+	for (UINT i = 0; i < requestGroupList_.size(); i++)
+		delete requestGroupList_[i];
+	requestGroupList_.clear();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 收到数据包
 //-----------------------------------------------------------------------------
-void CMainUdpServer::OnRecvData(void *pParam, void *pPacketBuffer, int nPacketSize,
-	const CPeerAddress& PeerAddr)
+void MainUdpServer::onRecvData(void *param, void *packetBuffer, int packetSize,
+	const InetAddress& peerAddr)
 {
-	CMainUdpServer *pThis = (CMainUdpServer*)pParam;
-	int nGroupIndex;
+	MainUdpServer *thisObj = (MainUdpServer*)param;
+	int groupIndex;
 
 	// 先进行数据包分类，得到组别号
-	pIseBusiness->ClassifyUdpPacket(pPacketBuffer, nPacketSize, nGroupIndex);
+	iseBusiness->classifyUdpPacket(packetBuffer, packetSize, groupIndex);
 
 	// 如果组别号合法
-	if (nGroupIndex >= 0 && nGroupIndex < pThis->m_nRequestGroupCount)
+	if (groupIndex >= 0 && groupIndex < thisObj->requestGroupCount_)
 	{
-		CUdpPacket *p = new CUdpPacket();
+		UdpPacket *p = new UdpPacket();
 		if (p)
 		{
-			p->m_nRecvTimeStamp = (UINT)time(NULL);
-			p->m_PeerAddr = PeerAddr;
-			p->m_nPacketSize = nPacketSize;
-			p->SetPacketBuffer(pPacketBuffer, nPacketSize);
+			p->recvTimeStamp_ = (UINT)time(NULL);
+			p->peerAddr_ = peerAddr;
+			p->packetSize_ = packetSize;
+			p->setPacketBuffer(packetBuffer, packetSize);
 
 			// 添加到请求队列中
-			pThis->m_RequestGroupList[nGroupIndex]->GetRequestQueue().AddPacket(p);
+			thisObj->requestGroupList_[groupIndex]->getRequestQueue().addPacket(p);
 		}
 	}
 }
@@ -558,47 +558,47 @@ void CMainUdpServer::OnRecvData(void *pParam, void *pPacketBuffer, int nPacketSi
 //-----------------------------------------------------------------------------
 // 描述: 开启服务器
 //-----------------------------------------------------------------------------
-void CMainUdpServer::Open()
+void MainUdpServer::open()
 {
-	m_UdpServer.Open();
+	udpServer_.open();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 关闭服务器
 //-----------------------------------------------------------------------------
-void CMainUdpServer::Close()
+void MainUdpServer::close()
 {
-	TerminateAllWorkerThreads();
-	WaitForAllWorkerThreads();
+	terminateAllWorkerThreads();
+	waitForAllWorkerThreads();
 
-	m_UdpServer.Close();
+	udpServer_.close();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 根据负载情况动态调整工作者线程数量
 //-----------------------------------------------------------------------------
-void CMainUdpServer::AdjustWorkerThreadCount()
+void MainUdpServer::adjustWorkerThreadCount()
 {
-	for (UINT i = 0; i < m_RequestGroupList.size(); i++)
-		m_RequestGroupList[i]->GetThreadPool().AdjustThreadCount();
+	for (UINT i = 0; i < requestGroupList_.size(); i++)
+		requestGroupList_[i]->getThreadPool().AdjustThreadCount();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 通知所有工作者线程退出
 //-----------------------------------------------------------------------------
-void CMainUdpServer::TerminateAllWorkerThreads()
+void MainUdpServer::terminateAllWorkerThreads()
 {
-	for (UINT i = 0; i < m_RequestGroupList.size(); i++)
-		m_RequestGroupList[i]->GetThreadPool().TerminateAllThreads();
+	for (UINT i = 0; i < requestGroupList_.size(); i++)
+		requestGroupList_[i]->getThreadPool().terminateAllThreads();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 等待所有工作者线程退出
 //-----------------------------------------------------------------------------
-void CMainUdpServer::WaitForAllWorkerThreads()
+void MainUdpServer::waitForAllWorkerThreads()
 {
-	for (UINT i = 0; i < m_RequestGroupList.size(); i++)
-		m_RequestGroupList[i]->GetThreadPool().WaitForAllThreads();
+	for (UINT i = 0; i < requestGroupList_.size(); i++)
+		requestGroupList_[i]->getThreadPool().waitForAllThreads();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
