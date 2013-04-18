@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "ise_scheduler.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 
 namespace ise
 {
@@ -35,16 +35,16 @@ namespace ise
 // class IseScheduleTask
 
 IseScheduleTask::IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
-	UINT afterSeconds, const SCH_TASK_TRIGGRE_CALLBACK& onTrigger,
-	const CustomParams& customParams) :
-		taskId_(taskId),
-		taskType_(taskType),
-		afterSeconds_(afterSeconds),
-		onTrigger_(onTrigger),
-		customParams_(customParams),
-		lastTriggerTime_(0)
+    UINT afterSeconds, const SchTaskTriggerCallback& onTrigger,
+    const Context& context) :
+        taskId_(taskId),
+        taskType_(taskType),
+        afterSeconds_(afterSeconds),
+        onTrigger_(onTrigger),
+        context_(context),
+        lastTriggerTime_(0)
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -52,103 +52,103 @@ IseScheduleTask::IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
 //-----------------------------------------------------------------------------
 void IseScheduleTask::process()
 {
-	int curYear, curMonth, curDay, curHour, curMinute, curSecond, curWeekDay, curYearDay;
-	DateTime::currentDateTime().decodeDateTime(&curYear, &curMonth, &curDay,
-		&curHour, &curMinute, &curSecond, &curWeekDay, &curYearDay);
+    int curYear, curMonth, curDay, curHour, curMinute, curSecond, curWeekDay, curYearDay;
+    DateTime::currentDateTime().decodeDateTime(&curYear, &curMonth, &curDay,
+        &curHour, &curMinute, &curSecond, &curWeekDay, &curYearDay);
 
-	int lastYear = -1, lastMonth = -1, lastDay = -1, lastHour = -1, lastWeekDay = -1;
-	if (lastTriggerTime_ != 0)
-	{
-		DateTime(lastTriggerTime_).decodeDateTime(&lastYear, &lastMonth, &lastDay,
-			&lastHour, NULL, NULL, &lastWeekDay);
-	}
+    int lastYear = -1, lastMonth = -1, lastDay = -1, lastHour = -1, lastWeekDay = -1;
+    if (lastTriggerTime_ != 0)
+    {
+        DateTime(lastTriggerTime_).decodeDateTime(&lastYear, &lastMonth, &lastDay,
+            &lastHour, NULL, NULL, &lastWeekDay);
+    }
 
-	UINT elapsedSecs = (UINT)(-1);
+    UINT elapsedSecs = (UINT)(-1);
 
-	switch (taskType_)
-	{
-	case STT_EVERY_HOUR:
-		if (curHour != lastHour)
-		{
-			elapsedSecs = curMinute * SECONDS_PER_MINUTE + curSecond;
-		}
-		break;
+    switch (taskType_)
+    {
+    case STT_EVERY_HOUR:
+        if (curHour != lastHour)
+        {
+            elapsedSecs = curMinute * SECONDS_PER_MINUTE + curSecond;
+        }
+        break;
 
-	case STT_EVERY_DAY:
-		if (curDay != lastDay)
-		{
-			elapsedSecs = curHour * SECONDS_PER_HOUR + curMinute * SECONDS_PER_MINUTE + curSecond;
-		}
-		break;
+    case STT_EVERY_DAY:
+        if (curDay != lastDay)
+        {
+            elapsedSecs = curHour * SECONDS_PER_HOUR + curMinute * SECONDS_PER_MINUTE + curSecond;
+        }
+        break;
 
-	case STT_EVERY_WEEK:
-		if (curWeekDay != lastWeekDay)
-		{
-			elapsedSecs = curWeekDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
-				curMinute * SECONDS_PER_MINUTE + curSecond;
-		}
-		break;
+    case STT_EVERY_WEEK:
+        if (curWeekDay != lastWeekDay)
+        {
+            elapsedSecs = curWeekDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
+                curMinute * SECONDS_PER_MINUTE + curSecond;
+        }
+        break;
 
-	case STT_EVERY_MONTH:
-		if (curMonth != lastMonth)
-		{
-			elapsedSecs = curDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
-				curMinute * SECONDS_PER_MINUTE + curSecond;
-		}
-		break;
+    case STT_EVERY_MONTH:
+        if (curMonth != lastMonth)
+        {
+            elapsedSecs = curDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
+                curMinute * SECONDS_PER_MINUTE + curSecond;
+        }
+        break;
 
-	case STT_EVERY_YEAR:
-		if (curYear != lastYear)
-		{
-			elapsedSecs = curYearDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
-				curMinute * SECONDS_PER_MINUTE + curSecond;
-		}
-		break;
-	}
+    case STT_EVERY_YEAR:
+        if (curYear != lastYear)
+        {
+            elapsedSecs = curYearDay * SECONDS_PER_DAY + curHour * SECONDS_PER_HOUR +
+                curMinute * SECONDS_PER_MINUTE + curSecond;
+        }
+        break;
+    }
 
-	bool trigger = false;
-	if (elapsedSecs != (UINT)(-1))
-	{
-		if (lastTriggerTime_ == 0)
-		{
-			// 如果之前从未触发过，若当前时间已越过时间点，则只可以在时间点附近触发
-			const int MAX_SPAN_SECS = 10;
-			trigger = (elapsedSecs >= afterSeconds_ && elapsedSecs <= afterSeconds_ + MAX_SPAN_SECS);
-		}
-		else
-			trigger = (elapsedSecs >= afterSeconds_);
-	}
+    bool trigger = false;
+    if (elapsedSecs != (UINT)(-1))
+    {
+        if (lastTriggerTime_ == 0)
+        {
+            // 如果之前从未触发过，若当前时间已越过时间点，则只可以在时间点附近触发
+            const int MAX_SPAN_SECS = 10;
+            trigger = (elapsedSecs >= afterSeconds_ && elapsedSecs <= afterSeconds_ + MAX_SPAN_SECS);
+        }
+        else
+            trigger = (elapsedSecs >= afterSeconds_);
+    }
 
-	if (trigger)
-	{
-		lastTriggerTime_ = time(NULL);
+    if (trigger)
+    {
+        lastTriggerTime_ = time(NULL);
 
-		if (onTrigger_.proc)
-			onTrigger_.proc(onTrigger_.param, taskId_, customParams_);
-	}
+        if (onTrigger_)
+            onTrigger_(taskId_, context_);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class IseScheduleTaskMgr
 
 IseScheduleTaskMgr::IseScheduleTaskMgr() :
-	taskList_(false, true),
-	taskIdAlloc_(1)
+    taskList_(false, true),
+    taskIdAlloc_(1)
 {
-	// nothing
+    // nothing
 }
 
 IseScheduleTaskMgr::~IseScheduleTaskMgr()
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
 
 IseScheduleTaskMgr& IseScheduleTaskMgr::instance()
 {
-	static IseScheduleTaskMgr obj;
-	return obj;
+    static IseScheduleTaskMgr obj;
+    return obj;
 }
 
 //-----------------------------------------------------------------------------
@@ -156,35 +156,35 @@ IseScheduleTaskMgr& IseScheduleTaskMgr::instance()
 //-----------------------------------------------------------------------------
 void IseScheduleTaskMgr::execute(Thread& ExecutorThread)
 {
-	while (!ExecutorThread.isTerminated())
-	{
-		try
-		{
-			AutoLocker locker(lock_);
-			for (int i = 0; i < taskList_.getCount(); i++)
-				taskList_[i]->process();
-		}
-		catch (...)
-		{}
+    while (!ExecutorThread.isTerminated())
+    {
+        try
+        {
+            AutoLocker locker(lock_);
+            for (int i = 0; i < taskList_.getCount(); i++)
+                taskList_[i]->process();
+        }
+        catch (...)
+        {}
 
-		sleepSec(1);
-	}
+        sleepSec(1);
+    }
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 添加一个任务
 //-----------------------------------------------------------------------------
 UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
-	const SCH_TASK_TRIGGRE_CALLBACK& onTrigger, const CustomParams& customParams)
+    const SchTaskTriggerCallback& onTrigger, const Context& context)
 {
-	AutoLocker locker(lock_);
+    AutoLocker locker(lock_);
 
-	UINT result = taskIdAlloc_.allocId();
-	IseScheduleTask *task = new IseScheduleTask(result, taskType,
-		afterSeconds, onTrigger, customParams);
-	taskList_.add(task);
+    UINT result = taskIdAlloc_.allocId();
+    IseScheduleTask *task = new IseScheduleTask(result, taskType,
+        afterSeconds, onTrigger, context);
+    taskList_.add(task);
 
-	return result;
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -192,20 +192,20 @@ UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeco
 //-----------------------------------------------------------------------------
 bool IseScheduleTaskMgr::removeTask(UINT taskId)
 {
-	AutoLocker locker(lock_);
-	bool result = false; 
+    AutoLocker locker(lock_);
+    bool result = false;
 
-	for (int i = 0; i < taskList_.getCount(); i++)
-	{
-		if (taskList_[i]->getTaskId() == taskId)
-		{
-			taskList_.del(i);
-			result = true;
-			break;
-		}
-	}
+    for (int i = 0; i < taskList_.getCount(); i++)
+    {
+        if (taskList_[i]->getTaskId() == taskId)
+        {
+            taskList_.del(i);
+            result = true;
+            break;
+        }
+    }
 
-	return result;
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -213,8 +213,8 @@ bool IseScheduleTaskMgr::removeTask(UINT taskId)
 //-----------------------------------------------------------------------------
 void IseScheduleTaskMgr::clear()
 {
-	AutoLocker locker(lock_);
-	taskList_.clear();
+    AutoLocker locker(lock_);
+    taskList_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

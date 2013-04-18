@@ -2,6 +2,7 @@ TARGET_NAME = libise.a
 TARGET_PATH = ../../lib/linux
 TARGET_PATH_NAME = $(TARGET_PATH)/$(TARGET_NAME)
 
+BOOST_INC_PATH = ../../../boost
 MYSQL_INC_PATH = /usr/include/mysql
 
 SRC_PATH = ../../src
@@ -11,7 +12,7 @@ CC = g++
 CDEFINES = 
 CFLAGS = -g -O2 $(CDEFINES)
 
-INCS = -I$(INC_PATH) -I$(MYSQL_INC_PATH)
+INCS = -I$(INC_PATH) -I$(BOOST_INC_PATH) -I$(MYSQL_INC_PATH)
 
 SRCS = $(wildcard $(SRC_PATH)/*.cpp)
 OBJS = $(SRCS:.cpp=.o)

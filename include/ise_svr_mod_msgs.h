@@ -21,11 +21,11 @@
 \****************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////
-// ise_svrmod_msgs.h
+// ise_svr_mod_msgs.h
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ISE_SVRMOD_MSGS_H_
-#define _ISE_SVRMOD_MSGS_H_
+#ifndef _ISE_SVR_MOD_MSGS_H_
+#define _ISE_SVR_MOD_MSGS_H_
 
 #include "ise.h"
 
@@ -35,7 +35,7 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 消息代码定义 (Server Module Message Code)
 
-const int SMMC_BASE           = 100;
+const int SMMC_BASE = 100;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 消息结构定义
@@ -44,15 +44,15 @@ const int SMMC_BASE           = 100;
 struct BaseSvrModMessage
 {
 public:
-	UINT messageCode;      // 消息代码
-	bool isHandled;        // 是否处理了此消息
+    UINT messageCode;      // 消息代码
+    bool isHandled;        // 是否处理了此消息
 public:
-	BaseSvrModMessage() : messageCode(0), isHandled(false) {}
-	virtual ~BaseSvrModMessage() {}
+    BaseSvrModMessage() : messageCode(0), isHandled(false) {}
+    virtual ~BaseSvrModMessage() {}
 };
-	
+
 ///////////////////////////////////////////////////////////////////////////////
 
 } // namespace ise
 
-#endif // _ISE_SVRMOD_MSGS_H_
+#endif // _ISE_SVR_MOD_MSGS_H_

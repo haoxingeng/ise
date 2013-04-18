@@ -35,15 +35,15 @@ namespace ise
 // class SysThread
 
 SysThread::SysThread(SysThreadMgr& threadMgr) :
-	threadMgr_(threadMgr)
+    threadMgr_(threadMgr)
 {
-	setFreeOnTerminate(true);
-	threadMgr_.registerThread(this);
+    setFreeOnTerminate(true);
+    threadMgr_.registerThread(this);
 }
 
 SysThread::~SysThread()
 {
-	threadMgr_.unregisterThread(this);
+    threadMgr_.unregisterThread(this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -51,22 +51,22 @@ SysThread::~SysThread()
 
 void SysDaemonThread::execute()
 {
-	int secondCount = 0;
+    int secondCount = 0;
 
-	while (!isTerminated())
-	{
-		try
-		{
-			iseBusiness->daemonThreadExecute(*this, secondCount);
-		}
-		catch (Exception& e)
-		{
-			logger().writeException(e);
-		}
+    while (!isTerminated())
+    {
+        try
+        {
+            iseApp().getIseBusiness().daemonThreadExecute(*this, secondCount);
+        }
+        catch (Exception& e)
+        {
+            logger().writeException(e);
+        }
 
-		secondCount++;
-		this->sleep(1);
-	}
+        secondCount++;
+        this->sleep(1);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -74,51 +74,51 @@ void SysDaemonThread::execute()
 
 void SysSchedulerThread::execute()
 {
-	iseApplication.getScheduleTaskMgr().execute(*this);
+    iseApp().getScheduleTaskMgr().execute(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class SysThreadMgr
 
-void SysThreadMgr::registerThread(SysThread *thread)
-{
-	threadList_.add(thread);
-}
-
-//-----------------------------------------------------------------------------
-
-void SysThreadMgr::unregisterThread(SysThread *thread)
-{
-	threadList_.remove(thread);
-}
-
-//-----------------------------------------------------------------------------
-
 void SysThreadMgr::initialize()
 {
-	threadList_.clear();
-	Thread *thread;
+    threadList_.clear();
+    Thread *thread;
 
-	thread = new SysDaemonThread(*this);
-	threadList_.add(thread);
-	thread->run();
+    thread = new SysDaemonThread(*this);
+    threadList_.add(thread);
+    thread->run();
 
-	thread = new SysSchedulerThread(*this);
-	threadList_.add(thread);
-	thread->run();
+    thread = new SysSchedulerThread(*this);
+    threadList_.add(thread);
+    thread->run();
 }
 
 //-----------------------------------------------------------------------------
 
 void SysThreadMgr::finalize()
 {
-	const int MAX_WAIT_FOR_SECS = 5;
-	int killedCount = 0;
+    const int MAX_WAIT_FOR_SECS = 5;
+    int killedCount = 0;
 
-	threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
+    threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
 
-	if (killedCount > 0)
-		logger().writeFmt(SEM_THREAD_KILLED, killedCount, "system");
+    if (killedCount > 0)
+        logger().writeFmt(SEM_THREAD_KILLED, killedCount, "system");
+}
+
+//-----------------------------------------------------------------------------
+
+void SysThreadMgr::registerThread(SysThread *thread)
+{
+    threadList_.add(thread);
+}
+
+//-----------------------------------------------------------------------------
+
+void SysThreadMgr::unregisterThread(SysThread *thread)
+{
+    threadList_.remove(thread);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

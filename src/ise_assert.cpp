@@ -28,7 +28,7 @@
 #include "ise_assert.h"
 #include "ise_exceptions.h"
 #include "ise_classes.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 
 namespace ise
 {
@@ -40,9 +40,9 @@ namespace ise
 //-----------------------------------------------------------------------------
 void internalAssert(const char *condition, const char *fileName, int lineNumber)
 {
-	SimpleException e(formatString("Assertion failed: %s", condition).c_str(), fileName, lineNumber);
-	logger().writeException(e);
-	throw e;
+    SimpleException e(formatString("Assertion failed: %s", condition).c_str(), fileName, lineNumber);
+    logger().writeException(e);
+    throw e;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -43,21 +43,21 @@
 
 #ifdef ISE_USING_EXT_STL
   #ifdef ISE_COMPILER_BCB
-	#if (__BORLANDC__ >= 0x590)   // BCB2007
-	  #include <dinkumware/hash_map>
-	  #include <dinkumware/hash_set>
-	#else
-	  #include <stlport/hash_map>
-	  #include <stlport/hash_set>
-	#endif
+    #if (__BORLANDC__ >= 0x590)   // BCB2007
+      #include <dinkumware/hash_map>
+      #include <dinkumware/hash_set>
+    #else
+      #include <stlport/hash_map>
+      #include <stlport/hash_set>
+    #endif
   #endif
   #ifdef ISE_COMPILER_VC
-	#include <hash_map>
-	#include <hash_set>
+    #include <hash_map>
+    #include <hash_set>
   #endif
   #ifdef ISE_COMPILER_GCC
-	#include <ext/hash_map>
-	#include <ext/hash_set>
+    #include <ext/hash_map>
+    #include <ext/hash_set>
   #endif
 #endif
 
@@ -86,24 +86,24 @@ using namespace EXT_STL_NAMESPACE;
 #ifdef ISE_LINUX
 namespace EXT_STL_NAMESPACE
 {
-	template <class _CharT, class _Traits, class _Alloc>
-	inline size_t stl_string_hash(const basic_string<_CharT,_Traits,_Alloc>& s)
-	{
-		unsigned long h = 0;
-		size_t len = s.size();
-		const _CharT* data = s.data();
-		for (size_t i = 0; i < len; ++i)
-			h = 5 * h + data[i];
-		return size_t(h);
-	}
+    template <class _CharT, class _Traits, class _Alloc>
+    inline size_t stl_string_hash(const basic_string<_CharT,_Traits,_Alloc>& s)
+    {
+        unsigned long h = 0;
+        size_t len = s.size();
+        const _CharT* data = s.data();
+        for (size_t i = 0; i < len; ++i)
+            h = 5 * h + data[i];
+        return size_t(h);
+    }
 
-	template <> struct hash<string> {
-		size_t operator()(const string& s) const { return stl_string_hash(s); }
-	};
+    template <> struct hash<string> {
+        size_t operator()(const string& s) const { return stl_string_hash(s); }
+    };
 
-	template <> struct hash<wstring> {
-		size_t operator()(const wstring& s) const { return stl_string_hash(s); }
-	};
+    template <> struct hash<wstring> {
+        size_t operator()(const wstring& s) const { return stl_string_hash(s); }
+    };
 }
 #endif
 #endif

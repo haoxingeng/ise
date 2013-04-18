@@ -30,7 +30,7 @@
 #include "ise_options.h"
 #include "ise_classes.h"
 #include "ise_thread.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 #include "ise_socket.h"
 #include "ise_exceptions.h"
 
@@ -61,91 +61,87 @@ class MainUdpServer;
 
 class ThreadTimeOutChecker : public AutoInvokable
 {
-private:
-	Thread *thread_;          // 被检测的线程
-	time_t startTime_;        // 开始计时时的时间戳
-	bool started_;            // 是否已开始计时
-	UINT timeoutSecs_;        // 超过多少秒认为超时 (为0表示不进行超时检测)
-	CriticalSection lock_;
+public:
+    explicit ThreadTimeOutChecker(Thread *thread);
+    virtual ~ThreadTimeOutChecker() {}
 
-private:
-	void start();
-	void stop();
+    // 检测线程是否已超时，若超时则通知其退出
+    bool check();
+
+    // 设置超时时间，若为0则表示不进行超时检测
+    void setTimeOutSecs(UINT value) { timeoutSecs_ = value; }
+    // 返回是否已开始计时
+    bool getStarted();
 
 protected:
-	virtual void invokeInitialize() { start(); }
-	virtual void invokeFinalize() { stop(); }
+    virtual void invokeInitialize() { start(); }
+    virtual void invokeFinalize() { stop(); }
 
-public:
-	explicit ThreadTimeOutChecker(Thread *thread);
-	virtual ~ThreadTimeOutChecker() {}
+private:
+    void start();
+    void stop();
 
-	// 检测线程是否已超时，若超时则通知其退出
-	bool check();
-
-	// 设置超时时间，若为0则表示不进行超时检测
-	void setTimeOutSecs(UINT value) { timeoutSecs_ = value; }
-	// 返回是否已开始计时
-	bool getStarted();
+private:
+    Thread *thread_;          // 被检测的线程
+    time_t startTime_;        // 开始计时时的时间戳
+    bool started_;            // 是否已开始计时
+    UINT timeoutSecs_;        // 超过多少秒认为超时 (为0表示不进行超时检测)
+    CriticalSection lock_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpPacket - UDP数据包类
 
-class UdpPacket
+class UdpPacket : boost::noncopyable
 {
+public:
+    UdpPacket() :
+        packetBuffer_(NULL),
+        recvTimeStamp_(0),
+        peerAddr_(0, 0),
+        packetSize_(0)
+    {}
+    virtual ~UdpPacket()
+        { if (packetBuffer_) free(packetBuffer_); }
+
+    void setPacketBuffer(void *pPakcetBuffer, int packetSize);
+    inline void* getPacketBuffer() const { return packetBuffer_; }
+
+public:
+    UINT recvTimeStamp_;
+    InetAddress peerAddr_;
+    int packetSize_;
+
 private:
-	void *packetBuffer_;
-
-public:
-	UINT recvTimeStamp_;
-	InetAddress peerAddr_;
-	int packetSize_;
-
-public:
-	UdpPacket() :
-		packetBuffer_(NULL),
-		recvTimeStamp_(0),
-		peerAddr_(0, 0),
-		packetSize_(0)
-	{}
-	virtual ~UdpPacket()
-		{ if (packetBuffer_) free(packetBuffer_); }
-
-	void setPacketBuffer(void *pPakcetBuffer, int packetSize);
-	inline void* getPacketBuffer() const { return packetBuffer_; }
+    void *packetBuffer_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpRequestQueue - UDP请求队列类
 
-class UdpRequestQueue
+class UdpRequestQueue : boost::noncopyable
 {
-private:
-	// 各容器优缺点:
-	// deque  - 支持头尾快速增删，但增删中间元素很慢，支持下标访问。
-	// vector - 支持尾部快速增删，头部和中间元素增删很慢，支持下标访问。
-	// list   - 支持任何元素的快速增删，但不支持下标访问，不支持快速取当前长度(size())；
-	typedef deque<UdpPacket*> PacketList;
-
-	UdpRequestGroup *ownGroup_;    // 所属组别
-	PacketList packetList_;        // 数据包列表
-	int packetCount_;              // 队列中数据包的个数(为了快速访问)
-	int capacity_;                 // 队列的最大容量
-	int effWaitTime_;              // 数据包有效等待时间(秒)
-	CriticalSection lock_;
-	Semaphore semaphore_;
-
 public:
-	explicit UdpRequestQueue(UdpRequestGroup *ownGroup);
-	virtual ~UdpRequestQueue() { clear(); }
+    explicit UdpRequestQueue(UdpRequestGroup *ownGroup);
+    virtual ~UdpRequestQueue() { clear(); }
 
-	void addPacket(UdpPacket *pPacket);
-	UdpPacket* extractPacket();
-	void clear();
-	void breakWaiting(int semCount);
+    void addPacket(UdpPacket *pPacket);
+    UdpPacket* extractPacket();
+    void clear();
+    void breakWaiting(int semCount);
 
-	int getCount() { return packetCount_; }
+    int getCount() { return packetCount_; }
+
+private:
+    typedef deque<UdpPacket*> PacketList;
+
+    UdpRequestGroup *ownGroup_;    // 所属组别
+    PacketList packetList_;        // 数据包列表
+    int packetCount_;              // 队列中数据包的个数(为了快速访问)
+    int capacity_;                 // 队列的最大容量
+    int effWaitTime_;              // 数据包有效等待时间(秒)
+    CriticalSection lock_;
+    Semaphore semaphore_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -161,120 +157,125 @@ public:
 
 class UdpWorkerThread : public Thread
 {
-private:
-	UdpWorkerThreadPool *ownPool_;         // 所属线程池
-	ThreadTimeOutChecker timeoutChecker_;  // 超时检测器
-protected:
-	virtual void execute();
-	virtual void doTerminate();
-	virtual void doKill();
 public:
-	explicit UdpWorkerThread(UdpWorkerThreadPool *threadPool);
-	virtual ~UdpWorkerThread();
+    explicit UdpWorkerThread(UdpWorkerThreadPool *threadPool);
+    virtual ~UdpWorkerThread();
 
-	// 返回超时检测器
-	ThreadTimeOutChecker& getTimeoutChecker() { return timeoutChecker_; }
-	// 返回该线程是否空闲状态(即在等待请求)
-	bool isIdle() { return !timeoutChecker_.getStarted(); }
+    // 返回超时检测器
+    ThreadTimeOutChecker& getTimeoutChecker() { return timeoutChecker_; }
+    // 返回该线程是否空闲状态(即在等待请求)
+    bool isIdle() { return !timeoutChecker_.getStarted(); }
+
+protected:
+    virtual void execute();
+    virtual void doTerminate();
+    virtual void doKill();
+
+private:
+    UdpWorkerThreadPool *ownPool_;         // 所属线程池
+    ThreadTimeOutChecker timeoutChecker_;  // 超时检测器
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpWorkerThreadPool - UDP工作者线程池类
 
-class UdpWorkerThreadPool
+class UdpWorkerThreadPool : boost::noncopyable
 {
 public:
-	enum
-	{
-		MAX_THREAD_TERM_SECS     = 60*3,    // 线程被通知退出后的最长寿命(秒)
-		MAX_THREAD_WAIT_FOR_SECS = 2        // 线程池清空时最多等待时间(秒)
-	};
+    enum
+    {
+        MAX_THREAD_TERM_SECS     = 60*3,    // 线程被通知退出后的最长寿命(秒)
+        MAX_THREAD_WAIT_FOR_SECS = 2        // 线程池清空时最多等待时间(秒)
+    };
 
-private:
-	UdpRequestGroup *ownGroup_;           // 所属组别
-	ThreadList threadList_;               // 线程列表
-private:
-	void createThreads(int count);
-	void terminateThreads(int count);
-	void checkThreadTimeout();
-	void killZombieThreads();
 public:
-	explicit UdpWorkerThreadPool(UdpRequestGroup *ownGroup);
-	virtual ~UdpWorkerThreadPool();
+    explicit UdpWorkerThreadPool(UdpRequestGroup *ownGroup);
+    virtual ~UdpWorkerThreadPool();
 
-	void registerThread(UdpWorkerThread *thread);
-	void unregisterThread(UdpWorkerThread *thread);
+    void registerThread(UdpWorkerThread *thread);
+    void unregisterThread(UdpWorkerThread *thread);
 
-	// 根据负载情况动态调整线程数量
-	void AdjustThreadCount();
-	// 通知所有线程退出
-	void terminateAllThreads();
-	// 等待所有线程退出
-	void waitForAllThreads();
+    // 根据负载情况动态调整线程数量
+    void AdjustThreadCount();
+    // 通知所有线程退出
+    void terminateAllThreads();
+    // 等待所有线程退出
+    void waitForAllThreads();
 
-	// 取得当前线程数量
-	int getThreadCount() { return threadList_.getCount(); }
-	// 取得所属组别
-	UdpRequestGroup& getRequestGroup() { return *ownGroup_; }
+    // 取得当前线程数量
+    int getThreadCount() { return threadList_.getCount(); }
+    // 取得所属组别
+    UdpRequestGroup& getRequestGroup() { return *ownGroup_; }
+
+private:
+    void createThreads(int count);
+    void terminateThreads(int count);
+    void checkThreadTimeout();
+    void killZombieThreads();
+
+private:
+    UdpRequestGroup *ownGroup_;           // 所属组别
+    ThreadList threadList_;               // 线程列表
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpRequestGroup - UDP请求组别类
 
-class UdpRequestGroup
+class UdpRequestGroup : boost::noncopyable
 {
-private:
-	MainUdpServer *ownMainUdpSvr_;         // 所属UDP服务器
-	int groupIndex_;                       // 组别号(0-based)
-	UdpRequestQueue requestQueue_;         // 请求队列
-	UdpWorkerThreadPool threadPool_;       // 工作者线程池
-
 public:
-	UdpRequestGroup(MainUdpServer *ownMainUdpSvr, int groupIndex);
-	virtual ~UdpRequestGroup() {}
+    UdpRequestGroup(MainUdpServer *ownMainUdpSvr, int groupIndex);
+    virtual ~UdpRequestGroup() {}
 
-	int getGroupIndex() { return groupIndex_; }
-	UdpRequestQueue& getRequestQueue() { return requestQueue_; }
-	UdpWorkerThreadPool& getThreadPool() { return threadPool_; }
+    int getGroupIndex() { return groupIndex_; }
+    UdpRequestQueue& getRequestQueue() { return requestQueue_; }
+    UdpWorkerThreadPool& getThreadPool() { return threadPool_; }
 
-	// 取得所属UDP服务器
-	MainUdpServer& getMainUdpServer() { return *ownMainUdpSvr_; }
+    // 取得所属UDP服务器
+    MainUdpServer& getMainUdpServer() { return *ownMainUdpSvr_; }
+
+private:
+    MainUdpServer *ownMainUdpSvr_;         // 所属UDP服务器
+    int groupIndex_;                       // 组别号(0-based)
+    UdpRequestQueue requestQueue_;         // 请求队列
+    UdpWorkerThreadPool threadPool_;       // 工作者线程池
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class MainUdpServer - UDP主服务器类
 
-class MainUdpServer
+class MainUdpServer : boost::noncopyable
 {
-private:
-	UdpServer udpServer_;
-	vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
-	int requestGroupCount_;                        // 请求组别总数
-private:
-	void initUdpServer();
-	void initRequestGroupList();
-	void clearRequestGroupList();
-private:
-	static void onRecvData(void *param, void *packetBuffer, int packetSize,
-		const InetAddress& peerAddr);
 public:
-	explicit MainUdpServer();
-	virtual ~MainUdpServer();
+    explicit MainUdpServer();
+    virtual ~MainUdpServer();
 
-	void open();
-	void close();
+    void open();
+    void close();
 
-	void setLocalPort(int value) { udpServer_.setLocalPort(value); }
-	void setListenerThreadCount(int value) { udpServer_.setListenerThreadCount(value); }
+    void setLocalPort(int value) { udpServer_.setLocalPort(value); }
+    void setListenerThreadCount(int value) { udpServer_.setListenerThreadCount(value); }
 
-	// 根据负载情况动态调整工作者线程数量
-	void adjustWorkerThreadCount();
-	// 通知所有工作者线程退出
-	void terminateAllWorkerThreads();
-	// 等待所有工作者线程退出
-	void waitForAllWorkerThreads();
+    // 根据负载情况动态调整工作者线程数量
+    void adjustWorkerThreadCount();
+    // 通知所有工作者线程退出
+    void terminateAllWorkerThreads();
+    // 等待所有工作者线程退出
+    void waitForAllWorkerThreads();
 
-	UdpServer& getUdpServer() { return udpServer_; }
+    UdpServer& getUdpServer() { return udpServer_; }
+
+private:
+    void initUdpServer();
+    void initRequestGroupList();
+    void clearRequestGroupList();
+
+    void onRecvData(void *packetBuffer, int packetSize, const InetAddress& peerAddr);
+
+private:
+    UdpServer udpServer_;
+    vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
+    int requestGroupCount_;                        // 请求组别总数
 };
 
 ///////////////////////////////////////////////////////////////////////////////

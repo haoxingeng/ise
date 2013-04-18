@@ -70,37 +70,37 @@ typedef std::string binary;
 // The format type
 enum FORMAT_TYPE
 {
-	FT_COPY,
-	FT_HEX,
-	FT_HEXL,
-	FT_MIME32,
-	FT_MIME64,
+    FT_COPY,
+    FT_HEX,
+    FT_HEXL,
+    FT_MIME32,
+    FT_MIME64,
 };
 
 // Hash type
 enum HASH_TYPE
 {
-	HT_MD4,
-	HT_MD5,
-	HT_SHA,
-	HT_SHA1,
+    HT_MD4,
+    HT_MD5,
+    HT_SHA,
+    HT_SHA1,
 };
 
 // Cipher type
 enum CIPHER_TYPE
 {
-	CT_NULL,
-	CT_BLOWFISH,
-	CT_IDEA,
-	CT_DES,
-	CT_GOST,
+    CT_NULL,
+    CT_BLOWFISH,
+    CT_IDEA,
+    CT_DES,
+    CT_GOST,
 };
 
 // Cipher kind
 enum CIPHER_KIND
 {
-	CK_ENCODE,
-	CK_DECODE,
+    CK_ENCODE,
+    CK_DECODE,
 };
 
 /*
@@ -110,20 +110,20 @@ enum CIPHER_KIND
   CS_ENCODE      = Encodeing was started, and more chunks can be encoded, but not decoded
   CS_DECODE      = Decodeing was started, and more chunks can be decoded, but not encoded
   CS_PADDED      = trough En/Decodeing the messagechunks are padded, no more chunks can
-				   be processed, the cipher is blocked.
+                   be processed, the cipher is blocked.
   CS_DONE        = Processing is finished and Cipher.Done was called. Now new En/Decoding
-				   can be started without calling .Init() before. csDone is basicaly
-				   identical to csInitialized, except Cipher.Buffer holds the encrypted
-				   last state of Cipher.Feedback, thus Cipher.Buffer can be used as C-MAC.
+                   can be started without calling .Init() before. csDone is basicaly
+                   identical to csInitialized, except Cipher.Buffer holds the encrypted
+                   last state of Cipher.Feedback, thus Cipher.Buffer can be used as C-MAC.
 */
 enum CIPHER_STATE
 {
-	CS_NEW         = 0x01,
-	CS_INITIALIZED = 0x02,
-	CS_ENCODE      = 0x04,
-	CS_DECODE      = 0x08,
-	CS_PADDED      = 0x10,
-	CS_DONE        = 0x20,
+    CS_NEW         = 0x01,
+    CS_INITIALIZED = 0x02,
+    CS_ENCODE      = 0x04,
+    CS_DECODE      = 0x08,
+    CS_PADDED      = 0x10,
+    CS_DONE        = 0x20,
 };
 
 /*
@@ -159,32 +159,32 @@ enum CIPHER_STATE
 */
 enum CIPHER_MODE
 {
-	CM_CTSx,
-	CM_CBCx,
-	CM_CFB8,
-	CM_CFBx,
-	CM_OFB8,
-	CM_OFBx,
-	CM_CFS8,
-	CM_CFSx,
-	CM_ECBx,
+    CM_CTSx,
+    CM_CBCx,
+    CM_CFB8,
+    CM_CFBx,
+    CM_OFB8,
+    CM_OFBx,
+    CM_CFS8,
+    CM_CFSx,
+    CM_ECBx,
 };
 
 // Crc32 type
 enum CRC32_TYPE
 {
-	CRC32_STANDARD,    // PKZIP, PHP...
-	CRC32_SPECIAL,
+    CRC32_STANDARD,    // PKZIP, PHP...
+    CRC32_SPECIAL,
 };
 
 // Cipher context
 struct CCipherContext
 {
-	int keySize;               // maximal key size in bytes
-	int blockSize;             // mininmal block size in bytes, eg. 1 = Streamcipher
-	int bufferSize;            // internal buffersize in bytes
-	int userSize;              // internal size in bytes of cipher dependend structures
-	bool userSave;
+    int keySize;               // maximal key size in bytes
+    int blockSize;             // mininmal block size in bytes, eg. 1 = Streamcipher
+    int bufferSize;            // internal buffersize in bytes
+    int userSize;              // internal size in bytes of cipher dependend structures
+    bool userSave;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -221,7 +221,7 @@ binary base16Decode(PVOID data, int dataSize);
 class DataAlgoProgress
 {
 public:
-	virtual void progress(INT64 min, INT64 max, INT64 pos) = 0;
+    virtual void progress(INT64 min, INT64 max, INT64 pos) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -229,18 +229,18 @@ public:
 
 class Format
 {
-protected:
-	virtual binary doEncode(PVOID data, int size) = 0;
-	virtual binary doDecode(PVOID data, int size) = 0;
-	virtual bool doIsValid(PVOID data, int size) = 0;
 public:
-	virtual ~Format() {}
-	binary encode(const binary& value);
-	binary encode(PVOID data, int size);
-	binary decode(const binary& value);
-	binary decode(PVOID data, int size);
-	bool isValid(const binary& value);
-	bool isValid(PVOID data, int size);
+    virtual ~Format() {}
+    binary encode(const binary& value);
+    binary encode(PVOID data, int size);
+    binary decode(const binary& value);
+    binary decode(PVOID data, int size);
+    bool isValid(const binary& value);
+    bool isValid(PVOID data, int size);
+protected:
+    virtual binary doEncode(PVOID data, int size) = 0;
+    virtual binary doDecode(PVOID data, int size) = 0;
+    virtual bool doIsValid(PVOID data, int size) = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -249,9 +249,9 @@ public:
 class Format_Copy : public Format
 {
 protected:
-	virtual binary doEncode(PVOID data, int size);
-	virtual binary doDecode(PVOID data, int size);
-	virtual bool doIsValid(PVOID data, int size);
+    virtual binary doEncode(PVOID data, int size);
+    virtual binary doDecode(PVOID data, int size);
+    virtual bool doIsValid(PVOID data, int size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -260,11 +260,11 @@ protected:
 class Format_HEX : public Format
 {
 protected:
-	virtual binary doEncode(PVOID data, int size);
-	virtual binary doDecode(PVOID data, int size);
-	virtual bool doIsValid(PVOID data, int size);
+    virtual binary doEncode(PVOID data, int size);
+    virtual binary doDecode(PVOID data, int size);
+    virtual bool doIsValid(PVOID data, int size);
 protected:
-	virtual const char* charTable();
+    virtual const char* charTable();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -273,7 +273,7 @@ protected:
 class Format_HEXL : public Format_HEX
 {
 protected:
-	virtual const char* charTable();
+    virtual const char* charTable();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -282,10 +282,10 @@ protected:
 class Format_MIME32 : public Format_HEX
 {
 protected:
-	virtual binary doEncode(PVOID data, int size);
-	virtual binary doDecode(PVOID data, int size);
+    virtual binary doEncode(PVOID data, int size);
+    virtual binary doDecode(PVOID data, int size);
 protected:
-	virtual const char* charTable();
+    virtual const char* charTable();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -294,10 +294,10 @@ protected:
 class Format_MIME64 : public Format_HEX
 {
 protected:
-	virtual binary doEncode(PVOID data, int size);
-	virtual binary doDecode(PVOID data, int size);
+    virtual binary doEncode(PVOID data, int size);
+    virtual binary doDecode(PVOID data, int size);
 protected:
-	virtual const char* charTable();
+    virtual const char* charTable();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -305,36 +305,38 @@ protected:
 
 class Hash
 {
-protected:
-	DWORD count_[8];
-	BYTE *buffer_;
-	int bufferSize_;
-	int bufferIndex_;
-	BYTE paddingByte_;
-protected:
-	virtual void doTransform(DWORD *buffer) = 0;
-	virtual void doInit() = 0;
-	virtual void doDone() = 0;
 public:
-	Hash();
-	virtual ~Hash();
+    Hash();
+    virtual ~Hash();
 
-	void init();
-	virtual void calc(PVOID data, int dataSize);
-	void done();
+    void init();
+    virtual void calc(PVOID data, int dataSize);
+    void done();
 
-	virtual PBYTE digest() = 0;
-	virtual binary digestStr(FORMAT_TYPE formatType = FT_COPY);
+    virtual PBYTE digest() = 0;
+    virtual binary digestStr(FORMAT_TYPE formatType = FT_COPY);
 
-	virtual int digestSize() = 0;
-	virtual int blockSize() = 0;
+    virtual int digestSize() = 0;
+    virtual int blockSize() = 0;
 
-	binary calcBuffer(PVOID buffer, int bufferSize, FORMAT_TYPE formatType = FT_COPY);
-	binary calcStream(Stream& stream, INT64 size, FORMAT_TYPE formatType = FT_COPY, DataAlgoProgress *progress = NULL);
-	binary calcBinary(const binary& data, FORMAT_TYPE formatType = FT_COPY);
-	binary calcFile(char *fileName, FORMAT_TYPE formatType = FT_COPY, DataAlgoProgress *progress = NULL);
+    binary calcBuffer(PVOID buffer, int bufferSize, FORMAT_TYPE formatType = FT_COPY);
+    binary calcStream(Stream& stream, INT64 size, FORMAT_TYPE formatType = FT_COPY, DataAlgoProgress *progress = NULL);
+    binary calcBinary(const binary& data, FORMAT_TYPE formatType = FT_COPY);
+    binary calcFile(char *fileName, FORMAT_TYPE formatType = FT_COPY, DataAlgoProgress *progress = NULL);
 
-	BYTE& paddingByte() { return paddingByte_; }
+    BYTE& paddingByte() { return paddingByte_; }
+
+protected:
+    virtual void doTransform(DWORD *buffer) = 0;
+    virtual void doInit() = 0;
+    virtual void doDone() = 0;
+
+protected:
+    DWORD count_[8];
+    BYTE *buffer_;
+    int bufferSize_;
+    int bufferIndex_;
+    BYTE paddingByte_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,17 +344,19 @@ public:
 
 class HashBaseMD4 : public Hash
 {
-protected:
-	DWORD digest_[10];
-protected:
-	virtual void doInit();
-	virtual void doDone();
 public:
-	HashBaseMD4();
+    HashBaseMD4();
 
-	virtual int digestSize() { return 16; }
-	virtual int blockSize() { return 64; }
-	virtual PBYTE digest() { return (PBYTE)digest_; }
+    virtual int digestSize() { return 16; }
+    virtual int blockSize() { return 64; }
+    virtual PBYTE digest() { return (PBYTE)digest_; }
+
+protected:
+    virtual void doInit();
+    virtual void doDone();
+
+protected:
+    DWORD digest_[10];
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -361,7 +365,7 @@ public:
 class Hash_MD4 : public HashBaseMD4
 {
 protected:
-	virtual void doTransform(DWORD *buffer);
+    virtual void doTransform(DWORD *buffer);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,7 +374,7 @@ protected:
 class Hash_MD5 : public HashBaseMD4
 {
 protected:
-	virtual void doTransform(DWORD *buffer);
+    virtual void doTransform(DWORD *buffer);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -378,14 +382,14 @@ protected:
 
 class Hash_SHA : public HashBaseMD4
 {
-protected:
-	bool rotate_;
-protected:
-	virtual void doTransform(DWORD *buffer);
-	virtual void doDone();
 public:
-	Hash_SHA();
-	virtual int digestSize() { return 20; }
+    Hash_SHA();
+    virtual int digestSize() { return 20; }
+protected:
+    virtual void doTransform(DWORD *buffer);
+    virtual void doDone();
+protected:
+    bool rotate_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -394,7 +398,7 @@ public:
 class Hash_SHA1 : public Hash_SHA
 {
 protected:
-	virtual void doTransform(DWORD *buffer);
+    virtual void doTransform(DWORD *buffer);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -402,82 +406,84 @@ protected:
 
 class Cipher
 {
-private:
-	CIPHER_STATE state_;
-	CIPHER_MODE mode_;
-	PBYTE data_;
-	int dataSize_;
-protected:
-	int bufferSize_;
-	int bufferIndex_;
-	int userSize_;
-	PBYTE buffer_;
-	PBYTE vector_;
-	PBYTE feedback_;
-	PBYTE user_;
-	PBYTE userSave_;
-protected:
-	void checkState(DWORD states);
-	void ensureInternalInit();
-
-	void encodeECBx(PBYTE s, PBYTE d, int size);
-	void encodeCBCx(PBYTE s, PBYTE d, int size);
-	void encodeCTSx(PBYTE s, PBYTE d, int size);
-	void encodeCFB8(PBYTE s, PBYTE d, int size);
-	void encodeCFBx(PBYTE s, PBYTE d, int size);
-	void encodeOFB8(PBYTE s, PBYTE d, int size);
-	void encodeOFBx(PBYTE s, PBYTE d, int size);
-	void encodeCFS8(PBYTE s, PBYTE d, int size);
-	void encodeCFSx(PBYTE s, PBYTE d, int size);
-
-	void decodeECBx(PBYTE s, PBYTE d, int size);
-	void decodeCBCx(PBYTE s, PBYTE d, int size);
-	void decodeCTSx(PBYTE s, PBYTE d, int size);
-	void decodeCFB8(PBYTE s, PBYTE d, int size);
-	void decodeCFBx(PBYTE s, PBYTE d, int size);
-	void decodeOFB8(PBYTE s, PBYTE d, int size);
-	void decodeOFBx(PBYTE s, PBYTE d, int size);
-	void decodeCFS8(PBYTE s, PBYTE d, int size);
-	void decodeCFSx(PBYTE s, PBYTE d, int size);
-
-	void doCodeStream(Stream& srcStream, Stream& destStream, INT64 size, int blockSize,
-		CIPHER_KIND cipherKind, DataAlgoProgress *progress);
-	void doCodeFile(char *srcFileName, char *destFileName, int blockSize,
-		CIPHER_KIND cipherKind, DataAlgoProgress *progress);
-
-protected:
-	virtual void doInit(PVOID key, int size) = 0;
-	virtual void doEncode(PVOID source, PVOID dest, int size) = 0;
-	virtual void doDecode(PVOID source, PVOID dest, int size) = 0;
-
 public:
-	Cipher();
-	virtual ~Cipher();
+    Cipher();
+    virtual ~Cipher();
 
-	virtual CCipherContext context() = 0;
+    virtual CCipherContext context() = 0;
 
-	void init(PVOID key, int size, PVOID iVector, int iVectorSize, BYTE iFiller = 0xFF);
-	void init(const binary& key, const binary& iVector = "", BYTE iFiller = 0xFF);
-	void done();
-	virtual void protect();
+    void init(PVOID key, int size, PVOID iVector, int iVectorSize, BYTE iFiller = 0xFF);
+    void init(const binary& key, const binary& iVector = "", BYTE iFiller = 0xFF);
+    void done();
+    virtual void protect();
 
-	void encode(PVOID source, PVOID dest, int dataSize);
-	void decode(PVOID source, PVOID dest, int dataSize);
+    void encode(PVOID source, PVOID dest, int dataSize);
+    void decode(PVOID source, PVOID dest, int dataSize);
 
-	binary encodeBinary(const binary& sourceStr, FORMAT_TYPE formatType = FT_COPY);
-	binary decodeBinary(const binary& sourceStr, FORMAT_TYPE formatType = FT_COPY);
-	void encodeFile(char *srcFileName, char *destFileName, DataAlgoProgress *progress = NULL);
-	void decodeFile(char *srcFileName, char *destFileName, DataAlgoProgress *progress = NULL);
-	void encodeStream(Stream& srcStream, Stream& destStream, INT64 dataSize, DataAlgoProgress *progress = NULL);
-	void decodeStream(Stream& srcStream, Stream& destStream, INT64 dataSize, DataAlgoProgress *progress = NULL);
+    binary encodeBinary(const binary& sourceStr, FORMAT_TYPE formatType = FT_COPY);
+    binary decodeBinary(const binary& sourceStr, FORMAT_TYPE formatType = FT_COPY);
+    void encodeFile(char *srcFileName, char *destFileName, DataAlgoProgress *progress = NULL);
+    void decodeFile(char *srcFileName, char *destFileName, DataAlgoProgress *progress = NULL);
+    void encodeStream(Stream& srcStream, Stream& destStream, INT64 dataSize, DataAlgoProgress *progress = NULL);
+    void decodeStream(Stream& srcStream, Stream& destStream, INT64 dataSize, DataAlgoProgress *progress = NULL);
 
-	int getInitVectorSize() { return bufferSize_; }
-	PBYTE getInitVector() { return vector_; }
-	PBYTE getFeedback() { return feedback_; }
+    int getInitVectorSize() { return bufferSize_; }
+    PBYTE getInitVector() { return vector_; }
+    PBYTE getFeedback() { return feedback_; }
 
-	CIPHER_STATE getState() { return state_; }
-	CIPHER_MODE getMode() { return mode_; }
-	void setMode(CIPHER_MODE value);
+    CIPHER_STATE getState() { return state_; }
+    CIPHER_MODE getMode() { return mode_; }
+    void setMode(CIPHER_MODE value);
+
+protected:
+    virtual void doInit(PVOID key, int size) = 0;
+    virtual void doEncode(PVOID source, PVOID dest, int size) = 0;
+    virtual void doDecode(PVOID source, PVOID dest, int size) = 0;
+
+protected:
+    void checkState(DWORD states);
+    void ensureInternalInit();
+
+    void encodeECBx(PBYTE s, PBYTE d, int size);
+    void encodeCBCx(PBYTE s, PBYTE d, int size);
+    void encodeCTSx(PBYTE s, PBYTE d, int size);
+    void encodeCFB8(PBYTE s, PBYTE d, int size);
+    void encodeCFBx(PBYTE s, PBYTE d, int size);
+    void encodeOFB8(PBYTE s, PBYTE d, int size);
+    void encodeOFBx(PBYTE s, PBYTE d, int size);
+    void encodeCFS8(PBYTE s, PBYTE d, int size);
+    void encodeCFSx(PBYTE s, PBYTE d, int size);
+
+    void decodeECBx(PBYTE s, PBYTE d, int size);
+    void decodeCBCx(PBYTE s, PBYTE d, int size);
+    void decodeCTSx(PBYTE s, PBYTE d, int size);
+    void decodeCFB8(PBYTE s, PBYTE d, int size);
+    void decodeCFBx(PBYTE s, PBYTE d, int size);
+    void decodeOFB8(PBYTE s, PBYTE d, int size);
+    void decodeOFBx(PBYTE s, PBYTE d, int size);
+    void decodeCFS8(PBYTE s, PBYTE d, int size);
+    void decodeCFSx(PBYTE s, PBYTE d, int size);
+
+    void doCodeStream(Stream& srcStream, Stream& destStream, INT64 size, int blockSize,
+        CIPHER_KIND cipherKind, DataAlgoProgress *progress);
+    void doCodeFile(char *srcFileName, char *destFileName, int blockSize,
+        CIPHER_KIND cipherKind, DataAlgoProgress *progress);
+
+protected:
+    int bufferSize_;
+    int bufferIndex_;
+    int userSize_;
+    PBYTE buffer_;
+    PBYTE vector_;
+    PBYTE feedback_;
+    PBYTE user_;
+    PBYTE userSave_;
+
+private:
+    CIPHER_STATE state_;
+    CIPHER_MODE mode_;
+    PBYTE data_;
+    int dataSize_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -485,12 +491,12 @@ public:
 
 class Cipher_Null : public Cipher
 {
-protected:
-	virtual void doInit(PVOID key, int size);
-	virtual void doEncode(PVOID source, PVOID dest, int size);
-	virtual void doDecode(PVOID source, PVOID dest, int size);
 public:
-	virtual CCipherContext context();
+    virtual CCipherContext context();
+protected:
+    virtual void doInit(PVOID key, int size);
+    virtual void doEncode(PVOID source, PVOID dest, int size);
+    virtual void doDecode(PVOID source, PVOID dest, int size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -498,12 +504,12 @@ public:
 
 class Cipher_Blowfish : public Cipher
 {
-protected:
-	virtual void doInit(PVOID key, int size);
-	virtual void doEncode(PVOID source, PVOID dest, int size);
-	virtual void doDecode(PVOID source, PVOID dest, int size);
 public:
-	virtual CCipherContext context();
+    virtual CCipherContext context();
+protected:
+    virtual void doInit(PVOID key, int size);
+    virtual void doEncode(PVOID source, PVOID dest, int size);
+    virtual void doDecode(PVOID source, PVOID dest, int size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -511,12 +517,12 @@ public:
 
 class Cipher_IDEA : public Cipher
 {
-protected:
-	virtual void doInit(PVOID key, int size);
-	virtual void doEncode(PVOID source, PVOID dest, int size);
-	virtual void doDecode(PVOID source, PVOID dest, int size);
 public:
-	virtual CCipherContext context();
+    virtual CCipherContext context();
+protected:
+    virtual void doInit(PVOID key, int size);
+    virtual void doEncode(PVOID source, PVOID dest, int size);
+    virtual void doDecode(PVOID source, PVOID dest, int size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -524,14 +530,14 @@ public:
 
 class Cipher_DES : public Cipher
 {
-protected:
-	void DoInitKey(PBYTE data, PDWORD key, bool reverse);
-protected:
-	virtual void doInit(PVOID key, int size);
-	virtual void doEncode(PVOID source, PVOID dest, int size);
-	virtual void doDecode(PVOID source, PVOID dest, int size);
 public:
-	virtual CCipherContext context();
+    virtual CCipherContext context();
+protected:
+    virtual void doInit(PVOID key, int size);
+    virtual void doEncode(PVOID source, PVOID dest, int size);
+    virtual void doDecode(PVOID source, PVOID dest, int size);
+protected:
+    void DoInitKey(PBYTE data, PDWORD key, bool reverse);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -539,12 +545,12 @@ public:
 
 class Cipher_Gost : public Cipher
 {
-protected:
-	virtual void doInit(PVOID key, int size);
-	virtual void doEncode(PVOID source, PVOID dest, int size);
-	virtual void doDecode(PVOID source, PVOID dest, int size);
 public:
-	virtual CCipherContext context();
+    virtual CCipherContext context();
+protected:
+    virtual void doInit(PVOID key, int size);
+    virtual void doEncode(PVOID source, PVOID dest, int size);
+    virtual void doDecode(PVOID source, PVOID dest, int size);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

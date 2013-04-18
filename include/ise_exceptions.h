@@ -40,15 +40,15 @@ namespace ise
 
 class Exception : std::exception
 {
-private:
-	mutable string what_;
 public:
-	Exception() {}
-	virtual ~Exception() throw() {}
+    Exception() {}
+    virtual ~Exception() throw() {}
 
-	virtual const char* what() const throw();
-	virtual string getErrorMessage() const { return ""; }
-	virtual string makeLogStr() const;
+    virtual const char* what() const throw();
+    virtual string getErrorMessage() const { return ""; }
+    virtual string makeLogStr() const;
+private:
+    mutable string what_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,20 +56,21 @@ public:
 
 class SimpleException : public Exception
 {
-protected:
-	string errorMsg_;
-	string srcFileName_;
-	int srcLineNumber_;
 public:
-	SimpleException() : srcLineNumber_(-1) {}
-	SimpleException(const char *errorMsg,
-		const char *srcFileName = NULL,
-		int srcLineNumber = -1);
-	virtual ~SimpleException() throw() {}
+    SimpleException() : srcLineNumber_(-1) {}
+    SimpleException(const char *errorMsg,
+        const char *srcFileName = NULL,
+        int srcLineNumber = -1);
+    virtual ~SimpleException() throw() {}
 
-	virtual string getErrorMessage() const { return errorMsg_; }
-	virtual string makeLogStr() const;
-	void setErrorMesssage(const char *msg) { errorMsg_ = msg; }
+    virtual string getErrorMessage() const { return errorMsg_; }
+    virtual string makeLogStr() const;
+    void setErrorMesssage(const char *msg) { errorMsg_ = msg; }
+
+protected:
+    string errorMsg_;
+    string srcFileName_;
+    int srcLineNumber_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,9 +79,9 @@ public:
 class MemoryException : public SimpleException
 {
 public:
-	MemoryException() {}
-	explicit MemoryException(const char *errorMsg) : SimpleException(errorMsg) {}
-	virtual ~MemoryException() throw() {}
+    MemoryException() {}
+    explicit MemoryException(const char *errorMsg) : SimpleException(errorMsg) {}
+    virtual ~MemoryException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,9 +90,9 @@ public:
 class StreamException : public SimpleException
 {
 public:
-	StreamException() {}
-	explicit StreamException(const char *errorMsg) : SimpleException(errorMsg) {}
-	virtual ~StreamException() throw() {}
+    StreamException() {}
+    explicit StreamException(const char *errorMsg) : SimpleException(errorMsg) {}
+    virtual ~StreamException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,13 +100,13 @@ public:
 
 class FileException : public SimpleException
 {
-protected:
-	string fileName_;
-	int errorCode_;
 public:
-	FileException() : errorCode_(0) {}
-	FileException(const char *fileName, int errorCode, const char *errorMsg = NULL);
-	virtual ~FileException() throw() {}
+    FileException() : errorCode_(0) {}
+    FileException(const char *fileName, int errorCode, const char *errorMsg = NULL);
+    virtual ~FileException() throw() {}
+protected:
+    string fileName_;
+    int errorCode_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -114,9 +115,9 @@ public:
 class ThreadException : public SimpleException
 {
 public:
-	ThreadException() {}
-	explicit ThreadException(const char *errorMsg) : SimpleException(errorMsg) {}
-	virtual ~ThreadException() throw() {}
+    ThreadException() {}
+    explicit ThreadException(const char *errorMsg) : SimpleException(errorMsg) {}
+    virtual ~ThreadException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -125,9 +126,9 @@ public:
 class SocketException : public SimpleException
 {
 public:
-	SocketException() {}
-	explicit SocketException(const char *errorMsg) : SimpleException(errorMsg) {}
-	virtual ~SocketException() throw() {}
+    SocketException() {}
+    explicit SocketException(const char *errorMsg) : SimpleException(errorMsg) {}
+    virtual ~SocketException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -136,9 +137,9 @@ public:
 class DbException : public SimpleException
 {
 public:
-	DbException() {}
-	explicit DbException(const char *errorMsg) : SimpleException(errorMsg) {}
-	virtual ~DbException() throw() {}
+    DbException() {}
+    explicit DbException(const char *errorMsg) : SimpleException(errorMsg) {}
+    virtual ~DbException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -147,9 +148,9 @@ public:
 class DataAlgoException : public SimpleException
 {
 public:
-	DataAlgoException() {}
-	explicit DataAlgoException(const char *errorMsg) : SimpleException(errorMsg) {}
-	virtual ~DataAlgoException() throw() {}
+    DataAlgoException() {}
+    explicit DataAlgoException(const char *errorMsg) : SimpleException(errorMsg) {}
+    virtual ~DataAlgoException() throw() {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,52 +160,52 @@ public:
 
 // Throws a SimpleException exception.
 inline void iseThrowException(const char *msg,
-	const char *srcFileName = NULL, int srcLineNumber = -1)
+    const char *srcFileName = NULL, int srcLineNumber = -1)
 {
-	throw SimpleException(msg, srcFileName, srcLineNumber);
+    throw SimpleException(msg, srcFileName, srcLineNumber);
 }
 
 // Throws a MemoryException exception.
 inline void iseThrowMemoryException()
 {
-	throw MemoryException(SEM_OUT_OF_MEMORY);
+    throw MemoryException(SEM_OUT_OF_MEMORY);
 }
 
 // Throws a StreamException exception.
 inline void iseThrowStreamException(const char *msg)
 {
-	throw StreamException(msg);
+    throw StreamException(msg);
 }
 
 // Throws a FileException exception.
 inline void iseThrowFileException(const char *fileName, int errorCode,
-	const char *errorMsg = NULL)
+    const char *errorMsg = NULL)
 {
-	throw FileException(fileName, errorCode, errorMsg);
+    throw FileException(fileName, errorCode, errorMsg);
 }
 
 // Throws a ThreadException exception.
 inline void iseThrowThreadException(const char *msg)
 {
-	throw ThreadException(msg);
+    throw ThreadException(msg);
 }
 
 // Throws a SocketException exception.
 inline void iseThrowSocketException(const char *msg)
 {
-	throw SocketException(msg);
+    throw SocketException(msg);
 }
 
 // Throws a DbException exception.
 inline void iseThrowDbException(const char *msg)
 {
-	throw DbException(msg);
+    throw DbException(msg);
 }
 
 // Throws a DataAlgoException exception.
 inline void iseThrowDataAlgoException(const char *msg)
 {
-	throw new DataAlgoException(msg);
+    throw new DataAlgoException(msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

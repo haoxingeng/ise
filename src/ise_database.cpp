@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "ise_database.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 #include "ise_errmsgs.h"
 
 namespace ise
@@ -36,28 +36,28 @@ namespace ise
 // class DbConnParams
 
 DbConnParams::DbConnParams() :
-	port_(0)
+    port_(0)
 {
-	// nothing
+    // nothing
 }
 
 DbConnParams::DbConnParams(const DbConnParams& src)
 {
-	hostName_ = src.hostName_;
-	userName_ = src.userName_;
-	password_ = src.password_;
-	dbName_ = src.dbName_;
-	port_ = src.port_;
+    hostName_ = src.hostName_;
+    userName_ = src.userName_;
+    password_ = src.password_;
+    dbName_ = src.dbName_;
+    port_ = src.port_;
 }
 
 DbConnParams::DbConnParams(const string& hostName, const string& userName,
-	const string& password, const string& dbName, int port)
+    const string& password, const string& dbName, int port)
 {
-	hostName_ = hostName;
-	userName_ = userName;
-	password_ = password;
-	dbName_ = dbName;
-	port_ = port;
+    hostName_ = hostName;
+    userName_ = userName;
+    password_ = password;
+    dbName_ = dbName;
+    port_ = port;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -65,24 +65,24 @@ DbConnParams::DbConnParams(const string& hostName, const string& userName,
 
 DbOptions::DbOptions()
 {
-	setMaxDbConnections(DEF_MAX_DB_CONNECTIONS);
+    setMaxDbConnections(DEF_MAX_DB_CONNECTIONS);
 }
 
 void DbOptions::setMaxDbConnections(int value)
 {
-	if (value < 1) value = 1;
-	maxDbConnections_ = value;
+    if (value < 1) value = 1;
+    maxDbConnections_ = value;
 }
 
 void DbOptions::setInitialSqlCmd(const string& value)
 {
-	initialSqlCmdList_.clear();
-	initialSqlCmdList_.add(value.c_str());
+    initialSqlCmdList_.clear();
+    initialSqlCmdList_.add(value.c_str());
 }
 
 void DbOptions::setInitialCharSet(const string& value)
 {
-	initialCharSet_ = value;
+    initialCharSet_ = value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -90,101 +90,14 @@ void DbOptions::setInitialCharSet(const string& value)
 
 DbConnection::DbConnection(Database *database)
 {
-	database_ = database;
-	isConnected_ = false;
-	isBusy_ = false;
+    database_ = database;
+    isConnected_ = false;
+    isBusy_ = false;
 }
 
 DbConnection::~DbConnection()
 {
-	// nothing
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 建立数据库连接并进行相关设置 (若失败则抛出异常)
-//-----------------------------------------------------------------------------
-void DbConnection::connect()
-{
-	if (!isConnected_)
-	{
-		doConnect();
-		execCmdOnConnected();
-		isConnected_ = true;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 断开数据库连接并进行相关设置
-//-----------------------------------------------------------------------------
-void DbConnection::disconnect()
-{
-	if (isConnected_)
-	{
-		doDisconnect();
-		isConnected_ = false;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 刚建立连接时执行命令
-//-----------------------------------------------------------------------------
-void DbConnection::execCmdOnConnected()
-{
-	try
-	{
-		StrList& cmdList = database_->getDbOptions()->initialSqlCmdList();
-		if (!cmdList.isEmpty())
-		{
-			DbQueryWrapper query(database_->createDbQuery());
-			query->dbConnection_ = this;
-
-			for (int i = 0; i < cmdList.getCount(); ++i)
-			{
-				try
-				{
-					query->setSql(cmdList[i]);
-					query->execute();
-				}
-				catch (...)
-				{}
-			}
-
-			query->dbConnection_ = NULL;
-		}
-	}
-	catch (...)
-	{}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 借用连接 (由 ConnectionPool 调用)
-//-----------------------------------------------------------------------------
-bool DbConnection::getDbConnection()
-{
-	if (!isBusy_)
-	{
-		activateConnection();
-		isBusy_ = true;
-		return true;
-	}
-
-	return false;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 归还连接 (由 ConnectionPool 调用)
-//-----------------------------------------------------------------------------
-void DbConnection::returnDbConnection()
-{
-	isBusy_ = false;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 返回连接是否被借用 (由 ConnectionPool 调用)
-//-----------------------------------------------------------------------------
-bool DbConnection::isBusy()
-{
-	return isBusy_;
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -194,45 +107,114 @@ bool DbConnection::isBusy()
 //-----------------------------------------------------------------------------
 void DbConnection::activateConnection(bool force)
 {
-	// 没有连接数据库则建立连接
-	if (!isConnected_ || force)
-	{
-		disconnect();
-		connect();
-		return;
-	}
+    // 没有连接数据库则建立连接
+    if (!isConnected_ || force)
+    {
+        disconnect();
+        connect();
+        return;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 建立数据库连接并进行相关设置 (若失败则抛出异常)
+//-----------------------------------------------------------------------------
+void DbConnection::connect()
+{
+    if (!isConnected_)
+    {
+        doConnect();
+        execCmdOnConnected();
+        isConnected_ = true;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 断开数据库连接并进行相关设置
+//-----------------------------------------------------------------------------
+void DbConnection::disconnect()
+{
+    if (isConnected_)
+    {
+        doDisconnect();
+        isConnected_ = false;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 刚建立连接时执行命令
+//-----------------------------------------------------------------------------
+void DbConnection::execCmdOnConnected()
+{
+    try
+    {
+        StrList& cmdList = database_->getDbOptions()->initialSqlCmdList();
+        if (!cmdList.isEmpty())
+        {
+            DbQueryWrapper query(database_->createDbQuery());
+            query->dbConnection_ = this;
+
+            for (int i = 0; i < cmdList.getCount(); ++i)
+            {
+                try
+                {
+                    query->setSql(cmdList[i]);
+                    query->execute();
+                }
+                catch (...)
+                {}
+            }
+
+            query->dbConnection_ = NULL;
+        }
+    }
+    catch (...)
+    {}
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 借用连接 (由 ConnectionPool 调用)
+//-----------------------------------------------------------------------------
+bool DbConnection::getDbConnection()
+{
+    if (!isBusy_)
+    {
+        activateConnection();
+        isBusy_ = true;
+        return true;
+    }
+
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 归还连接 (由 ConnectionPool 调用)
+//-----------------------------------------------------------------------------
+void DbConnection::returnDbConnection()
+{
+    isBusy_ = false;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 返回连接是否被借用 (由 ConnectionPool 调用)
+//-----------------------------------------------------------------------------
+bool DbConnection::isBusy()
+{
+    return isBusy_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class DbConnectionPool
 
 DbConnectionPool::DbConnectionPool(Database *database) :
-	database_(database)
+    database_(database)
 {
-	// nothing
+    // nothing
 }
 
 DbConnectionPool::~DbConnectionPool()
 {
-	clearPool();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 清空连接池
-//-----------------------------------------------------------------------------
-void DbConnectionPool::clearPool()
-{
-	AutoLocker locker(lock_);
-
-	for (int i = 0; i < dbConnectionList_.getCount(); i++)
-	{
-		DbConnection *dbConnection;
-		dbConnection = (DbConnection*)dbConnectionList_[i];
-		dbConnection->doDisconnect();
-		delete dbConnection;
-	}
-
-	dbConnectionList_.clear();
+    clearPool();
 }
 
 //-----------------------------------------------------------------------------
@@ -241,33 +223,33 @@ void DbConnectionPool::clearPool()
 //-----------------------------------------------------------------------------
 DbConnection* DbConnectionPool::getConnection()
 {
-	DbConnection *dbConnection = NULL;
-	bool result = false;
+    DbConnection *dbConnection = NULL;
+    bool result = false;
 
-	{
-		AutoLocker locker(lock_);
+    {
+        AutoLocker locker(lock_);
 
-		// 检查现有的连接是否能用
-		for (int i = 0; i < dbConnectionList_.getCount(); i++)
-		{
-			dbConnection = (DbConnection*)dbConnectionList_[i];
-			result = dbConnection->getDbConnection();  // 借出连接
-			if (result) break;
-		}
+        // 检查现有的连接是否能用
+        for (int i = 0; i < dbConnectionList_.getCount(); i++)
+        {
+            dbConnection = (DbConnection*)dbConnectionList_[i];
+            result = dbConnection->getDbConnection();  // 借出连接
+            if (result) break;
+        }
 
-		// 如果借出失败，则增加新的数据库连接到连接池
-		if (!result && (dbConnectionList_.getCount() < database_->getDbOptions()->getMaxDbConnections()))
-		{
-			dbConnection = database_->createDbConnection();
-			dbConnectionList_.add(dbConnection);
-			result = dbConnection->getDbConnection();
-		}
-	}
+        // 如果借出失败，则增加新的数据库连接到连接池
+        if (!result && (dbConnectionList_.getCount() < database_->getDbOptions()->getMaxDbConnections()))
+        {
+            dbConnection = database_->createDbConnection();
+            dbConnectionList_.add(dbConnection);
+            result = dbConnection->getDbConnection();
+        }
+    }
 
-	if (!result)
-		iseThrowDbException(SEM_GET_CONN_FROM_POOL_ERROR);
+    if (!result)
+        iseThrowDbException(SEM_GET_CONN_FROM_POOL_ERROR);
 
-	return dbConnection;
+    return dbConnection;
 }
 
 //-----------------------------------------------------------------------------
@@ -275,8 +257,26 @@ DbConnection* DbConnectionPool::getConnection()
 //-----------------------------------------------------------------------------
 void DbConnectionPool::returnConnection(DbConnection *dbConnection)
 {
-	AutoLocker locker(lock_);
-	dbConnection->returnDbConnection();
+    AutoLocker locker(lock_);
+    dbConnection->returnDbConnection();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 清空连接池
+//-----------------------------------------------------------------------------
+void DbConnectionPool::clearPool()
+{
+    AutoLocker locker(lock_);
+
+    for (int i = 0; i < dbConnectionList_.getCount(); i++)
+    {
+        DbConnection *dbConnection;
+        dbConnection = (DbConnection*)dbConnectionList_[i];
+        dbConnection->doDisconnect();
+        delete dbConnection;
+    }
+
+    dbConnectionList_.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -284,14 +284,14 @@ void DbConnectionPool::returnConnection(DbConnection *dbConnection)
 
 DbFieldDef::DbFieldDef(const string& name, int type)
 {
-	name_ = name;
-	type_ = type;
+    name_ = name;
+    type_ = type;
 }
 
 DbFieldDef::DbFieldDef(const DbFieldDef& src)
 {
-	name_ = src.name_;
-	type_ = src.type_;
+    name_ = src.name_;
+    type_ = src.type_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -299,12 +299,12 @@ DbFieldDef::DbFieldDef(const DbFieldDef& src)
 
 DbFieldDefList::DbFieldDefList()
 {
-	// nothing
+    // nothing
 }
 
 DbFieldDefList::~DbFieldDefList()
 {
-	clear();
+    clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -312,8 +312,8 @@ DbFieldDefList::~DbFieldDefList()
 //-----------------------------------------------------------------------------
 void DbFieldDefList::add(DbFieldDef *fieldDef)
 {
-	if (fieldDef != NULL)
-		items_.add(fieldDef);
+    if (fieldDef != NULL)
+        items_.add(fieldDef);
 }
 
 //-----------------------------------------------------------------------------
@@ -321,9 +321,9 @@ void DbFieldDefList::add(DbFieldDef *fieldDef)
 //-----------------------------------------------------------------------------
 void DbFieldDefList::clear()
 {
-	for (int i = 0; i < items_.getCount(); i++)
-		delete (DbFieldDef*)items_[i];
-	items_.clear();
+    for (int i = 0; i < items_.getCount(); i++)
+        delete (DbFieldDef*)items_[i];
+    items_.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -331,18 +331,18 @@ void DbFieldDefList::clear()
 //-----------------------------------------------------------------------------
 int DbFieldDefList::indexOfName(const string& name)
 {
-	int index = -1;
+    int index = -1;
 
-	for (int i = 0; i < items_.getCount(); i++)
-	{
-		if (sameText(((DbFieldDef*)items_[i])->getName(), name))
-		{
-			index = i;
-			break;
-		}
-	}
+    for (int i = 0; i < items_.getCount(); i++)
+    {
+        if (sameText(((DbFieldDef*)items_[i])->getName(), name))
+        {
+            index = i;
+            break;
+        }
+    }
 
-	return index;
+    return index;
 }
 
 //-----------------------------------------------------------------------------
@@ -350,9 +350,9 @@ int DbFieldDefList::indexOfName(const string& name)
 //-----------------------------------------------------------------------------
 void DbFieldDefList::getFieldNameList(StrList& list)
 {
-	list.clear();
-	for (int i = 0; i < items_.getCount(); i++)
-		list.add(((DbFieldDef*)items_[i])->getName().c_str());
+    list.clear();
+    for (int i = 0; i < items_.getCount(); i++)
+        list.add(((DbFieldDef*)items_[i])->getName().c_str());
 }
 
 //-----------------------------------------------------------------------------
@@ -360,10 +360,10 @@ void DbFieldDefList::getFieldNameList(StrList& list)
 //-----------------------------------------------------------------------------
 DbFieldDef* DbFieldDefList::operator[] (int index)
 {
-	if (index >= 0 && index < items_.getCount())
-		return (DbFieldDef*)items_[index];
-	else
-		return NULL;
+    if (index >= 0 && index < items_.getCount())
+        return (DbFieldDef*)items_[index];
+    else
+        return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -371,7 +371,7 @@ DbFieldDef* DbFieldDefList::operator[] (int index)
 
 DbField::DbField()
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -379,7 +379,7 @@ DbField::DbField()
 //-----------------------------------------------------------------------------
 int DbField::asInteger(int defaultVal) const
 {
-	return strToInt(asString(), defaultVal);
+    return strToInt(asString(), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
@@ -387,7 +387,7 @@ int DbField::asInteger(int defaultVal) const
 //-----------------------------------------------------------------------------
 INT64 DbField::asInt64(INT64 defaultVal) const
 {
-	return strToInt64(asString(), defaultVal);
+    return strToInt64(asString(), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
@@ -395,7 +395,7 @@ INT64 DbField::asInt64(INT64 defaultVal) const
 //-----------------------------------------------------------------------------
 double DbField::asFloat(double defaultVal) const
 {
-	return strToFloat(asString(), defaultVal);
+    return strToFloat(asString(), defaultVal);
 }
 
 //-----------------------------------------------------------------------------
@@ -403,7 +403,7 @@ double DbField::asFloat(double defaultVal) const
 //-----------------------------------------------------------------------------
 bool DbField::asBoolean(bool defaultVal) const
 {
-	return asInteger(defaultVal? 1 : 0) != 0;
+    return asInteger(defaultVal? 1 : 0) != 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -411,12 +411,12 @@ bool DbField::asBoolean(bool defaultVal) const
 
 DbFieldList::DbFieldList()
 {
-	// nothing
+    // nothing
 }
 
 DbFieldList::~DbFieldList()
 {
-	clear();
+    clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -424,7 +424,7 @@ DbFieldList::~DbFieldList()
 //-----------------------------------------------------------------------------
 void DbFieldList::add(DbField *field)
 {
-	items_.add(field);
+    items_.add(field);
 }
 
 //-----------------------------------------------------------------------------
@@ -432,9 +432,9 @@ void DbFieldList::add(DbField *field)
 //-----------------------------------------------------------------------------
 void DbFieldList::clear()
 {
-	for (int i = 0; i < items_.getCount(); i++)
-		delete (DbField*)items_[i];
-	items_.clear();
+    for (int i = 0; i < items_.getCount(); i++)
+        delete (DbField*)items_[i];
+    items_.clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -442,72 +442,24 @@ void DbFieldList::clear()
 //-----------------------------------------------------------------------------
 DbField* DbFieldList::operator[] (int index)
 {
-	if (index >= 0 && index < items_.getCount())
-		return (DbField*)items_[index];
-	else
-		return NULL;
+    if (index >= 0 && index < items_.getCount())
+        return (DbField*)items_[index];
+    else
+        return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class DbParamList
 
 DbParamList::DbParamList(DbQuery *dbQuery) :
-	dbQuery_(dbQuery)
+    dbQuery_(dbQuery)
 {
-	// nothing
+    // nothing
 }
 
 DbParamList::~DbParamList()
 {
-	clear();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 根据参数名称在列表中查找参数对象
-//-----------------------------------------------------------------------------
-DbParam* DbParamList::findParam(const string& name)
-{
-	DbParam *result = NULL;
-
-	for (int i = 0; i < items_.getCount(); i++)
-		if (sameText(((DbParam*)items_[i])->name_, name))
-		{
-			result = (DbParam*)items_[i];
-			break;
-		}
-
-	return result;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 根据参数序号在列表中查找参数对象
-//-----------------------------------------------------------------------------
-DbParam* DbParamList::findParam(int number)
-{
-	DbParam *result = NULL;
-
-	for (int i = 0; i < items_.getCount(); i++)
-		if (((DbParam*)items_[i])->number_ == number)
-		{
-			result = (DbParam*)items_[i];
-			break;
-		}
-
-	return result;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 创建一个参数对象并返回
-//-----------------------------------------------------------------------------
-DbParam* DbParamList::createParam(const string& name, int number)
-{
-	DbParam *result = dbQuery_->getDatabase()->createDbParam();
-
-	result->dbQuery_ = dbQuery_;
-	result->name_ = name;
-	result->number_ = number;
-
-	return result;
+    clear();
 }
 
 //-----------------------------------------------------------------------------
@@ -515,14 +467,14 @@ DbParam* DbParamList::createParam(const string& name, int number)
 //-----------------------------------------------------------------------------
 DbParam* DbParamList::paramByName(const string& name)
 {
-	DbParam *result = findParam(name);
-	if (!result)
-	{
-		result = createParam(name, 0);
-		items_.add(result);
-	}
+    DbParam *result = findParam(name);
+    if (!result)
+    {
+        result = createParam(name, 0);
+        items_.add(result);
+    }
 
-	return result;
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -530,14 +482,14 @@ DbParam* DbParamList::paramByName(const string& name)
 //-----------------------------------------------------------------------------
 DbParam* DbParamList::paramByNumber(int number)
 {
-	DbParam *result = findParam(number);
-	if (!result)
-	{
-		result = createParam("", number);
-		items_.add(result);
-	}
+    DbParam *result = findParam(number);
+    if (!result)
+    {
+        result = createParam("", number);
+        items_.add(result);
+    }
 
-	return result;
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -545,23 +497,75 @@ DbParam* DbParamList::paramByNumber(int number)
 //-----------------------------------------------------------------------------
 void DbParamList::clear()
 {
-	for (int i = 0; i < items_.getCount(); i++)
-		delete (DbParam*)items_[i];
-	items_.clear();
+    for (int i = 0; i < items_.getCount(); i++)
+        delete (DbParam*)items_[i];
+    items_.clear();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 根据参数名称在列表中查找参数对象
+//-----------------------------------------------------------------------------
+DbParam* DbParamList::findParam(const string& name)
+{
+    DbParam *result = NULL;
+
+    for (int i = 0; i < items_.getCount(); i++)
+    {
+        if (sameText(((DbParam*)items_[i])->name_, name))
+        {
+            result = (DbParam*)items_[i];
+            break;
+        }
+    }
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 根据参数序号在列表中查找参数对象
+//-----------------------------------------------------------------------------
+DbParam* DbParamList::findParam(int number)
+{
+    DbParam *result = NULL;
+
+    for (int i = 0; i < items_.getCount(); i++)
+    {
+        if (((DbParam*)items_[i])->number_ == number)
+        {
+            result = (DbParam*)items_[i];
+            break;
+        }
+    }
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 创建一个参数对象并返回
+//-----------------------------------------------------------------------------
+DbParam* DbParamList::createParam(const string& name, int number)
+{
+    DbParam *result = dbQuery_->getDatabase()->createDbParam();
+
+    result->dbQuery_ = dbQuery_;
+    result->name_ = name;
+    result->number_ = number;
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class DbDataSet
 
 DbDataSet::DbDataSet(DbQuery *dbQuery) :
-	dbQuery_(dbQuery)
+    dbQuery_(dbQuery)
 {
-	// nothing
+    // nothing
 }
 
 DbDataSet::~DbDataSet()
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -569,8 +573,8 @@ DbDataSet::~DbDataSet()
 //-----------------------------------------------------------------------------
 UINT64 DbDataSet::getRecordCount()
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return 0;
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -578,8 +582,8 @@ UINT64 DbDataSet::getRecordCount()
 //-----------------------------------------------------------------------------
 bool DbDataSet::isEmpty()
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return true;
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -587,7 +591,7 @@ bool DbDataSet::isEmpty()
 //-----------------------------------------------------------------------------
 int DbDataSet::getFieldCount()
 {
-	return dbFieldDefList_.getCount();
+    return dbFieldDefList_.getCount();
 }
 
 //-----------------------------------------------------------------------------
@@ -595,12 +599,12 @@ int DbDataSet::getFieldCount()
 //-----------------------------------------------------------------------------
 DbFieldDef* DbDataSet::getFieldDefs(int index)
 {
-	if (index >= 0 && index < dbFieldDefList_.getCount())
-		return dbFieldDefList_[index];
-	else
-		iseThrowDbException(SEM_INDEX_ERROR);
+    if (index >= 0 && index < dbFieldDefList_.getCount())
+        return dbFieldDefList_[index];
+    else
+        iseThrowDbException(SEM_INDEX_ERROR);
 
-	return NULL;
+    return NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -608,12 +612,12 @@ DbFieldDef* DbDataSet::getFieldDefs(int index)
 //-----------------------------------------------------------------------------
 DbField* DbDataSet::getFields(int index)
 {
-	if (index >= 0 && index < dbFieldList_.getCount())
-		return dbFieldList_[index];
-	else
-		iseThrowDbException(SEM_INDEX_ERROR);
+    if (index >= 0 && index < dbFieldList_.getCount())
+        return dbFieldList_[index];
+    else
+        iseThrowDbException(SEM_INDEX_ERROR);
 
-	return NULL;
+    return NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -623,46 +627,40 @@ DbField* DbDataSet::getFields(int index)
 //-----------------------------------------------------------------------------
 DbField* DbDataSet::getFields(const string& name)
 {
-	int index = dbFieldDefList_.indexOfName(name);
+    int index = dbFieldDefList_.indexOfName(name);
 
-	if (index >= 0)
-		return getFields(index);
-	else
-	{
-		StrList fieldNames;
-		dbFieldDefList_.getFieldNameList(fieldNames);
-		string fieldNameList = fieldNames.getCommaText();
+    if (index >= 0)
+        return getFields(index);
+    else
+    {
+        StrList fieldNames;
+        dbFieldDefList_.getFieldNameList(fieldNames);
+        string fieldNameList = fieldNames.getCommaText();
 
-		string errMsg = formatString(SEM_FIELD_NAME_ERROR, name.c_str(), fieldNameList.c_str());
-		iseThrowDbException(errMsg.c_str());
-	}
+        string errMsg = formatString(SEM_FIELD_NAME_ERROR, name.c_str(), fieldNameList.c_str());
+        iseThrowDbException(errMsg.c_str());
+    }
 
-	return NULL;
+    return NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class DbQuery
 
 DbQuery::DbQuery(Database *database) :
-	database_(database),
-	dbConnection_(NULL),
-	dbParamList_(NULL)
+    database_(database),
+    dbConnection_(NULL),
+    dbParamList_(NULL)
 {
-	dbParamList_ = database->createDbParamList(this);
+    dbParamList_ = database->createDbParamList(this);
 }
 
 DbQuery::~DbQuery()
 {
-	delete dbParamList_;
+    delete dbParamList_;
 
-	if (dbConnection_)
-		database_->getDbConnectionPool()->returnConnection(dbConnection_);
-}
-
-void DbQuery::ensureConnected()
-{
-	if (!dbConnection_)
-		dbConnection_ = database_->getDbConnectionPool()->getConnection();
+    if (dbConnection_)
+        database_->getDbConnectionPool()->returnConnection(dbConnection_);
 }
 
 //-----------------------------------------------------------------------------
@@ -670,10 +668,10 @@ void DbQuery::ensureConnected()
 //-----------------------------------------------------------------------------
 void DbQuery::setSql(const string& sql)
 {
-	sql_ = sql;
-	dbParamList_->clear();
+    sql_ = sql;
+    dbParamList_->clear();
 
-	doSetSql(sql);
+    doSetSql(sql);
 }
 
 //-----------------------------------------------------------------------------
@@ -684,8 +682,8 @@ void DbQuery::setSql(const string& sql)
 //-----------------------------------------------------------------------------
 DbParam* DbQuery::paramByName(const string& name)
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return NULL;
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -696,8 +694,8 @@ DbParam* DbQuery::paramByName(const string& name)
 //-----------------------------------------------------------------------------
 DbParam* DbQuery::paramByNumber(int number)
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return NULL;
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -705,8 +703,8 @@ DbParam* DbQuery::paramByNumber(int number)
 //-----------------------------------------------------------------------------
 void DbQuery::execute()
 {
-	ensureConnected();
-	doExecute(NULL);
+    ensureConnected();
+    doExecute(NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -714,26 +712,26 @@ void DbQuery::execute()
 //-----------------------------------------------------------------------------
 DbDataSet* DbQuery::query()
 {
-	ensureConnected();
+    ensureConnected();
 
-	DbDataSet *dataSet = database_->createDbDataSet(this);
-	try
-	{
-		// 执行查询
-		doExecute(dataSet);
-		// 初始化数据集
-		dataSet->initDataSet();
-		// 初始化数据集各字段的定义
-		dataSet->initFieldDefs();
-	}
-	catch (Exception&)
-	{
-		delete dataSet;
-		dataSet = NULL;
-		throw;
-	}
+    DbDataSet *dataSet = database_->createDbDataSet(this);
+    try
+    {
+        // 执行查询
+        doExecute(dataSet);
+        // 初始化数据集
+        dataSet->initDataSet();
+        // 初始化数据集各字段的定义
+        dataSet->initFieldDefs();
+    }
+    catch (Exception&)
+    {
+        delete dataSet;
+        dataSet = NULL;
+        throw;
+    }
 
-	return dataSet;
+    return dataSet;
 }
 
 //-----------------------------------------------------------------------------
@@ -741,8 +739,8 @@ DbDataSet* DbQuery::query()
 //-----------------------------------------------------------------------------
 string DbQuery::escapeString(const string& str)
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return "";
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return "";
 }
 
 //-----------------------------------------------------------------------------
@@ -750,8 +748,8 @@ string DbQuery::escapeString(const string& str)
 //-----------------------------------------------------------------------------
 UINT DbQuery::getAffectedRowCount()
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return 0;
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -759,8 +757,8 @@ UINT DbQuery::getAffectedRowCount()
 //-----------------------------------------------------------------------------
 UINT64 DbQuery::getLastInsertId()
 {
-	iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
-	return 0;
+    iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
+    return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -768,8 +766,16 @@ UINT64 DbQuery::getLastInsertId()
 //-----------------------------------------------------------------------------
 DbConnection* DbQuery::getDbConnection()
 {
-	ensureConnected();
-	return dbConnection_;
+    ensureConnected();
+    return dbConnection_;
+}
+
+//-----------------------------------------------------------------------------
+
+void DbQuery::ensureConnected()
+{
+    if (!dbConnection_)
+        dbConnection_ = database_->getDbConnectionPool()->getConnection();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -777,44 +783,44 @@ DbConnection* DbQuery::getDbConnection()
 
 Database::Database()
 {
-	dbConnParams_ = NULL;
-	dbOptions_ = NULL;
-	dbConnectionPool_ = NULL;
+    dbConnParams_ = NULL;
+    dbOptions_ = NULL;
+    dbConnectionPool_ = NULL;
 }
 
 Database::~Database()
 {
-	delete dbConnParams_;
-	delete dbOptions_;
-	delete dbConnectionPool_;
-}
-
-void Database::ensureInited()
-{
-	if (!dbConnParams_)
-	{
-		dbConnParams_ = createDbConnParams();
-		dbOptions_ = createDbOptions();
-		dbConnectionPool_ = createDbConnectionPool();
-	}
+    delete dbConnParams_;
+    delete dbOptions_;
+    delete dbConnectionPool_;
 }
 
 DbConnParams* Database::getDbConnParams()
 {
-	ensureInited();
-	return dbConnParams_;
+    ensureInited();
+    return dbConnParams_;
 }
 
 DbOptions* Database::getDbOptions()
 {
-	ensureInited();
-	return dbOptions_;
+    ensureInited();
+    return dbOptions_;
 }
 
 DbConnectionPool* Database::getDbConnectionPool()
 {
-	ensureInited();
-	return dbConnectionPool_;
+    ensureInited();
+    return dbConnectionPool_;
+}
+
+void Database::ensureInited()
+{
+    if (!dbConnParams_)
+    {
+        dbConnParams_ = createDbConnParams();
+        dbOptions_ = createDbOptions();
+        dbConnectionPool_ = createDbConnectionPool();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

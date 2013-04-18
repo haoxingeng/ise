@@ -67,12 +67,14 @@ const char* const SEM_THREAD_RUN_ONCE             = "Thread::run() can be call o
 // ise_xml_doc
 const char* const SEM_INVALID_XML_FILE_FORMAT     = "Invalid file format.";
 
-// ise_server_*
+// ise_application
+const char* const SEM_BUSINESS_OBJ_EXPECTED       = "The IseBusiness object is null.";
 const char* const SEM_SIG_TERM                    = "Exit Program. (signal: %d)";
 const char* const SEM_SIG_FATAL_ERROR             = "Fatal Error. (signal: %d)";
 const char* const SEM_ALREADY_RUNNING             = "The application is already running.";
-const char* const SEM_CMD_ARG_NOT_INIT            = "Command arguments not initialzed.";
 const char* const SEM_INIT_DAEMON_ERROR           = "Init daemon error.";
+
+// ise_server_*
 const char* const SEM_CREATE_PIPE_ERROR           = "Fail to create pipe.";
 const char* const SEM_CREATE_EPOLL_ERROR          = "Fail to create epoll object.";
 const char* const SEM_EPOLL_WAIT_ERROR            = "epoll_wait error.";

@@ -9,7 +9,9 @@ ISE_INC_PATH = $(ISE_PATH)/include
 ISE_LIB_PATH = $(ISE_PATH)/lib/linux
 ISE_LIB_PATH_NAME = $(ISE_LIB_PATH)/libise.a
 
-SRC_PATH = ../../../projects/$(PROJECT_NAME)/
+BOOST_INC_PATH = ../../../../../boost
+
+SRC_PATH = ../../../projects/$(PROJECT_NAME)
 
 CC = g++
 CDEFINES = 
@@ -23,7 +25,7 @@ STATIC_LIBS = $(ISE_LIB_PATH_NAME)
 
 LIBS = -lpthread
 
-INCS = -I$(ISE_INC_PATH)
+INCS = -I$(ISE_INC_PATH) -I$(BOOST_INC_PATH)
 
 all: $(TARGET_PATH_NAME)
 

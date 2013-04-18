@@ -55,20 +55,20 @@ class MySqlDatabase;
 
 class MySqlConnection : public DbConnection
 {
-private:
-	MYSQL connObject_;            // 连接对象
-
 public:
-	MySqlConnection(Database *database);
-	virtual ~MySqlConnection();
+    MySqlConnection(Database *database);
+    virtual ~MySqlConnection();
 
-	// 建立连接 (若失败则抛出异常)
-	virtual void doConnect();
-	// 断开连接
-	virtual void doDisconnect();
+    // 建立连接 (若失败则抛出异常)
+    virtual void doConnect();
+    // 断开连接
+    virtual void doDisconnect();
 
-	// 取得MySQL连接对象
-	MYSQL& getConnObject() { return connObject_; }
+    // 取得MySQL连接对象
+    MYSQL& getConnObject() { return connObject_; }
+
+private:
+    MYSQL connObject_;            // 连接对象
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -76,16 +76,17 @@ public:
 
 class MySqlField : public DbField
 {
-private:
-	char* dataPtr_;               // 指向字段数据
-	int dataSize_;                // 字段数据的总字节数
 public:
-	MySqlField();
-	virtual ~MySqlField() {}
+    MySqlField();
+    virtual ~MySqlField() {}
 
-	void setData(void *dataPtr, int dataSize);
-	virtual bool isNull() const { return (dataPtr_ == NULL); }
-	virtual string asString() const;
+    void setData(void *dataPtr, int dataSize);
+    virtual bool isNull() const { return (dataPtr_ == NULL); }
+    virtual string asString() const;
+
+private:
+    char* dataPtr_;               // 指向字段数据
+    int dataSize_;                // 字段数据的总字节数
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,27 +94,27 @@ public:
 
 class MySqlDataSet : public DbDataSet
 {
-private:
-	MYSQL_RES* res_;      // MySQL查询结果集
-	MYSQL_ROW row_;       // MySQL查询结果行
+public:
+    MySqlDataSet(DbQuery* dbQuery);
+    virtual ~MySqlDataSet();
 
-private:
-	MYSQL& getConnObject();
-	void freeDataSet();
+    virtual bool rewind();
+    virtual bool next();
+
+    virtual UINT64 getRecordCount();
+    virtual bool isEmpty();
 
 protected:
-	virtual void initDataSet();
-	virtual void initFieldDefs();
+    virtual void initDataSet();
+    virtual void initFieldDefs();
 
-public:
-	MySqlDataSet(DbQuery* dbQuery);
-	virtual ~MySqlDataSet();
+private:
+    MYSQL& getConnObject();
+    void freeDataSet();
 
-	virtual bool rewind();
-	virtual bool next();
-
-	virtual UINT64 getRecordCount();
-	virtual bool isEmpty();
+private:
+    MYSQL_RES* res_;      // MySQL查询结果集
+    MYSQL_ROW row_;       // MySQL查询结果行
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -121,19 +122,19 @@ public:
 
 class MySqlQuery : public DbQuery
 {
-private:
-	MYSQL& getConnObject();
+public:
+    MySqlQuery(Database *database);
+    virtual ~MySqlQuery();
+
+    virtual string escapeString(const string& str);
+    virtual UINT getAffectedRowCount();
+    virtual UINT64 getLastInsertId();
 
 protected:
-	virtual void doExecute(DbDataSet *resultDataSet);
+    virtual void doExecute(DbDataSet *resultDataSet);
 
-public:
-	MySqlQuery(Database *database);
-	virtual ~MySqlQuery();
-
-	virtual string escapeString(const string& str);
-	virtual UINT getAffectedRowCount();
-	virtual UINT64 getLastInsertId();
+private:
+    MYSQL& getConnObject();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -142,9 +143,9 @@ public:
 class MySqlDatabase : public Database
 {
 public:
-	virtual DbConnection* createDbConnection() { return new MySqlConnection(this); }
-	virtual DbDataSet* createDbDataSet(DbQuery* dbQuery) { return new MySqlDataSet(dbQuery); }
-	virtual DbQuery* createDbQuery() { return new MySqlQuery(this); }
+    virtual DbConnection* createDbConnection() { return new MySqlConnection(this); }
+    virtual DbDataSet* createDbDataSet(DbQuery* dbQuery) { return new MySqlDataSet(dbQuery); }
+    virtual DbQuery* createDbQuery() { return new MySqlQuery(this); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

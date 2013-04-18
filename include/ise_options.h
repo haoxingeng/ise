@@ -32,12 +32,12 @@
 // 平台定义
 
 #if defined(__BORLANDC__)
-#define ISE_WIN32
+#define ISE_WINDOWS
 #define ISE_COMPILER_BCB
 #endif
 
 #if defined(_MSC_VER)
-#define ISE_WIN32
+#define ISE_WINDOWS
 #define ISE_COMPILER_VC
 #endif
 
@@ -76,7 +76,7 @@
 // 其它
 
 // 防止 winsock2.h 和 winsock.h 同时包含引起冲突
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 #define _WINSOCKAPI_
 #endif
 

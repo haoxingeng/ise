@@ -30,7 +30,7 @@
 #include "ise_options.h"
 #include "ise_classes.h"
 #include "ise_thread.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 #include "ise_socket.h"
 #include "ise_exceptions.h"
 
@@ -53,75 +53,77 @@ class AssistorServer;
 
 class AssistorThread : public Thread
 {
-private:
-	AssistorThreadPool *ownPool_;        // 所属线程池
-	int assistorIndex_;                  // 辅助服务序号(0-based)
-protected:
-	virtual void execute();
-	virtual void doKill();
 public:
-	AssistorThread(AssistorThreadPool *threadPool, int assistorIndex);
-	virtual ~AssistorThread();
+    AssistorThread(AssistorThreadPool *threadPool, int assistorIndex);
+    virtual ~AssistorThread();
 
-	int getIndex() const { return assistorIndex_; }
+    int getIndex() const { return assistorIndex_; }
+
+protected:
+    virtual void execute();
+    virtual void doKill();
+
+private:
+    AssistorThreadPool *ownPool_;        // 所属线程池
+    int assistorIndex_;                  // 辅助服务序号(0-based)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class AssistorThreadPool - 辅助线程池类
 
-class AssistorThreadPool
+class AssistorThreadPool : boost::noncopyable
 {
-private:
-	AssistorServer *ownAssistorSvr_;     // 所属辅助服务器
-	ThreadList threadList_;               // 线程列表
-
 public:
-	explicit AssistorThreadPool(AssistorServer *ownAssistorServer);
-	virtual ~AssistorThreadPool();
+    explicit AssistorThreadPool(AssistorServer *ownAssistorServer);
+    virtual ~AssistorThreadPool();
 
-	void registerThread(AssistorThread *thread);
-	void unregisterThread(AssistorThread *thread);
+    void registerThread(AssistorThread *thread);
+    void unregisterThread(AssistorThread *thread);
 
-	// 通知所有线程退出
-	void terminateAllThreads();
-	// 等待所有线程退出
-	void waitForAllThreads();
-	// 打断指定线程的睡眠
-	void interruptThreadSleep(int assistorIndex);
+    // 通知所有线程退出
+    void terminateAllThreads();
+    // 等待所有线程退出
+    void waitForAllThreads();
+    // 打断指定线程的睡眠
+    void interruptThreadSleep(int assistorIndex);
 
-	// 取得当前线程数量
-	int getThreadCount() { return threadList_.getCount(); }
-	// 取得所属辅助服务器
-	AssistorServer& getAssistorServer() { return *ownAssistorSvr_; }
+    // 取得当前线程数量
+    int getThreadCount() { return threadList_.getCount(); }
+    // 取得所属辅助服务器
+    AssistorServer& getAssistorServer() { return *ownAssistorSvr_; }
+
+private:
+    AssistorServer *ownAssistorSvr_;     // 所属辅助服务器
+    ThreadList threadList_;               // 线程列表
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class AssistorServer - 辅助服务类
 
-class AssistorServer
+class AssistorServer : boost::noncopyable
 {
-private:
-	bool isActive_;                       // 服务器是否启动
-	AssistorThreadPool threadPool_;       // 辅助线程池
-
 public:
-	explicit AssistorServer();
-	virtual ~AssistorServer();
+    explicit AssistorServer();
+    virtual ~AssistorServer();
 
-	// 启动服务器
-	void open();
-	// 关闭服务器
-	void close();
+    // 启动服务器
+    void open();
+    // 关闭服务器
+    void close();
 
-	// 辅助服务线程执行函数
-	void onAssistorThreadExecute(AssistorThread& assistorThread, int assistorIndex);
+    // 辅助服务线程执行函数
+    void onAssistorThreadExecute(AssistorThread& assistorThread, int assistorIndex);
 
-	// 通知所有辅助线程退出
-	void terminateAllAssistorThreads();
-	// 等待所有辅助线程退出
-	void waitForAllAssistorThreads();
-	// 打断指定辅助线程的睡眠
-	void interruptAssistorThreadSleep(int assistorIndex);
+    // 通知所有辅助线程退出
+    void terminateAllAssistorThreads();
+    // 等待所有辅助线程退出
+    void waitForAllAssistorThreads();
+    // 打断指定辅助线程的睡眠
+    void interruptAssistorThreadSleep(int assistorIndex);
+
+private:
+    bool isActive_;                       // 服务器是否启动
+    AssistorThreadPool threadPool_;       // 辅助线程池
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -21,15 +21,15 @@
 \****************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////
-// ise_sysutils.h
+// ise_sys_utils.h
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ISE_SYSUTILS_H_
-#define _ISE_SYSUTILS_H_
+#ifndef _ISE_SYS_UTILS_H_
+#define _ISE_SYS_UTILS_H_
 
 #include "ise_options.h"
 
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -57,6 +57,7 @@
 #include <fnmatch.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/syscall.h>
 #include <sys/stat.h>
 #include <iostream>
 #include <string>
@@ -79,14 +80,14 @@ class StrList;
 // 类型定义
 
 // 文件查找记录
-struct FILE_FIND_ITEM
+struct FileFindItem
 {
-	INT64 fileSize;         // 文件大小
-	string fileName;        // 文件名(不含路径)
-	UINT attr;              // 文件属性
+    INT64 fileSize;         // 文件大小
+    string fileName;        // 文件名(不含路径)
+    UINT attr;              // 文件属性
 };
 
-typedef vector<FILE_FIND_ITEM> FILE_FIND_RESULT;
+typedef vector<FileFindItem> FileFindResult;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 杂项函数
@@ -117,9 +118,9 @@ string trimString(const string& str);
 string upperCase(const string& str);
 string lowerCase(const string& str);
 string repalceString(const string& sourceStr, const string& oldPattern,
-	const string& newPattern, bool replaceAll = false, bool caseSensitive = true);
+    const string& newPattern, bool replaceAll = false, bool caseSensitive = true);
 void splitString(const string& sourceStr, char splitter, StrList& strList,
-	bool trimResult = false);
+    bool trimResult = false);
 void splitStringToInt(const string& sourceStr, char splitter, IntegerArray& intList);
 char* strNCopy(char *dest, const char *source, int maxBytes);
 char* strNZCopy(char *dest, const char *source, int destSize);
@@ -146,7 +147,7 @@ bool deleteFile(const string& fileName);
 bool removeFile(const string& fileName);
 bool renameFile(const string& oldFileName, const string& newFileName);
 INT64 getFileSize(const string& fileName);
-void findFiles(const string& path, UINT attr, FILE_FIND_RESULT& findResult);
+void findFiles(const string& path, UINT attr, FileFindResult& findResult);
 string pathWithSlash(const string& path);
 string pathWithoutSlash(const string& path);
 string GetAppExeName();
@@ -157,6 +158,7 @@ string getAppSubPath(const string& subDir = "");
 //-- 系统相关:
 
 int getLastSysError();
+THREAD_ID getCurThreadId();
 string sysErrorMessage(int errorCode);
 void sleepSec(double seconds, bool allowInterrupt = true);
 UINT getCurTicks();
@@ -177,7 +179,7 @@ const T& max(const T& a, const T& b) { return ((a < b)? b : a); }
 
 template <typename T>
 const T& ensureRange(const T& value, const T& minVal, const T& maxVal)
-	{ return (value > maxVal) ? maxVal : (value < minVal ? minVal : value); }
+    { return (value > maxVal) ? maxVal : (value < minVal ? minVal : value); }
 
 template <typename T>
 void swap(T& a, T& b) { T temp(a); a=b; b=temp; }
@@ -189,4 +191,4 @@ int compare(const T& a, const T& b) { return (a < b) ? -1 : (a > b ? 1 : 0); }
 
 } // namespace ise
 
-#endif // _ISE_SYSUTILS_H_
+#endif // _ISE_SYS_UTILS_H_

@@ -48,11 +48,11 @@ class SysThreadMgr;
 
 class SysThread : public Thread
 {
-protected:
-	SysThreadMgr& threadMgr_;
 public:
-	SysThread(SysThreadMgr& threadMgr);
-	virtual ~SysThread();
+    SysThread(SysThreadMgr& threadMgr);
+    virtual ~SysThread();
+protected:
+    SysThreadMgr& threadMgr_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -60,10 +60,10 @@ public:
 
 class SysDaemonThread : public SysThread
 {
-protected:
-	virtual void execute();
 public:
-	SysDaemonThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
+    SysDaemonThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
+protected:
+    virtual void execute();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -71,30 +71,32 @@ public:
 
 class SysSchedulerThread : public SysThread
 {
-protected:
-	virtual void execute();
 public:
-	SysSchedulerThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
+    SysSchedulerThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
+protected:
+    virtual void execute();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class SysThreadMgr
 
-class SysThreadMgr
+class SysThreadMgr : boost::noncopyable
 {
 private:
-	friend class SysThread;
-private:
-	ThreadList threadList_;
-private:
-	void registerThread(SysThread *thread);
-	void unregisterThread(SysThread *thread);
+    friend class SysThread;
 public:
-	SysThreadMgr() {}
-	~SysThreadMgr() {}
+    SysThreadMgr() {}
+    ~SysThreadMgr() {}
 
-	void initialize();
-	void finalize();
+    void initialize();
+    void finalize();
+
+private:
+    void registerThread(SysThread *thread);
+    void unregisterThread(SysThread *thread);
+
+private:
+    ThreadList threadList_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

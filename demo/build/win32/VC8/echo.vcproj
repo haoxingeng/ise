@@ -58,7 +58,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="&quot;..\..\..\..\lib\win32\Debug MBCS\libise.lib&quot; &quot;..\..\..\..\depend\win32\mysql\lib\static\debug\mysqlclient.lib&quot;"
+				AdditionalDependencies="&quot;..\..\..\..\lib\win32\Debug Unicode\libise.lib&quot; &quot;..\..\..\..\depend\win32\mysql\lib\static\debug\mysqlclient.lib&quot;"
 				LinkIncremental="0"
 				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
@@ -133,7 +133,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="&quot;..\..\..\..\lib\win32\Release MBCS\libise.lib&quot; &quot;..\..\..\..\depend\win32\mysql\lib\static\release\mysqlclient.lib&quot;"
+				AdditionalDependencies="&quot;..\..\..\..\lib\win32\Release Unicode\libise.lib&quot; &quot;..\..\..\..\depend\win32\mysql\lib\static\release\mysqlclient.lib&quot;"
 				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				SubSystem="2"

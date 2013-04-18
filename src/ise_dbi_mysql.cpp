@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "ise_dbi_mysql.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 #include "ise_errmsgs.h"
 
 namespace ise
@@ -36,14 +36,14 @@ namespace ise
 // class MySqlConnection
 
 MySqlConnection::MySqlConnection(Database* database) :
-	DbConnection(database)
+    DbConnection(database)
 {
-	memset(&connObject_, 0, sizeof(connObject_));
+    memset(&connObject_, 0, sizeof(connObject_));
 }
 
 MySqlConnection::~MySqlConnection()
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -51,34 +51,34 @@ MySqlConnection::~MySqlConnection()
 //-----------------------------------------------------------------------------
 void MySqlConnection::doConnect()
 {
-	static CriticalSection s_Lock;
-	AutoLocker locker(s_Lock);
+    static CriticalSection s_Lock;
+    AutoLocker locker(s_Lock);
 
-	if (mysql_init(&connObject_) == NULL)
-		iseThrowDbException(SEM_MYSQL_INIT_ERROR);
+    if (mysql_init(&connObject_) == NULL)
+        iseThrowDbException(SEM_MYSQL_INIT_ERROR);
 
-	logger().writeFmt(SEM_MYSQL_CONNECTING, &connObject_);
+    logger().writeFmt(SEM_MYSQL_CONNECTING, &connObject_);
 
-	int value = 0;
-	mysql_options(&connObject_, MYSQL_OPT_RECONNECT, (char*)&value);
+    int value = 0;
+    mysql_options(&connObject_, MYSQL_OPT_RECONNECT, (char*)&value);
 
-	if (mysql_real_connect(&connObject_,
-		database_->getDbConnParams()->getHostName().c_str(),
-		database_->getDbConnParams()->getUserName().c_str(),
-		database_->getDbConnParams()->getPassword().c_str(),
-		database_->getDbConnParams()->getDbName().c_str(),
-		database_->getDbConnParams()->getPort(), NULL, 0) == NULL)
-	{
-		mysql_close(&connObject_);
-		iseThrowDbException(formatString(SEM_MYSQL_REAL_CONNECT_ERROR, mysql_error(&connObject_)).c_str());
-	}
+    if (mysql_real_connect(&connObject_,
+        database_->getDbConnParams()->getHostName().c_str(),
+        database_->getDbConnParams()->getUserName().c_str(),
+        database_->getDbConnParams()->getPassword().c_str(),
+        database_->getDbConnParams()->getDbName().c_str(),
+        database_->getDbConnParams()->getPort(), NULL, 0) == NULL)
+    {
+        mysql_close(&connObject_);
+        iseThrowDbException(formatString(SEM_MYSQL_REAL_CONNECT_ERROR, mysql_error(&connObject_)).c_str());
+    }
 
-	// for MYSQL 5.0.7 or higher
-	string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
-	if (!strInitialCharSet.empty())
-		mysql_set_character_set(&connObject_, strInitialCharSet.c_str());
+    // for MYSQL 5.0.7 or higher
+    string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
+    if (!strInitialCharSet.empty())
+        mysql_set_character_set(&connObject_, strInitialCharSet.c_str());
 
-	logger().writeFmt(SEM_MYSQL_CONNECTED, &connObject_);
+    logger().writeFmt(SEM_MYSQL_CONNECTED, &connObject_);
 }
 
 //-----------------------------------------------------------------------------
@@ -86,7 +86,7 @@ void MySqlConnection::doConnect()
 //-----------------------------------------------------------------------------
 void MySqlConnection::doDisconnect()
 {
-	mysql_close(&connObject_);
+    mysql_close(&connObject_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -94,14 +94,14 @@ void MySqlConnection::doDisconnect()
 
 MySqlField::MySqlField()
 {
-	dataPtr_ = NULL;
-	dataSize_ = 0;
+    dataPtr_ = NULL;
+    dataSize_ = 0;
 }
 
 void MySqlField::setData(void *dataPtr, int dataSize)
 {
-	dataPtr_ = (char*)dataPtr;
-	dataSize_ = dataSize;
+    dataPtr_ = (char*)dataPtr;
+    dataSize_ = dataSize;
 }
 
 //-----------------------------------------------------------------------------
@@ -109,83 +109,28 @@ void MySqlField::setData(void *dataPtr, int dataSize)
 //-----------------------------------------------------------------------------
 string MySqlField::asString() const
 {
-	string result;
+    string result;
 
-	if (dataPtr_ && dataSize_ > 0)
-		result.assign(dataPtr_, dataSize_);
+    if (dataPtr_ && dataSize_ > 0)
+        result.assign(dataPtr_, dataSize_);
 
-	return result;
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class MySqlDataSet
 
 MySqlDataSet::MySqlDataSet(DbQuery* dbQuery) :
-	DbDataSet(dbQuery),
-	res_(NULL),
-	row_(NULL)
+    DbDataSet(dbQuery),
+    res_(NULL),
+    row_(NULL)
 {
-	// nothing
+    // nothing
 }
 
 MySqlDataSet::~MySqlDataSet()
 {
-	freeDataSet();
-}
-
-MYSQL& MySqlDataSet::getConnObject()
-{
-	return ((MySqlConnection*)dbQuery_->getDbConnection())->getConnObject();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 释放数据集
-//-----------------------------------------------------------------------------
-void MySqlDataSet::freeDataSet()
-{
-	if (res_)
-		mysql_free_result(res_);
-	res_ = NULL;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 初始化数据集 (若初始化失败则抛出异常)
-//-----------------------------------------------------------------------------
-void MySqlDataSet::initDataSet()
-{
-	// 从MySQL服务器一次性获取所有行
-	res_ = mysql_store_result(&getConnObject());
-
-	// 如果获取失败
-	if (!res_)
-	{
-		iseThrowDbException(formatString(SEM_MYSQL_STORE_RESULT_ERROR,
-			mysql_error(&getConnObject())).c_str());
-	}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 初始化数据集各字段的定义
-//-----------------------------------------------------------------------------
-void MySqlDataSet::initFieldDefs()
-{
-	MYSQL_FIELD *pMySqlFields;
-	DbFieldDef* fieldDef;
-	int nFieldCount;
-
-	dbFieldDefList_.clear();
-	nFieldCount = mysql_num_fields(res_);
-	pMySqlFields = mysql_fetch_fields(res_);
-
-	if (nFieldCount <= 0)
-		iseThrowDbException(SEM_MYSQL_NUM_FIELDS_ERROR);
-
-	for (int i = 0; i < nFieldCount; i++)
-	{
-		fieldDef = new DbFieldDef();
-		fieldDef->setData(pMySqlFields[i].name, pMySqlFields[i].type);
-		dbFieldDefList_.add(fieldDef);
-	}
+    freeDataSet();
 }
 
 //-----------------------------------------------------------------------------
@@ -193,13 +138,13 @@ void MySqlDataSet::initFieldDefs()
 //-----------------------------------------------------------------------------
 bool MySqlDataSet::rewind()
 {
-	if (getRecordCount() > 0)
-	{
-		mysql_data_seek(res_, 0);
-		return true;
-	}
-	else
-		return false;
+    if (getRecordCount() > 0)
+    {
+        mysql_data_seek(res_, 0);
+        return true;
+    }
+    else
+        return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -207,33 +152,33 @@ bool MySqlDataSet::rewind()
 //-----------------------------------------------------------------------------
 bool MySqlDataSet::next()
 {
-	row_ = mysql_fetch_row(res_);
-	if (row_)
-	{
-		MySqlField* field;
-		int nFieldCount;
-		unsigned long* pLengths;
+    row_ = mysql_fetch_row(res_);
+    if (row_)
+    {
+        MySqlField* field;
+        int nFieldCount;
+        unsigned long* pLengths;
 
-		nFieldCount = mysql_num_fields(res_);
-		pLengths = (unsigned long*)mysql_fetch_lengths(res_);
+        nFieldCount = mysql_num_fields(res_);
+        pLengths = (unsigned long*)mysql_fetch_lengths(res_);
 
-		for (int i = 0; i < nFieldCount; i++)
-		{
-			if (i < dbFieldList_.getCount())
-			{
-				field = (MySqlField*)dbFieldList_[i];
-			}
-			else
-			{
-				field = new MySqlField();
-				dbFieldList_.add(field);
-			}
+        for (int i = 0; i < nFieldCount; i++)
+        {
+            if (i < dbFieldList_.getCount())
+            {
+                field = (MySqlField*)dbFieldList_[i];
+            }
+            else
+            {
+                field = new MySqlField();
+                dbFieldList_.add(field);
+            }
 
-			field->setData(row_[i], pLengths[i]);
-		}
-	}
+            field->setData(row_[i], pLengths[i]);
+        }
+    }
 
-	return (row_ != NULL);
+    return (row_ != NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -242,10 +187,10 @@ bool MySqlDataSet::next()
 //-----------------------------------------------------------------------------
 UINT64 MySqlDataSet::getRecordCount()
 {
-	if (res_)
-		return (UINT64)mysql_num_rows(res_);
-	else
-		return 0;
+    if (res_)
+        return (UINT64)mysql_num_rows(res_);
+    else
+        return 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -253,87 +198,78 @@ UINT64 MySqlDataSet::getRecordCount()
 //-----------------------------------------------------------------------------
 bool MySqlDataSet::isEmpty()
 {
-	return (getRecordCount() == 0);
+    return (getRecordCount() == 0);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 初始化数据集 (若初始化失败则抛出异常)
+//-----------------------------------------------------------------------------
+void MySqlDataSet::initDataSet()
+{
+    // 从MySQL服务器一次性获取所有行
+    res_ = mysql_store_result(&getConnObject());
+
+    // 如果获取失败
+    if (!res_)
+    {
+        iseThrowDbException(formatString(SEM_MYSQL_STORE_RESULT_ERROR,
+            mysql_error(&getConnObject())).c_str());
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 初始化数据集各字段的定义
+//-----------------------------------------------------------------------------
+void MySqlDataSet::initFieldDefs()
+{
+    MYSQL_FIELD *pMySqlFields;
+    DbFieldDef* fieldDef;
+    int nFieldCount;
+
+    dbFieldDefList_.clear();
+    nFieldCount = mysql_num_fields(res_);
+    pMySqlFields = mysql_fetch_fields(res_);
+
+    if (nFieldCount <= 0)
+        iseThrowDbException(SEM_MYSQL_NUM_FIELDS_ERROR);
+
+    for (int i = 0; i < nFieldCount; i++)
+    {
+        fieldDef = new DbFieldDef();
+        fieldDef->setData(pMySqlFields[i].name, pMySqlFields[i].type);
+        dbFieldDefList_.add(fieldDef);
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+MYSQL& MySqlDataSet::getConnObject()
+{
+    return ((MySqlConnection*)dbQuery_->getDbConnection())->getConnObject();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 释放数据集
+//-----------------------------------------------------------------------------
+void MySqlDataSet::freeDataSet()
+{
+    if (res_)
+        mysql_free_result(res_);
+    res_ = NULL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class MySqlQuery
 
 MySqlQuery::MySqlQuery(Database* database) :
-	DbQuery(database)
+    DbQuery(database)
 {
-	// nothing
+    // nothing
 }
 
 MySqlQuery::~MySqlQuery()
 {
-	// nothing
-}
-
-MYSQL& MySqlQuery::getConnObject()
-{
-	return ((MySqlConnection*)dbConnection_)->getConnObject();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 执行SQL (若 resultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
-//-----------------------------------------------------------------------------
-void MySqlQuery::doExecute(DbDataSet *resultDataSet)
-{
-	/*
-	摘自MYSQL官方手册:
-	Upon connection, mysql_real_connect() sets the reconnect flag (part of the
-	MYSQL structure) to a value of 1 in versions of the API older than 5.0.3,
-	or 0 in newer versions. A value of 1 for this flag indicates that if a
-	statement cannot be performed because of a lost connection, to try reconnecting
-	to the server before giving up. You can use the MYSQL_OPT_RECONNECT option
-	to mysql_options() to control reconnection behavior.
-
-	即：只要用 mysql_real_connect() 连接到数据库(而不是 mysql_connect())，那么
-	在 mysql_real_query() 调用时即使连接丢失(比如TCP连接断开)，该调用也会尝试
-	去重新连接数据库。该特性经测试被证明属实。
-
-	注:
-	1. 对于 <= 5.0.3 的版本，MySQL默认会重连；此后的版本需调用 mysql_options()
-	   明确指定 MYSQL_OPT_RECONNECT 为 true，才会重连。
-	2. 为了在连接丢失并重连后，能执行“数据库刚建立连接时要执行的命令”，程序明确
-	   指定不让 mysql_real_query() 自动重连，而是由程序显式重连。
-	*/
-
-	for (int nTimes = 0; nTimes < 2; nTimes++)
-	{
-		int r = mysql_real_query(&getConnObject(), sql_.c_str(), (int)sql_.length());
-
-		// 如果执行SQL失败
-		if (r != 0)
-		{
-			// 如果是首次，并且错误类型为连接丢失，则重试连接
-			if (nTimes == 0)
-			{
-				int nErrNo = mysql_errno(&getConnObject());
-				if (nErrNo == CR_SERVER_GONE_ERROR || nErrNo == CR_SERVER_LOST)
-				{
-					logger().writeStr(SEM_MYSQL_LOST_CONNNECTION);
-
-					// 强制重新连接
-					getDbConnection()->activateConnection(true);
-					continue;
-				}
-			}
-
-			// 否则抛出异常
-			string sql(sql_);
-			if (sql.length() > 1024*2)
-			{
-				sql.resize(100);
-				sql += "...";
-			}
-
-			string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
-			iseThrowDbException(errMsg.c_str());
-		}
-		else break;
-	}
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -341,19 +277,19 @@ void MySqlQuery::doExecute(DbDataSet *resultDataSet)
 //-----------------------------------------------------------------------------
 string MySqlQuery::escapeString(const string& str)
 {
-	if (str.empty()) return "";
+    if (str.empty()) return "";
 
-	int nSrcLen = (int)str.size();
-	Buffer buffer(nSrcLen * 2 + 1);
-	char *pEnd;
+    int nSrcLen = (int)str.size();
+    Buffer buffer(nSrcLen * 2 + 1);
+    char *pEnd;
 
-	ensureConnected();
+    ensureConnected();
 
-	pEnd = (char*)buffer.data();
-	pEnd += mysql_real_escape_string(&getConnObject(), pEnd, str.c_str(), nSrcLen);
-	*pEnd = '\0';
+    pEnd = (char*)buffer.data();
+    pEnd += mysql_real_escape_string(&getConnObject(), pEnd, str.c_str(), nSrcLen);
+    *pEnd = '\0';
 
-	return (char*)buffer.data();
+    return (char*)buffer.data();
 }
 
 //-----------------------------------------------------------------------------
@@ -361,12 +297,12 @@ string MySqlQuery::escapeString(const string& str)
 //-----------------------------------------------------------------------------
 UINT MySqlQuery::getAffectedRowCount()
 {
-	UINT result = 0;
+    UINT result = 0;
 
-	if (dbConnection_)
-		result = (UINT)mysql_affected_rows(&getConnObject());
+    if (dbConnection_)
+        result = (UINT)mysql_affected_rows(&getConnObject());
 
-	return result;
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -374,12 +310,80 @@ UINT MySqlQuery::getAffectedRowCount()
 //-----------------------------------------------------------------------------
 UINT64 MySqlQuery::getLastInsertId()
 {
-	UINT64 result = 0;
+    UINT64 result = 0;
 
-	if (dbConnection_)
-		result = (UINT64)mysql_insert_id(&getConnObject());
+    if (dbConnection_)
+        result = (UINT64)mysql_insert_id(&getConnObject());
 
-	return result;
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 执行SQL (若 resultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
+//-----------------------------------------------------------------------------
+void MySqlQuery::doExecute(DbDataSet *resultDataSet)
+{
+    /*
+    摘自MYSQL官方手册:
+    Upon connection, mysql_real_connect() sets the reconnect flag (part of the
+    MYSQL structure) to a value of 1 in versions of the API older than 5.0.3,
+    or 0 in newer versions. A value of 1 for this flag indicates that if a
+    statement cannot be performed because of a lost connection, to try reconnecting
+    to the server before giving up. You can use the MYSQL_OPT_RECONNECT option
+    to mysql_options() to control reconnection behavior.
+
+    即：只要用 mysql_real_connect() 连接到数据库(而不是 mysql_connect())，那么
+    在 mysql_real_query() 调用时即使连接丢失(比如TCP连接断开)，该调用也会尝试
+    去重新连接数据库。该特性经测试被证明属实。
+
+    注:
+    1. 对于 <= 5.0.3 的版本，MySQL默认会重连；此后的版本需调用 mysql_options()
+       明确指定 MYSQL_OPT_RECONNECT 为 true，才会重连。
+    2. 为了在连接丢失并重连后，能执行“数据库刚建立连接时要执行的命令”，程序明确
+       指定不让 mysql_real_query() 自动重连，而是由程序显式重连。
+    */
+
+    for (int nTimes = 0; nTimes < 2; nTimes++)
+    {
+        int r = mysql_real_query(&getConnObject(), sql_.c_str(), (int)sql_.length());
+
+        // 如果执行SQL失败
+        if (r != 0)
+        {
+            // 如果是首次，并且错误类型为连接丢失，则重试连接
+            if (nTimes == 0)
+            {
+                int nErrNo = mysql_errno(&getConnObject());
+                if (nErrNo == CR_SERVER_GONE_ERROR || nErrNo == CR_SERVER_LOST)
+                {
+                    logger().writeStr(SEM_MYSQL_LOST_CONNNECTION);
+
+                    // 强制重新连接
+                    getDbConnection()->activateConnection(true);
+                    continue;
+                }
+            }
+
+            // 否则抛出异常
+            string sql(sql_);
+            if (sql.length() > 1024*2)
+            {
+                sql.resize(100);
+                sql += "...";
+            }
+
+            string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
+            iseThrowDbException(errMsg.c_str());
+        }
+        else break;
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+MYSQL& MySqlQuery::getConnObject()
+{
+    return ((MySqlConnection*)dbConnection_)->getConnObject();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

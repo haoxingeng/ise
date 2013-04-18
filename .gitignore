@@ -3,13 +3,17 @@
 *.user
 *.sln.docstates
 
+Test/
+.svn/
+
 # Build results
 Debug MBCS*/
 Debug Unicode*/
 Release MBCS*/
 Release Unicode*/
+Debug/
+Release/
 Output/
-Test/
 *_i.c
 *_p.c
 *.ilk

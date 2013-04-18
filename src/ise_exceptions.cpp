@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "ise_exceptions.h"
-#include "ise_sysutils.h"
+#include "ise_sys_utils.h"
 
 namespace ise
 {
@@ -43,8 +43,8 @@ const char* const EXCEPTION_LOG_PREFIX = "ERROR: ";
 //-----------------------------------------------------------------------------
 const char* Exception::what() const throw()
 {
-	what_ = getErrorMessage();
-	return what_.c_str();
+    what_ = getErrorMessage();
+    return what_.c_str();
 }
 
 //-----------------------------------------------------------------------------
@@ -52,47 +52,47 @@ const char* Exception::what() const throw()
 //-----------------------------------------------------------------------------
 string Exception::makeLogStr() const
 {
-	return string(EXCEPTION_LOG_PREFIX) + getErrorMessage();
+    return string(EXCEPTION_LOG_PREFIX) + getErrorMessage();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class SimpleException
 
 SimpleException::SimpleException(const char *errorMsg,
-	const char *srcFileName, int srcLineNumber)
+    const char *srcFileName, int srcLineNumber)
 {
-	if (errorMsg)
-		errorMsg_ = errorMsg;
-	if (srcFileName)
-		srcFileName_ = srcFileName;
-	srcLineNumber_ = srcLineNumber;
+    if (errorMsg)
+        errorMsg_ = errorMsg;
+    if (srcFileName)
+        srcFileName_ = srcFileName;
+    srcLineNumber_ = srcLineNumber;
 }
 
 //-----------------------------------------------------------------------------
 
 string SimpleException::makeLogStr() const
 {
-	string result(getErrorMessage());
+    string result(getErrorMessage());
 
-	if (!srcFileName_.empty() && srcLineNumber_ >= 0)
-		result = result + " (" + srcFileName_ + ":" + intToStr(srcLineNumber_) + ")";
+    if (!srcFileName_.empty() && srcLineNumber_ >= 0)
+        result = result + " (" + srcFileName_ + ":" + intToStr(srcLineNumber_) + ")";
 
-	result = string(EXCEPTION_LOG_PREFIX) + result;
+    result = string(EXCEPTION_LOG_PREFIX) + result;
 
-	return result;
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class FileException
 
 FileException::FileException(const char *fileName, int errorCode, const char *errorMsg) :
-	fileName_(fileName),
-	errorCode_(errorCode)
+    fileName_(fileName),
+    errorCode_(errorCode)
 {
-	if (errorMsg == NULL)
-		errorMsg_ = sysErrorMessage(errorCode);
-	else
-		errorMsg_ = errorMsg;
+    if (errorMsg == NULL)
+        errorMsg_ = sysErrorMessage(errorCode);
+    else
+        errorMsg_ = errorMsg;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

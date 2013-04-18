@@ -38,28 +38,26 @@ IseBusiness* createIseBusinessObject();
 ///////////////////////////////////////////////////////////////////////////////
 // 主函数
 
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	try
-	{
-		if (iseApplication.parseArguments(__argc, __argv))
-		{
-			struct CAppFinalizer {
-				~CAppFinalizer() { iseApplication.finalize(); }
-			} AppFinalizer;
+    try
+    {
+        if (iseApp().parseArguments(__argc, __argv))
+        {
+            AutoFinalizer finalizer(boost::bind(&IseApplication::finalize, &iseApp()));
 
-			iseApplication.initialize();
-			iseApplication.run();
-		}
-	}
-	catch (Exception& e)
-	{
-		logger().writeException(e);
-	}
+            iseApp().initialize();
+            iseApp().run();
+        }
+    }
+    catch (Exception& e)
+    {
+        logger().writeException(e);
+    }
 
-	return 0;
+    return 0;
 }
 
 #endif
@@ -67,25 +65,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 int main(int argc, char *argv[])
 {
-	try
-	{
-		if (iseApplication.parseArguments(argc, argv))
-		{
-			struct CAppFinalizer {
-				~CAppFinalizer() { iseApplication.finalize(); }
-			} AppFinalizer;
+    try
+    {
+        if (iseApp().parseArguments(argc, argv))
+        {
+            AutoFinalizer finalizer(boost::bind(&IseApplication::finalize, &iseApp()));
 
-			iseApplication.initialize();
-			iseApplication.run();
-		}
-	}
-	catch (Exception& e)
-	{
-		cout << e.makeLogStr() << endl << endl;
-		logger().writeException(e);
-	}
+            iseApp().initialize();
+            iseApp().run();
+        }
+    }
+    catch (Exception& e)
+    {
+        cout << e.makeLogStr() << endl << endl;
+        logger().writeException(e);
+    }
 
-	return 0;
+    return 0;
 }
 
 #endif
@@ -95,11 +91,6 @@ namespace ise
 
 ///////////////////////////////////////////////////////////////////////////////
 // 全局变量定义
-
-// 应用程序对象
-IseApplication iseApplication;
-// ISE业务对象指针
-IseBusiness *iseBusiness;
 
 #ifdef ISE_LINUX
 // 用于进程退出时长跳转
@@ -118,16 +109,16 @@ static char *reservedMemoryForExit;
 //-----------------------------------------------------------------------------
 void exitProgramSignalHandler(int sigNo)
 {
-	static bool isInHandler = false;
-	if (isInHandler) return;
-	isInHandler = true;
+    static bool isInHandler = false;
+    if (isInHandler) return;
+    isInHandler = true;
 
-	// 停止主线程循环
-	iseApplication.setTerminated(true);
+    // 停止主线程循环
+    iseApp().setTerminated(true);
 
-	logger().writeFmt(SEM_SIG_TERM, sigNo);
+    logger().writeFmt(SEM_SIG_TERM, sigNo);
 
-	siglongjmp(procExitJmpBuf, 1);
+    siglongjmp(procExitJmpBuf, 1);
 }
 
 //-----------------------------------------------------------------------------
@@ -135,15 +126,15 @@ void exitProgramSignalHandler(int sigNo)
 //-----------------------------------------------------------------------------
 void fatalErrorSignalHandler(int sigNo)
 {
-	static bool isInHandler = false;
-	if (isInHandler) return;
-	isInHandler = true;
+    static bool isInHandler = false;
+    if (isInHandler) return;
+    isInHandler = true;
 
-	// 停止主线程循环
-	iseApplication.setTerminated(true);
+    // 停止主线程循环
+    iseApp().setTerminated(true);
 
-	logger().writeFmt(SEM_SIG_FATAL_ERROR, sigNo);
-	abort();
+    logger().writeFmt(SEM_SIG_FATAL_ERROR, sigNo);
+    abort();
 }
 #endif
 
@@ -152,13 +143,14 @@ void fatalErrorSignalHandler(int sigNo)
 //-----------------------------------------------------------------------------
 void userSignalHandler(int sigNo)
 {
-	const CallbackList<USER_SIGNAL_HANDLER_PROC>& procList = iseApplication.onUserSignal_;
+    const CallbackList<UserSignalHandlerCallback>& callbackList = iseApp().onUserSignal_;
 
-	for (int i = 0; i < procList.getCount(); i++)
-	{
-		const CallbackDef<USER_SIGNAL_HANDLER_PROC>& procItem = procList.getItem(i);
-		procItem.proc(procItem.param, sigNo);
-	}
+    for (int i = 0; i < callbackList.getCount(); i++)
+    {
+        const UserSignalHandlerCallback& callback = callbackList.getItem(i);
+        if (callback)
+            callback(sigNo);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -169,16 +161,16 @@ void userSignalHandler(int sigNo)
 //-----------------------------------------------------------------------------
 void outOfMemoryHandler()
 {
-	static bool isInHandler = false;
-	if (isInHandler) return;
-	isInHandler = true;
+    static bool isInHandler = false;
+    if (isInHandler) return;
+    isInHandler = true;
 
-	// 释放保留内存，以免程序退出过程中再次出现内存不足
-	delete[] reservedMemoryForExit;
-	reservedMemoryForExit = NULL;
+    // 释放保留内存，以免程序退出过程中再次出现内存不足
+    delete[] reservedMemoryForExit;
+    reservedMemoryForExit = NULL;
 
-	logger().writeStr(SEM_OUT_OF_MEMORY);
-	abort();
+    logger().writeStr(SEM_OUT_OF_MEMORY);
+    abort();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,31 +178,31 @@ void outOfMemoryHandler()
 
 IseOptions::IseOptions()
 {
-	logFileName_ = "";
-	logNewFileDaily_ = false;
-	isDaemon_ = false;
-	allowMultiInstance_ = false;
+    logFileName_ = "";
+    logNewFileDaily_ = false;
+    isDaemon_ = false;
+    allowMultiInstance_ = false;
 
-	setServerType(DEF_SERVER_TYPE);
-	setAdjustThreadInterval(DEF_ADJUST_THREAD_INTERVAL);
-	setAssistorThreadCount(DEF_ASSISTOR_THREAD_COUNT);
+    setServerType(DEF_SERVER_TYPE);
+    setAdjustThreadInterval(DEF_ADJUST_THREAD_INTERVAL);
+    setAssistorThreadCount(DEF_ASSISTOR_THREAD_COUNT);
 
-	setUdpServerPort(DEF_UDP_SERVER_PORT);
-	setUdpListenerThreadCount(DEF_UDP_LISTENER_THD_COUNT);
-	setUdpRequestGroupCount(DEF_UDP_REQ_GROUP_COUNT);
-	for (int i = 0; i < DEF_UDP_REQ_GROUP_COUNT; i++)
-	{
-		setUdpRequestQueueCapacity(i, DEF_UDP_REQ_QUEUE_CAPACITY);
-		setUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
-	}
-	setUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
-	setUdpWorkerThreadTimeOut(DEF_UDP_WORKER_THD_TIMEOUT);
-	SetUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
+    setUdpServerPort(DEF_UDP_SERVER_PORT);
+    setUdpListenerThreadCount(DEF_UDP_LISTENER_THD_COUNT);
+    setUdpRequestGroupCount(DEF_UDP_REQ_GROUP_COUNT);
+    for (int i = 0; i < DEF_UDP_REQ_GROUP_COUNT; i++)
+    {
+        setUdpRequestQueueCapacity(i, DEF_UDP_REQ_QUEUE_CAPACITY);
+        setUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
+    }
+    setUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
+    setUdpWorkerThreadTimeOut(DEF_UDP_WORKER_THD_TIMEOUT);
+    SetUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
 
-	setTcpServerCount(DEF_TCP_REQ_GROUP_COUNT);
-	for (int i = 0; i < DEF_TCP_REQ_GROUP_COUNT; i++)
-		setTcpServerPort(i, DEF_TCP_SERVER_PORT);
-	setTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
+    setTcpServerCount(DEF_TCP_REQ_GROUP_COUNT);
+    for (int i = 0; i < DEF_TCP_REQ_GROUP_COUNT; i++)
+        setTcpServerPort(i, DEF_TCP_SERVER_PORT);
+    setTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
 }
 
 //-----------------------------------------------------------------------------
@@ -222,7 +214,7 @@ IseOptions::IseOptions()
 //-----------------------------------------------------------------------------
 void IseOptions::setServerType(UINT serverType)
 {
-	serverType_ = serverType;
+    serverType_ = serverType;
 }
 
 //-----------------------------------------------------------------------------
@@ -230,8 +222,8 @@ void IseOptions::setServerType(UINT serverType)
 //-----------------------------------------------------------------------------
 void IseOptions::setAdjustThreadInterval(int seconds)
 {
-	if (seconds <= 0) seconds = DEF_ADJUST_THREAD_INTERVAL;
-	adjustThreadInterval_ = seconds;
+    if (seconds <= 0) seconds = DEF_ADJUST_THREAD_INTERVAL;
+    adjustThreadInterval_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
@@ -239,8 +231,8 @@ void IseOptions::setAdjustThreadInterval(int seconds)
 //-----------------------------------------------------------------------------
 void IseOptions::setAssistorThreadCount(int count)
 {
-	if (count < 0) count = 0;
-	assistorThreadCount_ = count;
+    if (count < 0) count = 0;
+    assistorThreadCount_ = count;
 }
 
 //-----------------------------------------------------------------------------
@@ -248,7 +240,7 @@ void IseOptions::setAssistorThreadCount(int count)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpServerPort(int port)
 {
-	udpServerPort_ = port;
+    udpServerPort_ = port;
 }
 
 //-----------------------------------------------------------------------------
@@ -256,9 +248,9 @@ void IseOptions::setUdpServerPort(int port)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpListenerThreadCount(int count)
 {
-	if (count < 1) count = 1;
+    if (count < 1) count = 1;
 
-	udpListenerThreadCount_ = count;
+    udpListenerThreadCount_ = count;
 }
 
 //-----------------------------------------------------------------------------
@@ -266,10 +258,10 @@ void IseOptions::setUdpListenerThreadCount(int count)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpRequestGroupCount(int count)
 {
-	if (count <= 0) count = DEF_UDP_REQ_GROUP_COUNT;
+    if (count <= 0) count = DEF_UDP_REQ_GROUP_COUNT;
 
-	udpRequestGroupCount_ = count;
-	udpRequestGroupOpts_.resize(count);
+    udpRequestGroupCount_ = count;
+    udpRequestGroupOpts_.resize(count);
 }
 
 //-----------------------------------------------------------------------------
@@ -280,11 +272,11 @@ void IseOptions::setUdpRequestGroupCount(int count)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpRequestQueueCapacity(int groupIndex, int capacity)
 {
-	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
+    if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
 
-	if (capacity <= 0) capacity = DEF_UDP_REQ_QUEUE_CAPACITY;
+    if (capacity <= 0) capacity = DEF_UDP_REQ_QUEUE_CAPACITY;
 
-	udpRequestGroupOpts_[groupIndex].requestQueueCapacity = capacity;
+    udpRequestGroupOpts_[groupIndex].requestQueueCapacity = capacity;
 }
 
 //-----------------------------------------------------------------------------
@@ -296,13 +288,13 @@ void IseOptions::setUdpRequestQueueCapacity(int groupIndex, int capacity)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpWorkerThreadCount(int groupIndex, int minThreads, int maxThreads)
 {
-	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
+    if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
 
-	if (minThreads < 1) minThreads = 1;
-	if (maxThreads < minThreads) maxThreads = minThreads;
+    if (minThreads < 1) minThreads = 1;
+    if (maxThreads < minThreads) maxThreads = minThreads;
 
-	udpRequestGroupOpts_[groupIndex].minWorkerThreads = minThreads;
-	udpRequestGroupOpts_[groupIndex].maxWorkerThreads = maxThreads;
+    udpRequestGroupOpts_[groupIndex].minWorkerThreads = minThreads;
+    udpRequestGroupOpts_[groupIndex].maxWorkerThreads = maxThreads;
 }
 
 //-----------------------------------------------------------------------------
@@ -312,8 +304,8 @@ void IseOptions::setUdpWorkerThreadCount(int groupIndex, int minThreads, int max
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpRequestEffWaitTime(int seconds)
 {
-	if (seconds <= 0) seconds = DEF_UDP_REQ_EFF_WAIT_TIME;
-	udpRequestEffWaitTime_ = seconds;
+    if (seconds <= 0) seconds = DEF_UDP_REQ_EFF_WAIT_TIME;
+    udpRequestEffWaitTime_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
@@ -321,8 +313,8 @@ void IseOptions::setUdpRequestEffWaitTime(int seconds)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
 {
-	if (seconds < 0) seconds = 0;
-	udpWorkerThreadTimeOut_ = seconds;
+    if (seconds < 0) seconds = 0;
+    udpWorkerThreadTimeOut_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
@@ -330,8 +322,8 @@ void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
 //-----------------------------------------------------------------------------
 void IseOptions::SetUdpRequestQueueAlertLine(int count)
 {
-	if (count < 1) count = 1;
-	udpRequestQueueAlertLine_ = count;
+    if (count < 1) count = 1;
+    udpRequestQueueAlertLine_ = count;
 }
 
 //-----------------------------------------------------------------------------
@@ -339,10 +331,10 @@ void IseOptions::SetUdpRequestQueueAlertLine(int count)
 //-----------------------------------------------------------------------------
 void IseOptions::setTcpServerCount(int count)
 {
-	if (count < 0) count = 0;
+    if (count < 0) count = 0;
 
-	tcpServerCount_ = count;
-	tcpServerOpts_.resize(count);
+    tcpServerCount_ = count;
+    tcpServerOpts_.resize(count);
 }
 
 //-----------------------------------------------------------------------------
@@ -353,9 +345,9 @@ void IseOptions::setTcpServerCount(int count)
 //-----------------------------------------------------------------------------
 void IseOptions::setTcpServerPort(int serverIndex, int port)
 {
-	if (serverIndex < 0 || serverIndex >= tcpServerCount_) return;
+    if (serverIndex < 0 || serverIndex >= tcpServerCount_) return;
 
-	tcpServerOpts_[serverIndex].tcpServerPort = port;
+    tcpServerOpts_[serverIndex].tcpServerPort = port;
 }
 
 //-----------------------------------------------------------------------------
@@ -363,8 +355,8 @@ void IseOptions::setTcpServerPort(int serverIndex, int port)
 //-----------------------------------------------------------------------------
 void IseOptions::setTcpEventLoopCount(int count)
 {
-	if (count < 1) count = 1;
-	tcpEventLoopCount_ = count;
+    if (count < 1) count = 1;
+    tcpEventLoopCount_ = count;
 }
 
 //-----------------------------------------------------------------------------
@@ -374,9 +366,9 @@ void IseOptions::setTcpEventLoopCount(int count)
 //-----------------------------------------------------------------------------
 int IseOptions::getUdpRequestQueueCapacity(int groupIndex)
 {
-	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return -1;
+    if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return -1;
 
-	return udpRequestGroupOpts_[groupIndex].requestQueueCapacity;
+    return udpRequestGroupOpts_[groupIndex].requestQueueCapacity;
 }
 
 //-----------------------------------------------------------------------------
@@ -388,10 +380,10 @@ int IseOptions::getUdpRequestQueueCapacity(int groupIndex)
 //-----------------------------------------------------------------------------
 void IseOptions::getUdpWorkerThreadCount(int groupIndex, int& minThreads, int& maxThreads)
 {
-	if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
+    if (groupIndex < 0 || groupIndex >= udpRequestGroupCount_) return;
 
-	minThreads = udpRequestGroupOpts_[groupIndex].minWorkerThreads;
-	maxThreads = udpRequestGroupOpts_[groupIndex].maxWorkerThreads;
+    minThreads = udpRequestGroupOpts_[groupIndex].minWorkerThreads;
+    maxThreads = udpRequestGroupOpts_[groupIndex].maxWorkerThreads;
 }
 
 //-----------------------------------------------------------------------------
@@ -401,26 +393,101 @@ void IseOptions::getUdpWorkerThreadCount(int groupIndex, int& minThreads, int& m
 //-----------------------------------------------------------------------------
 int IseOptions::getTcpServerPort(int serverIndex)
 {
-	if (serverIndex < 0 || serverIndex >= tcpServerCount_) return -1;
+    if (serverIndex < 0 || serverIndex >= tcpServerCount_) return -1;
 
-	return tcpServerOpts_[serverIndex].tcpServerPort;
+    return tcpServerOpts_[serverIndex].tcpServerPort;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class IseMainServer
 
 IseMainServer::IseMainServer() :
-	udpServer_(NULL),
-	tcpServer_(NULL),
-	assistorServer_(NULL),
-	sysThreadMgr_(NULL)
+    udpServer_(NULL),
+    tcpServer_(NULL),
+    assistorServer_(NULL),
+    sysThreadMgr_(NULL)
 {
-	// nothing
+    // nothing
 }
 
 IseMainServer::~IseMainServer()
 {
-	// nothing
+    // nothing
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 服务器初始化 (若初始化失败则抛出异常)
+// 备注: 由 iseApp().initialize() 调用
+//-----------------------------------------------------------------------------
+void IseMainServer::initialize()
+{
+    // 初始化 UDP 服务器
+    if (iseApp().getIseOptions().getServerType() & ST_UDP)
+    {
+        udpServer_ = new MainUdpServer();
+        udpServer_->setLocalPort(iseApp().getIseOptions().getUdpServerPort());
+        udpServer_->setListenerThreadCount(iseApp().getIseOptions().getUdpListenerThreadCount());
+        udpServer_->open();
+    }
+
+    // 初始化 TCP 服务器
+    if (iseApp().getIseOptions().getServerType() & ST_TCP)
+    {
+        tcpServer_ = new MainTcpServer();
+        tcpServer_->open();
+    }
+
+    // 初始化辅助服务器
+    assistorServer_ = new AssistorServer();
+    assistorServer_->open();
+
+    // 初始化系统线程管理器
+    sysThreadMgr_ = new SysThreadMgr();
+    sysThreadMgr_->initialize();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 服务器结束化
+// 备注: 由 iseApp().finalize() 调用，在 IseMainServer 的析构函数中不必调用
+//-----------------------------------------------------------------------------
+void IseMainServer::finalize()
+{
+    if (assistorServer_)
+    {
+        assistorServer_->close();
+        delete assistorServer_;
+        assistorServer_ = NULL;
+    }
+
+    if (udpServer_)
+    {
+        udpServer_->close();
+        delete udpServer_;
+        udpServer_ = NULL;
+    }
+
+    if (tcpServer_)
+    {
+        tcpServer_->close();
+        delete tcpServer_;
+        tcpServer_ = NULL;
+    }
+
+    if (sysThreadMgr_)
+    {
+        sysThreadMgr_->finalize();
+        delete sysThreadMgr_;
+        sysThreadMgr_ = NULL;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 开始运行服务器
+// 备注: 由 iseApp().run() 调用
+//-----------------------------------------------------------------------------
+void IseMainServer::run()
+{
+    runBackground();
 }
 
 //-----------------------------------------------------------------------------
@@ -428,128 +495,173 @@ IseMainServer::~IseMainServer()
 //-----------------------------------------------------------------------------
 void IseMainServer::runBackground()
 {
-	int adjustThreadInterval = iseApplication.getIseOptions().getAdjustThreadInterval();
-	int secondCount = 0;
+    int adjustThreadInterval = iseApp().getIseOptions().getAdjustThreadInterval();
+    int secondCount = 0;
 
-	while (!iseApplication.getTerminated())
-	try
-	{
-		try
-		{
-			// 每隔 adjustThreadInterval 秒执行一次
-			if ((secondCount % adjustThreadInterval) == 0)
-			{
+    while (!iseApp().getTerminated())
+    try
+    {
+        try
+        {
+            // 每隔 adjustThreadInterval 秒执行一次
+            if ((secondCount % adjustThreadInterval) == 0)
+            {
 #ifdef ISE_LINUX
-				// 暂时屏蔽退出信号
-				SignalMasker sigMasker(true);
-				sigMasker.setSignals(1, SIGTERM);
-				sigMasker.block();
+                // 暂时屏蔽退出信号
+                SignalMasker sigMasker(true);
+                sigMasker.setSignals(1, SIGTERM);
+                sigMasker.block();
 #endif
 
-				// 维护工作者线程的数量
-				if (udpServer_) udpServer_->adjustWorkerThreadCount();
-			}
-		}
-		catch (...)
-		{}
+                // 维护工作者线程的数量
+                if (udpServer_) udpServer_->adjustWorkerThreadCount();
+            }
+        }
+        catch (...)
+        {}
 
-		secondCount++;
-		sleepSec(1, true);  // 1秒
-	}
-	catch (...)
-	{}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 服务器初始化 (若初始化失败则抛出异常)
-// 备注: 由 iseApplication.initialize() 调用
-//-----------------------------------------------------------------------------
-void IseMainServer::initialize()
-{
-	// 初始化 UDP 服务器
-	if (iseApplication.getIseOptions().getServerType() & ST_UDP)
-	{
-		udpServer_ = new MainUdpServer();
-		udpServer_->setLocalPort(iseApplication.getIseOptions().getUdpServerPort());
-		udpServer_->setListenerThreadCount(iseApplication.getIseOptions().getUdpListenerThreadCount());
-		udpServer_->open();
-	}
-
-	// 初始化 TCP 服务器
-	if (iseApplication.getIseOptions().getServerType() & ST_TCP)
-	{
-		tcpServer_ = new MainTcpServer();
-		tcpServer_->open();
-	}
-
-	// 初始化辅助服务器
-	assistorServer_ = new AssistorServer();
-	assistorServer_->open();
-
-	// 初始化系统线程管理器
-	sysThreadMgr_ = new SysThreadMgr();
-	sysThreadMgr_->initialize();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 服务器结束化
-// 备注: 由 iseApplication.finalize() 调用，在 IseMainServer 的析构函数中不必调用
-//-----------------------------------------------------------------------------
-void IseMainServer::finalize()
-{
-	if (assistorServer_)
-	{
-		assistorServer_->close();
-		delete assistorServer_;
-		assistorServer_ = NULL;
-	}
-
-	if (udpServer_)
-	{
-		udpServer_->close();
-		delete udpServer_;
-		udpServer_ = NULL;
-	}
-
-	if (tcpServer_)
-	{
-		tcpServer_->close();
-		delete tcpServer_;
-		tcpServer_ = NULL;
-	}
-
-	if (sysThreadMgr_)
-	{
-		sysThreadMgr_->finalize();
-		delete sysThreadMgr_;
-		sysThreadMgr_ = NULL;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 开始运行服务器
-// 备注: 由 iseApplication.run() 调用
-//-----------------------------------------------------------------------------
-void IseMainServer::run()
-{
-	runBackground();
+        secondCount++;
+        sleepSec(1, true);  // 1秒
+    }
+    catch (...)
+    {}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class IseApplication
 
 IseApplication::IseApplication() :
-	mainServer_(NULL),
-	appStartTime_(time(NULL)),
-	initialized_(false),
-	terminated_(false)
+    iseBusiness_(NULL),
+    mainServer_(NULL),
+    appStartTime_(time(NULL)),
+    initialized_(false),
+    terminated_(false)
 {
-	createIseBusiness();
+    createIseBusiness();
 }
 
 IseApplication::~IseApplication()
 {
-	finalize();
+    finalize();
+}
+
+//-----------------------------------------------------------------------------
+
+IseApplication& IseApplication::instance()
+{
+    static IseApplication obj;
+    return obj;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 解释命令行参数
+// 返回:
+//   true  - 允许程序继执行
+//   false - 程序应退出 (比如命令行参数不正确)
+//-----------------------------------------------------------------------------
+bool IseApplication::parseArguments(int argc, char *argv[])
+{
+    // 先记录命令行参数
+    argList_.clear();
+    for (int i = 0; i < argc; i++)
+        argList_.add(argv[i]);
+
+    // 处理标准命令行参数
+    if (processStandardArgs()) return false;
+
+    // 交给 IseBusiness 对象解释
+    return iseBusiness_->parseArguments(argc, argv);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 应用程序初始化 (若初始化失败则抛出异常)
+//-----------------------------------------------------------------------------
+void IseApplication::initialize()
+{
+    try
+    {
+#ifdef ISE_LINUX
+        // 在初始化阶段要屏蔽退出信号
+        SignalMasker sigMasker(true);
+        sigMasker.setSignals(1, SIGTERM);
+        sigMasker.block();
+#endif
+
+        networkInitialize();
+        initExeName();
+        iseBusiness_->doStartupState(SS_BEFORE_START);
+        iseBusiness_->initIseOptions(iseOptions_);
+        checkMultiInstance();
+        if (iseOptions_.getIsDaemon()) initDaemon();
+        initSignals();
+        initNewOperHandler();
+        applyIseOptions();
+        createMainServer();
+        iseBusiness_->initialize();
+        mainServer_->initialize();
+        iseBusiness_->doStartupState(SS_AFTER_START);
+        if (iseOptions_.getIsDaemon()) closeTerminal();
+        initialized_ = true;
+    }
+    catch (Exception&)
+    {
+        iseBusiness_->doStartupState(SS_START_FAIL);
+        doFinalize();
+        throw;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 应用程序结束化
+//-----------------------------------------------------------------------------
+void IseApplication::finalize()
+{
+    if (initialized_)
+    {
+        doFinalize();
+        initialized_ = false;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 开始运行应用程序
+//-----------------------------------------------------------------------------
+void IseApplication::run()
+{
+#ifdef ISE_LINUX
+    // 进程被终止时长跳转到此处并立即返回
+    if (sigsetjmp(procExitJmpBuf, 0)) return;
+#endif
+
+    if (mainServer_)
+        mainServer_->run();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 取得可执行文件所在的路径
+//-----------------------------------------------------------------------------
+string IseApplication::getExePath()
+{
+    return extractFilePath(exeName_);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 取得命令行参数字符串 (index: 0-based)
+//-----------------------------------------------------------------------------
+string IseApplication::getArgString(int index)
+{
+    if (index >= 0 && index < (int)argList_.getCount())
+        return argList_[index];
+    else
+        return "";
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 注册用户信号处理器
+//-----------------------------------------------------------------------------
+void IseApplication::registerUserSignalHandler(const UserSignalHandlerCallback& callback)
+{
+    onUserSignal_.registerCallback(callback);
 }
 
 //-----------------------------------------------------------------------------
@@ -560,24 +672,24 @@ IseApplication::~IseApplication()
 //-----------------------------------------------------------------------------
 bool IseApplication::processStandardArgs()
 {
-	if (getArgCount() == 2)
-	{
-		string arg = getArgString(1);
-		if (arg == "--version")
-		{
-			string version = iseBusiness->getAppVersion();
-			printf("%s\n", version.c_str());
-			return true;
-		}
-		if (arg == "--help")
-		{
-			string help = iseBusiness->getAppHelp();
-			printf("%s\n", help.c_str());
-			return true;
-		}
-	}
+    if (getArgCount() == 2)
+    {
+        string arg = getArgString(1);
+        if (arg == "--version")
+        {
+            string version = iseBusiness_->getAppVersion();
+            printf("%s\n", version.c_str());
+            return true;
+        }
+        if (arg == "--help")
+        {
+            string help = iseBusiness_->getAppHelp();
+            printf("%s\n", help.c_str());
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -585,18 +697,18 @@ bool IseApplication::processStandardArgs()
 //-----------------------------------------------------------------------------
 void IseApplication::checkMultiInstance()
 {
-	if (iseOptions_.getAllowMultiInstance()) return;
+    if (iseOptions_.getAllowMultiInstance()) return;
 
-#ifdef ISE_WIN32
-	CreateMutexA(NULL, false, getExeName().c_str());
-	if (GetLastError() == ERROR_ALREADY_EXISTS)
-		iseThrowException(SEM_ALREADY_RUNNING);
+#ifdef ISE_WINDOWS
+    CreateMutexA(NULL, false, getExeName().c_str());
+    if (GetLastError() == ERROR_ALREADY_EXISTS)
+        iseThrowException(SEM_ALREADY_RUNNING);
 #endif
 #ifdef ISE_LINUX
-	umask(0);
-	int fd = open(getExeName().c_str(), O_RDONLY, 0666);
-	if (fd >= 0 && flock(fd, LOCK_EX | LOCK_NB) != 0)
-		iseThrowException(SEM_ALREADY_RUNNING);
+    umask(0);
+    int fd = open(getExeName().c_str(), O_RDONLY, 0666);
+    if (fd >= 0 && flock(fd, LOCK_EX | LOCK_NB) != 0)
+        iseThrowException(SEM_ALREADY_RUNNING);
 #endif
 }
 
@@ -605,7 +717,7 @@ void IseApplication::checkMultiInstance()
 //-----------------------------------------------------------------------------
 void IseApplication::applyIseOptions()
 {
-	logger().setFileName(iseOptions_.getLogFileName(), iseOptions_.getLogNewFileDaily());
+    logger().setFileName(iseOptions_.getLogFileName(), iseOptions_.getLogNewFileDaily());
 }
 
 //-----------------------------------------------------------------------------
@@ -613,8 +725,8 @@ void IseApplication::applyIseOptions()
 //-----------------------------------------------------------------------------
 void IseApplication::createMainServer()
 {
-	if (!mainServer_)
-		mainServer_ = new IseMainServer;
+    if (!mainServer_)
+        mainServer_ = new IseMainServer;
 }
 
 //-----------------------------------------------------------------------------
@@ -622,8 +734,8 @@ void IseApplication::createMainServer()
 //-----------------------------------------------------------------------------
 void IseApplication::freeMainServer()
 {
-	delete mainServer_;
-	mainServer_ = NULL;
+    delete mainServer_;
+    mainServer_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -631,8 +743,11 @@ void IseApplication::freeMainServer()
 //-----------------------------------------------------------------------------
 void IseApplication::createIseBusiness()
 {
-	if (!iseBusiness)
-		iseBusiness = createIseBusinessObject();
+    if (!iseBusiness_)
+        iseBusiness_ = createIseBusinessObject();
+
+    if (!iseBusiness_)
+        iseThrowException(SEM_BUSINESS_OBJ_EXPECTED);
 }
 
 //-----------------------------------------------------------------------------
@@ -640,8 +755,8 @@ void IseApplication::createIseBusiness()
 //-----------------------------------------------------------------------------
 void IseApplication::freeIseBusiness()
 {
-	delete iseBusiness;
-	iseBusiness = NULL;
+    delete iseBusiness_;
+    iseBusiness_ = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -649,7 +764,7 @@ void IseApplication::freeIseBusiness()
 //-----------------------------------------------------------------------------
 void IseApplication::initExeName()
 {
-	exeName_ = GetAppExeName();
+    exeName_ = GetAppExeName();
 }
 
 //-----------------------------------------------------------------------------
@@ -657,38 +772,38 @@ void IseApplication::initExeName()
 //-----------------------------------------------------------------------------
 void IseApplication::initDaemon()
 {
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 #endif
 #ifdef ISE_LINUX
-	int r;
+    int r;
 
-	r = fork();
-	if (r < 0)
-		iseThrowException(SEM_INIT_DAEMON_ERROR);
-	else if (r != 0)
-		exit(0);
+    r = fork();
+    if (r < 0)
+        iseThrowException(SEM_INIT_DAEMON_ERROR);
+    else if (r != 0)
+        exit(0);
 
-	// 第一子进程后台继续执行
+    // 第一子进程后台继续执行
 
-	// 第一子进程成为新的会话组长和进程组长
-	r = setsid();
-	if (r < 0) exit(1);
+    // 第一子进程成为新的会话组长和进程组长
+    r = setsid();
+    if (r < 0) exit(1);
 
-	// 忽略 SIGHUP 信号 (注: 程序与终端断开时发生，比如启动程序后关闭telnet)
-	signal(SIGHUP, SIG_IGN);
+    // 忽略 SIGHUP 信号 (注: 程序与终端断开时发生，比如启动程序后关闭telnet)
+    signal(SIGHUP, SIG_IGN);
 
-	// 第一子进程退出
-	r = fork();
-	if (r < 0) exit(1);
-	else if (r != 0) exit(0);
+    // 第一子进程退出
+    r = fork();
+    if (r < 0) exit(1);
+    else if (r != 0) exit(0);
 
-	// 第二子进程继续执行，它不再是会话组长
+    // 第二子进程继续执行，它不再是会话组长
 
-	// 改变当前工作目录 (core dump 会输出到该目录下)
-	// chdir("/");
+    // 改变当前工作目录 (core dump 会输出到该目录下)
+    // chdir("/");
 
-	// 重设文件创建掩模
-	umask(0);
+    // 重设文件创建掩模
+    umask(0);
 #endif
 }
 
@@ -743,31 +858,31 @@ void IseApplication::initDaemon()
 //-----------------------------------------------------------------------------
 void IseApplication::initSignals()
 {
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 #endif
 #ifdef ISE_LINUX
-	int i;
+    int i;
 
-	// 忽略某些信号
-	int ignoreSignals[] = {SIGHUP, SIGINT, SIGQUIT, SIGPIPE, SIGTSTP, SIGTTIN,
-		SIGTTOU, SIGXCPU, SIGCHLD, SIGPWR, SIGALRM, SIGVTALRM, SIGIO};
-	for (i = 0; i < sizeof(ignoreSignals)/sizeof(int); i++)
-		signal(ignoreSignals[i], SIG_IGN);
+    // 忽略某些信号
+    int ignoreSignals[] = {SIGHUP, SIGINT, SIGQUIT, SIGPIPE, SIGTSTP, SIGTTIN,
+        SIGTTOU, SIGXCPU, SIGCHLD, SIGPWR, SIGALRM, SIGVTALRM, SIGIO};
+    for (i = 0; i < sizeof(ignoreSignals)/sizeof(int); i++)
+        signal(ignoreSignals[i], SIG_IGN);
 
-	// 安装致命非法操作信号处理器
-	int fatalSignals[] = {SIGILL, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT, SIGPROF, SIGSYS};
-	for (i = 0; i < sizeof(fatalSignals)/sizeof(int); i++)
-		signal(fatalSignals[i], fatalErrorSignalHandler);
+    // 安装致命非法操作信号处理器
+    int fatalSignals[] = {SIGILL, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT, SIGPROF, SIGSYS};
+    for (i = 0; i < sizeof(fatalSignals)/sizeof(int); i++)
+        signal(fatalSignals[i], fatalErrorSignalHandler);
 
-	// 安装正常退出信号处理器
-	int exitSignals[] = {SIGTERM/*, SIGABRT*/};
-	for (i = 0; i < sizeof(exitSignals)/sizeof(int); i++)
-		signal(exitSignals[i], exitProgramSignalHandler);
+    // 安装正常退出信号处理器
+    int exitSignals[] = {SIGTERM/*, SIGABRT*/};
+    for (i = 0; i < sizeof(exitSignals)/sizeof(int); i++)
+        signal(exitSignals[i], exitProgramSignalHandler);
 
-	// 安装用户信号处理器
-	int userSignals[] = {SIGUSR1, SIGUSR2};
-	for (i = 0; i < sizeof(userSignals)/sizeof(int); i++)
-		signal(userSignals[i], userSignalHandler);
+    // 安装用户信号处理器
+    int userSignals[] = {SIGUSR1, SIGUSR2};
+    for (i = 0; i < sizeof(userSignals)/sizeof(int); i++)
+        signal(userSignals[i], userSignalHandler);
 #endif
 }
 
@@ -776,12 +891,12 @@ void IseApplication::initSignals()
 //-----------------------------------------------------------------------------
 void IseApplication::initNewOperHandler()
 {
-	const int RESERVED_MEM_SIZE = 1024*1024*2;     // 2M
+    const int RESERVED_MEM_SIZE = 1024*1024*2;     // 2M
 
-	set_new_handler(outOfMemoryHandler);
+    set_new_handler(outOfMemoryHandler);
 
-	// 用于内存不足的情况下程序退出
-	reservedMemoryForExit = new char[RESERVED_MEM_SIZE];
+    // 用于内存不足的情况下程序退出
+    reservedMemoryForExit = new char[RESERVED_MEM_SIZE];
 }
 
 //-----------------------------------------------------------------------------
@@ -789,14 +904,14 @@ void IseApplication::initNewOperHandler()
 //-----------------------------------------------------------------------------
 void IseApplication::closeTerminal()
 {
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 #endif
 #ifdef ISE_LINUX
-	close(0);  // 关闭标准输入(stdin)
-	/*
-	close(1);  // 关闭标准输出(stdout)
-	close(2);  // 关闭标准错误输出(stderr)
-	*/
+    close(0);  // 关闭标准输入(stdin)
+    /*
+    close(1);  // 关闭标准输出(stdout)
+    close(2);  // 关闭标准错误输出(stderr)
+    */
 #endif
 }
 
@@ -805,122 +920,11 @@ void IseApplication::closeTerminal()
 //-----------------------------------------------------------------------------
 void IseApplication::doFinalize()
 {
-	try { if (mainServer_) mainServer_->finalize(); } catch (...) {}
-	try { iseBusiness->finalize(); } catch (...) {}
-	try { freeMainServer(); } catch (...) {}
-	try { freeIseBusiness(); } catch (...) {}
-	try { networkFinalize(); } catch (...) {}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 解释命令行参数
-// 返回:
-//   true  - 允许程序继执行
-//   false - 程序应退出 (比如命令行参数不正确)
-//-----------------------------------------------------------------------------
-bool IseApplication::parseArguments(int argc, char *argv[])
-{
-	// 先记录命令行参数
-	argList_.clear();
-	for (int i = 0; i < argc; i++)
-		argList_.push_back(argv[i]);
-
-	// 处理标准命令行参数
-	if (processStandardArgs()) return false;
-
-	// 交给 iseBusiness 解释
-	return iseBusiness->parseArguments(argc, argv);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 应用程序初始化 (若初始化失败则抛出异常)
-//-----------------------------------------------------------------------------
-void IseApplication::initialize()
-{
-	try
-	{
-#ifdef ISE_LINUX
-		// 在初始化阶段要屏蔽退出信号
-		SignalMasker sigMasker(true);
-		sigMasker.setSignals(1, SIGTERM);
-		sigMasker.block();
-#endif
-
-		networkInitialize();
-		initExeName();
-		iseBusiness->doStartupState(SS_BEFORE_START);
-		iseBusiness->initIseOptions(iseOptions_);
-		checkMultiInstance();
-		if (iseOptions_.getIsDaemon()) initDaemon();
-		initSignals();
-		initNewOperHandler();
-		applyIseOptions();
-		createMainServer();
-		iseBusiness->initialize();
-		mainServer_->initialize();
-		iseBusiness->doStartupState(SS_AFTER_START);
-		if (iseOptions_.getIsDaemon()) closeTerminal();
-		initialized_ = true;
-	}
-	catch (Exception&)
-	{
-		iseBusiness->doStartupState(SS_START_FAIL);
-		doFinalize();
-		throw;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 应用程序结束化
-//-----------------------------------------------------------------------------
-void IseApplication::finalize()
-{
-	if (initialized_)
-	{
-		doFinalize();
-		initialized_ = false;
-	}
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 开始运行应用程序
-//-----------------------------------------------------------------------------
-void IseApplication::run()
-{
-#ifdef ISE_LINUX
-	// 进程被终止时长跳转到此处并立即返回
-	if (sigsetjmp(procExitJmpBuf, 0)) return;
-#endif
-
-	if (mainServer_)
-		mainServer_->run();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 取得可执行文件所在的路径
-//-----------------------------------------------------------------------------
-string IseApplication::getExePath()
-{
-	return extractFilePath(exeName_);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 取得命令行参数字符串 (index: 0-based)
-//-----------------------------------------------------------------------------
-string IseApplication::getArgString(int index)
-{
-	if (index >= 0 && index < (int)argList_.size())
-		return argList_[index];
-	else
-		return "";
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 注册用户信号处理器
-//-----------------------------------------------------------------------------
-void IseApplication::registerUserSignalHandler(USER_SIGNAL_HANDLER_PROC proc, void *param)
-{
-	onUserSignal_.registerCallback(proc, param);
+    try { if (mainServer_) mainServer_->finalize(); } catch (...) {}
+    try { iseBusiness_->finalize(); } catch (...) {}
+    try { freeMainServer(); } catch (...) {}
+    try { freeIseBusiness(); } catch (...) {}
+    try { networkFinalize(); } catch (...) {}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

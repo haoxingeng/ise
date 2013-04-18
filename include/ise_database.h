@@ -76,30 +76,30 @@ class Database;
 
 class DbConnParams
 {
-private:
-	string hostName_;           // 主机地址
-	string userName_;           // 用户名
-	string password_;           // 用户口令
-	string dbName_;             // 数据库名
-	int port_;                  // 连接端口号
-
 public:
-	DbConnParams();
-	DbConnParams(const DbConnParams& src);
-	DbConnParams(const string& hostName, const string& userName,
-		const string& password, const string& dbName, const int port);
+    DbConnParams();
+    DbConnParams(const DbConnParams& src);
+    DbConnParams(const string& hostName, const string& userName,
+        const string& password, const string& dbName, const int port);
 
-	string getHostName() const { return hostName_; }
-	string getUserName() const { return userName_; }
-	string getPassword() const { return password_; }
-	string getDbName() const { return dbName_; }
-	int getPort() const { return port_; }
+    string getHostName() const { return hostName_; }
+    string getUserName() const { return userName_; }
+    string getPassword() const { return password_; }
+    string getDbName() const { return dbName_; }
+    int getPort() const { return port_; }
 
-	void setHostName(const string& value) { hostName_ = value; }
-	void setUserName(const string& value) { userName_ = value; }
-	void setPassword(const string& value) { password_ = value; }
-	void setDbName(const string& value) { dbName_ = value; }
-	void setPort(const int value) { port_ = value; }
+    void setHostName(const string& value) { hostName_ = value; }
+    void setUserName(const string& value) { userName_ = value; }
+    void setPassword(const string& value) { password_ = value; }
+    void setDbName(const string& value) { dbName_ = value; }
+    void setPort(const int value) { port_ = value; }
+
+private:
+    string hostName_;           // 主机地址
+    string userName_;           // 用户名
+    string password_;           // 用户口令
+    string dbName_;             // 数据库名
+    int port_;                  // 连接端口号
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -108,63 +108,63 @@ public:
 class DbOptions
 {
 public:
-	enum { DEF_MAX_DB_CONNECTIONS = 100 };      // 连接池最大连接数缺省值
-
-private:
-	int maxDbConnections_;                      // 连接池所允许的最大连接数
-	StrList initialSqlCmdList_;                 // 数据库刚建立连接时要执行的命令
-	string initialCharSet_;                     // 数据库刚建立连接时要设置的字符集
+    enum { DEF_MAX_DB_CONNECTIONS = 100 };      // 连接池最大连接数缺省值
 
 public:
-	DbOptions();
+    DbOptions();
 
-	int getMaxDbConnections() const { return maxDbConnections_; }
-	StrList& initialSqlCmdList() { return initialSqlCmdList_; }
-	string getInitialCharSet() { return initialCharSet_; }
+    int getMaxDbConnections() const { return maxDbConnections_; }
+    StrList& initialSqlCmdList() { return initialSqlCmdList_; }
+    string getInitialCharSet() { return initialCharSet_; }
 
-	void setMaxDbConnections(int value);
-	void setInitialSqlCmd(const string& value);
-	void setInitialCharSet(const string& value);
+    void setMaxDbConnections(int value);
+    void setInitialSqlCmd(const string& value);
+    void setInitialCharSet(const string& value);
+
+private:
+    int maxDbConnections_;                      // 连接池所允许的最大连接数
+    StrList initialSqlCmdList_;                 // 数据库刚建立连接时要执行的命令
+    string initialCharSet_;                     // 数据库刚建立连接时要设置的字符集
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class DbConnection - 数据库连接基类
 
-class DbConnection
+class DbConnection : boost::noncopyable
 {
 public:
-	friend class DbConnectionPool;
-
-protected:
-	Database *database_;            // Database 对象的引用
-	bool isConnected_;              // 是否已建立连接
-	bool isBusy_;                   // 此连接当前是否正被占用
-
-protected:
-	// 建立数据库连接并进行相关设置 (若失败则抛出异常)
-	void connect();
-	// 断开数据库连接并进行相关设置
-	void disconnect();
-	// 刚建立连接时执行命令
-	void execCmdOnConnected();
-
-	// ConnectionPool 将调用下列函数，控制连接的使用情况
-	bool getDbConnection();         // 借用连接
-	void returnDbConnection();      // 归还连接
-	bool isBusy();                  // 连接是否被借用
-
-protected:
-	// 和数据库建立连接(若失败则抛出异常)
-	virtual void doConnect() {}
-	// 和数据库断开连接
-	virtual void doDisconnect() {}
+    friend class DbConnectionPool;
 
 public:
-	DbConnection(Database *database);
-	virtual ~DbConnection();
+    DbConnection(Database *database);
+    virtual ~DbConnection();
 
-	// 激活数据库连接
-	void activateConnection(bool force = false);
+    // 激活数据库连接
+    void activateConnection(bool force = false);
+
+protected:
+    // 和数据库建立连接(若失败则抛出异常)
+    virtual void doConnect() {}
+    // 和数据库断开连接
+    virtual void doDisconnect() {}
+
+protected:
+    // 建立数据库连接并进行相关设置 (若失败则抛出异常)
+    void connect();
+    // 断开数据库连接并进行相关设置
+    void disconnect();
+    // 刚建立连接时执行命令
+    void execCmdOnConnected();
+
+    // ConnectionPool 将调用下列函数，控制连接的使用情况
+    bool getDbConnection();         // 借用连接
+    void returnDbConnection();      // 归还连接
+    bool isBusy();                  // 连接是否被借用
+
+protected:
+    Database *database_;            // Database 对象的引用
+    bool isConnected_;              // 是否已建立连接
+    bool isBusy_;                   // 此连接当前是否正被占用
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -179,24 +179,24 @@ public:
 // 3. 归还连接:
 //    只需将连接置为空闲状态即可，无需(也不可)断开数据库连接。
 
-class DbConnectionPool
+class DbConnectionPool : boost::noncopyable
 {
-protected:
-	Database *database_;            // 所属 Database 引用
-	PointerList dbConnectionList_;  // 当前连接列表 (DbConnection*[])，包含空闲连接和忙连接
-	CriticalSection lock_;          // 互斥锁
-
-protected:
-	void clearPool();
-
 public:
-	DbConnectionPool(Database *database);
-	virtual ~DbConnectionPool();
+    DbConnectionPool(Database *database);
+    virtual ~DbConnectionPool();
 
-	// 分配一个可用的空闲连接 (若失败则抛出异常)
-	virtual DbConnection* getConnection();
-	// 归还数据库连接
-	virtual void returnConnection(DbConnection *dbConnection);
+    // 分配一个可用的空闲连接 (若失败则抛出异常)
+    virtual DbConnection* getConnection();
+    // 归还数据库连接
+    virtual void returnConnection(DbConnection *dbConnection);
+
+protected:
+    void clearPool();
+
+protected:
+    Database *database_;            // 所属 Database 引用
+    PointerList dbConnectionList_;  // 当前连接列表 (DbConnection*[])，包含空闲连接和忙连接
+    CriticalSection lock_;          // 互斥锁
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -204,20 +204,20 @@ public:
 
 class DbFieldDef
 {
-protected:
-	string name_;               // 字段名称
-	int type_;                  // 字段类型(含义由子类定义)
-
 public:
-	DbFieldDef() {}
-	DbFieldDef(const string& name, int type);
-	DbFieldDef(const DbFieldDef& src);
-	virtual ~DbFieldDef() {}
+    DbFieldDef() {}
+    DbFieldDef(const string& name, int type);
+    DbFieldDef(const DbFieldDef& src);
+    virtual ~DbFieldDef() {}
 
-	void setData(char *name, int type) { name_ = name; type_ = type; }
+    void setData(char *name, int type) { name_ = name; type_ = type; }
 
-	string getName() const { return name_; }
-	int getType() const { return type_; }
+    string getName() const { return name_; }
+    int getType() const { return type_; }
+
+protected:
+    string name_;               // 字段名称
+    int type_;                  // 字段类型(含义由子类定义)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -225,24 +225,24 @@ public:
 
 class DbFieldDefList
 {
-private:
-	PointerList items_;                  // (DbFieldDef* [])
-
 public:
-	DbFieldDefList();
-	virtual ~DbFieldDefList();
+    DbFieldDefList();
+    virtual ~DbFieldDefList();
 
-	// 添加一个字段定义对象
-	void add(DbFieldDef *fieldDef);
-	// 释放并清空所有字段定义对象
-	void clear();
-	// 返回字段名对应的字段序号(0-based)
-	int indexOfName(const string& name);
-	// 返回全部字段名
-	void getFieldNameList(StrList& list);
+    // 添加一个字段定义对象
+    void add(DbFieldDef *fieldDef);
+    // 释放并清空所有字段定义对象
+    void clear();
+    // 返回字段名对应的字段序号(0-based)
+    int indexOfName(const string& name);
+    // 返回全部字段名
+    void getFieldNameList(StrList& list);
 
-	DbFieldDef* operator[] (int index);
-	int getCount() const { return items_.getCount(); }
+    DbFieldDef* operator[] (int index);
+    int getCount() const { return items_.getCount(); }
+
+private:
+    PointerList items_;                  // (DbFieldDef* [])
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -251,15 +251,15 @@ public:
 class DbField
 {
 public:
-	DbField();
-	virtual ~DbField() {}
+    DbField();
+    virtual ~DbField() {}
 
-	virtual bool isNull() const { return false; }
-	virtual int asInteger(int defaultVal = 0) const;
-	virtual INT64 asInt64(INT64 defaultVal = 0) const;
-	virtual double asFloat(double defaultVal = 0) const;
-	virtual bool asBoolean(bool defaultVal = false) const;
-	virtual string asString() const { return ""; };
+    virtual bool isNull() const { return false; }
+    virtual int asInteger(int defaultVal = 0) const;
+    virtual INT64 asInt64(INT64 defaultVal = 0) const;
+    virtual double asFloat(double defaultVal = 0) const;
+    virtual bool asBoolean(bool defaultVal = false) const;
+    virtual string asString() const { return ""; };
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -267,20 +267,20 @@ public:
 
 class DbFieldList
 {
-private:
-	PointerList items_;       // (DbField* [])
-
 public:
-	DbFieldList();
-	virtual ~DbFieldList();
+    DbFieldList();
+    virtual ~DbFieldList();
 
-	// 添加一个字段数据对象
-	void add(DbField *field);
-	// 释放并清空所有字段数据对象
-	void clear();
+    // 添加一个字段数据对象
+    void add(DbField *field);
+    // 释放并清空所有字段数据对象
+    void clear();
 
-	DbField* operator[] (int index);
-	int getCount() const { return items_.getCount(); }
+    DbField* operator[] (int index);
+    int getCount() const { return items_.getCount(); }
+
+private:
+    PointerList items_;       // (DbField* [])
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -289,20 +289,20 @@ public:
 class DbParam
 {
 public:
-	friend class DbParamList;
-
-protected:
-	DbQuery *dbQuery_;   // DbQuery 对象引用
-	string name_;        // 参数名称
-	int number_;         // 参数序号(1-based)
+    friend class DbParamList;
 
 public:
-	DbParam() : dbQuery_(NULL), number_(0) {}
-	virtual ~DbParam() {}
+    DbParam() : dbQuery_(NULL), number_(0) {}
+    virtual ~DbParam() {}
 
-	virtual void setInt(int value) {}
-	virtual void setFloat(double value) {}
-	virtual void setString(const string& value) {}
+    virtual void setInt(int value) {}
+    virtual void setFloat(double value) {}
+    virtual void setString(const string& value) {}
+
+protected:
+    DbQuery *dbQuery_;   // DbQuery 对象引用
+    string name_;        // 参数名称
+    int number_;         // 参数序号(1-based)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -310,23 +310,23 @@ public:
 
 class DbParamList
 {
-protected:
-	DbQuery *dbQuery_;       // DbQuery 对象引用
-	PointerList items_;      // (DbParam* [])
-
-protected:
-	virtual DbParam* findParam(const string& name);
-	virtual DbParam* findParam(int number);
-	virtual DbParam* createParam(const string& name, int number);
-
 public:
-	DbParamList(DbQuery *dbQuery);
-	virtual ~DbParamList();
+    DbParamList(DbQuery *dbQuery);
+    virtual ~DbParamList();
 
-	virtual DbParam* paramByName(const string& name);
-	virtual DbParam* paramByNumber(int number);
+    virtual DbParam* paramByName(const string& name);
+    virtual DbParam* paramByNumber(int number);
 
-	void clear();
+    void clear();
+
+protected:
+    virtual DbParam* findParam(const string& name);
+    virtual DbParam* findParam(int number);
+    virtual DbParam* createParam(const string& name, int number);
+
+protected:
+    DbQuery *dbQuery_;       // DbQuery 对象引用
+    PointerList items_;      // (DbParam* [])
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -342,43 +342,43 @@ public:
 //    才能销毁 DbQuery 对象。
 // 2. DbQuery 在执行查询A后创建了一个数据集A，之后在执行查询B前应关闭数据集A。
 
-class DbDataSet
+class DbDataSet : boost::noncopyable
 {
 public:
-	friend class DbQuery;
-
-protected:
-	DbQuery *dbQuery_;              // DbQuery 对象引用
-	DbFieldDefList dbFieldDefList_; // 字段定义对象列表
-	DbFieldList dbFieldList_;       // 字段数据对象列表
-
-protected:
-	// 初始化数据集 (若失败则抛出异常)
-	virtual void initDataSet() = 0;
-	// 初始化数据集各字段的定义
-	virtual void initFieldDefs() = 0;
+    friend class DbQuery;
 
 public:
-	DbDataSet(DbQuery *dbQuery);
-	virtual ~DbDataSet();
+    DbDataSet(DbQuery *dbQuery);
+    virtual ~DbDataSet();
 
-	// 将游标指向起始位置(第一条记录之前)
-	virtual bool rewind() = 0;
-	// 将游标指向下一条记录
-	virtual bool next() = 0;
+    // 将游标指向起始位置(第一条记录之前)
+    virtual bool rewind() = 0;
+    // 将游标指向下一条记录
+    virtual bool next() = 0;
 
-	// 取得当前数据集中的记录总数
-	virtual UINT64 getRecordCount();
-	// 返回数据集是否为空
-	virtual bool isEmpty();
+    // 取得当前数据集中的记录总数
+    virtual UINT64 getRecordCount();
+    // 返回数据集是否为空
+    virtual bool isEmpty();
 
-	// 取得当前记录中的字段总数
-	int getFieldCount();
-	// 取得当前记录中某个字段的定义 (index: 0-based)
-	DbFieldDef* getFieldDefs(int index);
-	// 取得当前记录中某个字段的数据 (index: 0-based)
-	DbField* getFields(int index);
-	DbField* getFields(const string& name);
+    // 取得当前记录中的字段总数
+    int getFieldCount();
+    // 取得当前记录中某个字段的定义 (index: 0-based)
+    DbFieldDef* getFieldDefs(int index);
+    // 取得当前记录中某个字段的数据 (index: 0-based)
+    DbField* getFields(int index);
+    DbField* getFields(const string& name);
+
+protected:
+    // 初始化数据集 (若失败则抛出异常)
+    virtual void initDataSet() = 0;
+    // 初始化数据集各字段的定义
+    virtual void initFieldDefs() = 0;
+
+protected:
+    DbQuery *dbQuery_;              // DbQuery 对象引用
+    DbFieldDefList dbFieldDefList_; // 字段定义对象列表
+    DbFieldList dbFieldList_;       // 字段数据对象列表
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -387,54 +387,54 @@ public:
 // 工作原理:
 // 1. 执行SQL: 从连接池取得一个空闲连接，然后利用此连接执行SQL，最后归还连接。
 
-class DbQuery
+class DbQuery : boost::noncopyable
 {
 public:
-	friend class DbConnection;
-
-protected:
-	Database *database_;           // Database 对象引用
-	DbConnection *dbConnection_;   // DbConnection 对象引用
-	DbParamList *dbParamList_;     // SQL 参数列表
-	string sql_;                   // 待执行的SQL语句
-
-protected:
-	void ensureConnected();
-
-protected:
-	// 设置SQL语句
-	virtual void doSetSql(const string& sql) {}
-	// 执行SQL (若 resultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
-	virtual void doExecute(DbDataSet *resultDataSet) {}
+    friend class DbConnection;
 
 public:
-	DbQuery(Database *database);
-	virtual ~DbQuery();
+    DbQuery(Database *database);
+    virtual ~DbQuery();
 
-	// 设置SQL语句
-	void setSql(const string& sql);
+    // 设置SQL语句
+    void setSql(const string& sql);
 
-	// 根据名称取得参数对象
-	virtual DbParam* paramByName(const string& name);
-	// 根据序号(1-based)取得参数对象
-	virtual DbParam* paramByNumber(int number);
+    // 根据名称取得参数对象
+    virtual DbParam* paramByName(const string& name);
+    // 根据序号(1-based)取得参数对象
+    virtual DbParam* paramByNumber(int number);
 
-	// 执行SQL (无返回结果, 若失败则抛出异常)
-	void execute();
-	// 执行SQL (返回数据集, 若失败则抛出异常)
-	DbDataSet* query();
+    // 执行SQL (无返回结果, 若失败则抛出异常)
+    void execute();
+    // 执行SQL (返回数据集, 若失败则抛出异常)
+    DbDataSet* query();
 
-	// 转换字符串使之在SQL中合法 (str 中可含 '\0' 字符)
-	virtual string escapeString(const string& str);
-	// 取得执行SQL后受影响的行数
-	virtual UINT getAffectedRowCount();
-	// 取得最后一条插入语句的自增ID的值
-	virtual UINT64 getLastInsertId();
+    // 转换字符串使之在SQL中合法 (str 中可含 '\0' 字符)
+    virtual string escapeString(const string& str);
+    // 取得执行SQL后受影响的行数
+    virtual UINT getAffectedRowCount();
+    // 取得最后一条插入语句的自增ID的值
+    virtual UINT64 getLastInsertId();
 
-	// 取得查询器所用的数据库连接
-	DbConnection* getDbConnection();
-	// 取得 Database 对象
-	Database* getDatabase() { return database_; }
+    // 取得查询器所用的数据库连接
+    DbConnection* getDbConnection();
+    // 取得 Database 对象
+    Database* getDatabase() { return database_; }
+
+protected:
+    // 设置SQL语句
+    virtual void doSetSql(const string& sql) {}
+    // 执行SQL (若 resultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
+    virtual void doExecute(DbDataSet *resultDataSet) {}
+
+protected:
+    void ensureConnected();
+
+protected:
+    Database *database_;           // Database 对象引用
+    DbConnection *dbConnection_;   // DbConnection 对象引用
+    DbParamList *dbParamList_;     // SQL 参数列表
+    string sql_;                   // 待执行的SQL语句
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -452,14 +452,14 @@ public:
 
 class DbQueryWrapper
 {
-private:
-	DbQuery *dbQuery_;
-
 public:
-	DbQueryWrapper(DbQuery *dbQuery) : dbQuery_(dbQuery) {}
-	virtual ~DbQueryWrapper() { delete dbQuery_; }
+    DbQueryWrapper(DbQuery *dbQuery) : dbQuery_(dbQuery) {}
+    virtual ~DbQueryWrapper() { delete dbQuery_; }
 
-	DbQuery* operator -> () { return dbQuery_; }
+    DbQuery* operator -> () { return dbQuery_; }
+
+private:
+    DbQuery *dbQuery_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -483,51 +483,53 @@ public:
 
 class DbDataSetWrapper
 {
-private:
-	DbDataSet *dbDataSet_;
-
 public:
-	DbDataSetWrapper() : dbDataSet_(NULL) {}
-	virtual ~DbDataSetWrapper() { delete dbDataSet_; }
+    DbDataSetWrapper() : dbDataSet_(NULL) {}
+    virtual ~DbDataSetWrapper() { delete dbDataSet_; }
 
-	DbDataSetWrapper& operator = (DbDataSet *dataSet)
-	{
-		if (dbDataSet_) delete dbDataSet_;
-		dbDataSet_ = dataSet;
-		return *this;
-	}
+    DbDataSetWrapper& operator = (DbDataSet *dataSet)
+    {
+        if (dbDataSet_) delete dbDataSet_;
+        dbDataSet_ = dataSet;
+        return *this;
+    }
 
-	DbDataSet* operator -> () { return dbDataSet_; }
+    DbDataSet* operator -> () { return dbDataSet_; }
+
+private:
+    DbDataSet *dbDataSet_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class Database - 数据库类
 
-class Database
+class Database : boost::noncopyable
 {
-protected:
-	DbConnParams *dbConnParams_;             // 数据库连接参数
-	DbOptions *dbOptions_;                   // 数据库配置参数
-	DbConnectionPool *dbConnectionPool_;     // 数据库连接池
-private:
-	void ensureInited();
 public:
-	Database();
-	virtual ~Database();
+    Database();
+    virtual ~Database();
 
-	// 类工厂方法:
-	virtual DbConnParams* createDbConnParams() { return new DbConnParams(); }
-	virtual DbOptions* createDbOptions() { return new DbOptions(); }
-	virtual DbConnection* createDbConnection() = 0;
-	virtual DbConnectionPool* createDbConnectionPool() { return new DbConnectionPool(this); }
-	virtual DbParam* createDbParam() { return new DbParam(); }
-	virtual DbParamList* createDbParamList(DbQuery* dbQuery) { return new DbParamList(dbQuery); }
-	virtual DbDataSet* createDbDataSet(DbQuery* dbQuery) = 0;
-	virtual DbQuery* createDbQuery() = 0;
+    // 类工厂方法:
+    virtual DbConnParams* createDbConnParams() { return new DbConnParams(); }
+    virtual DbOptions* createDbOptions() { return new DbOptions(); }
+    virtual DbConnection* createDbConnection() = 0;
+    virtual DbConnectionPool* createDbConnectionPool() { return new DbConnectionPool(this); }
+    virtual DbParam* createDbParam() { return new DbParam(); }
+    virtual DbParamList* createDbParamList(DbQuery* dbQuery) { return new DbParamList(dbQuery); }
+    virtual DbDataSet* createDbDataSet(DbQuery* dbQuery) = 0;
+    virtual DbQuery* createDbQuery() = 0;
 
-	DbConnParams* getDbConnParams();
-	DbOptions* getDbOptions();
-	DbConnectionPool* getDbConnectionPool();
+    DbConnParams* getDbConnParams();
+    DbOptions* getDbOptions();
+    DbConnectionPool* getDbConnectionPool();
+
+private:
+    void ensureInited();
+
+protected:
+    DbConnParams *dbConnParams_;             // 数据库连接参数
+    DbOptions *dbOptions_;                   // 数据库配置参数
+    DbConnectionPool *dbConnectionPool_;     // 数据库连接池
 };
 
 ///////////////////////////////////////////////////////////////////////////////

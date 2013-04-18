@@ -38,16 +38,16 @@ namespace ise
 // class AssistorThread
 
 AssistorThread::AssistorThread(AssistorThreadPool *threadPool, int assistorIndex) :
-	ownPool_(threadPool),
-	assistorIndex_(assistorIndex)
+    ownPool_(threadPool),
+    assistorIndex_(assistorIndex)
 {
-	setFreeOnTerminate(true);
-	ownPool_->registerThread(this);
+    setFreeOnTerminate(true);
+    ownPool_->registerThread(this);
 }
 
 AssistorThread::~AssistorThread()
 {
-	ownPool_->unregisterThread(this);
+    ownPool_->unregisterThread(this);
 }
 
 //-----------------------------------------------------------------------------
@@ -55,7 +55,7 @@ AssistorThread::~AssistorThread()
 //-----------------------------------------------------------------------------
 void AssistorThread::execute()
 {
-	ownPool_->getAssistorServer().onAssistorThreadExecute(*this, assistorIndex_);
+    ownPool_->getAssistorServer().onAssistorThreadExecute(*this, assistorIndex_);
 }
 
 //-----------------------------------------------------------------------------
@@ -63,21 +63,21 @@ void AssistorThread::execute()
 //-----------------------------------------------------------------------------
 void AssistorThread::doKill()
 {
-	// nothing
+    // nothing
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class AssistorThreadPool
 
 AssistorThreadPool::AssistorThreadPool(AssistorServer *ownAssistorServer) :
-	ownAssistorSvr_(ownAssistorServer)
+    ownAssistorSvr_(ownAssistorServer)
 {
-	// nothing
+    // nothing
 }
 
 AssistorThreadPool::~AssistorThreadPool()
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -85,7 +85,7 @@ AssistorThreadPool::~AssistorThreadPool()
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::registerThread(AssistorThread *thread)
 {
-	threadList_.add(thread);
+    threadList_.add(thread);
 }
 
 //-----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ void AssistorThreadPool::registerThread(AssistorThread *thread)
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::unregisterThread(AssistorThread *thread)
 {
-	threadList_.remove(thread);
+    threadList_.remove(thread);
 }
 
 //-----------------------------------------------------------------------------
@@ -101,7 +101,7 @@ void AssistorThreadPool::unregisterThread(AssistorThread *thread)
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::terminateAllThreads()
 {
-	threadList_.terminateAllThreads();
+    threadList_.terminateAllThreads();
 }
 
 //-----------------------------------------------------------------------------
@@ -109,13 +109,13 @@ void AssistorThreadPool::terminateAllThreads()
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::waitForAllThreads()
 {
-	const int MAX_WAIT_FOR_SECS = 5;
-	int killedCount = 0;
+    const int MAX_WAIT_FOR_SECS = 5;
+    int killedCount = 0;
 
-	threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
+    threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
 
-	if (killedCount > 0)
-		logger().writeFmt(SEM_THREAD_KILLED, killedCount, "assistor");
+    if (killedCount > 0)
+        logger().writeFmt(SEM_THREAD_KILLED, killedCount, "assistor");
 }
 
 //-----------------------------------------------------------------------------
@@ -123,32 +123,32 @@ void AssistorThreadPool::waitForAllThreads()
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::interruptThreadSleep(int assistorIndex)
 {
-	AutoLocker locker(threadList_.getLock());
+    AutoLocker locker(threadList_.getLock());
 
-	for (int i = 0; i < threadList_.getCount(); i++)
-	{
-		AssistorThread *thread = (AssistorThread*)threadList_[i];
-		if (thread->getIndex() == assistorIndex)
-		{
-			thread->interruptSleep();
-			break;
-		}
-	}
+    for (int i = 0; i < threadList_.getCount(); i++)
+    {
+        AssistorThread *thread = (AssistorThread*)threadList_[i];
+        if (thread->getIndex() == assistorIndex)
+        {
+            thread->interruptSleep();
+            break;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class AssistorServer
 
 AssistorServer::AssistorServer() :
-	isActive_(false),
-	threadPool_(this)
+    isActive_(false),
+    threadPool_(this)
 {
-	// nothing
+    // nothing
 }
 
 AssistorServer::~AssistorServer()
 {
-	// nothing
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -156,19 +156,19 @@ AssistorServer::~AssistorServer()
 //-----------------------------------------------------------------------------
 void AssistorServer::open()
 {
-	if (!isActive_)
-	{
-		int count = iseApplication.getIseOptions().getAssistorThreadCount();
+    if (!isActive_)
+    {
+        int count = iseApp().getIseOptions().getAssistorThreadCount();
 
-		for (int i = 0; i < count; i++)
-		{
-			AssistorThread *thread;
-			thread = new AssistorThread(&threadPool_, i);
-			thread->run();
-		}
+        for (int i = 0; i < count; i++)
+        {
+            AssistorThread *thread;
+            thread = new AssistorThread(&threadPool_, i);
+            thread->run();
+        }
 
-		isActive_ = true;
-	}
+        isActive_ = true;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -176,11 +176,11 @@ void AssistorServer::open()
 //-----------------------------------------------------------------------------
 void AssistorServer::close()
 {
-	if (isActive_)
-	{
-		waitForAllAssistorThreads();
-		isActive_ = false;
-	}
+    if (isActive_)
+    {
+        waitForAllAssistorThreads();
+        isActive_ = false;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -190,7 +190,7 @@ void AssistorServer::close()
 //-----------------------------------------------------------------------------
 void AssistorServer::onAssistorThreadExecute(AssistorThread& assistorThread, int assistorIndex)
 {
-	iseBusiness->assistorThreadExecute(assistorThread, assistorIndex);
+    iseApp().getIseBusiness().assistorThreadExecute(assistorThread, assistorIndex);
 }
 
 //-----------------------------------------------------------------------------
@@ -198,7 +198,7 @@ void AssistorServer::onAssistorThreadExecute(AssistorThread& assistorThread, int
 //-----------------------------------------------------------------------------
 void AssistorServer::terminateAllAssistorThreads()
 {
-	threadPool_.terminateAllThreads();
+    threadPool_.terminateAllThreads();
 }
 
 //-----------------------------------------------------------------------------
@@ -206,7 +206,7 @@ void AssistorServer::terminateAllAssistorThreads()
 //-----------------------------------------------------------------------------
 void AssistorServer::waitForAllAssistorThreads()
 {
-	threadPool_.waitForAllThreads();
+    threadPool_.waitForAllThreads();
 }
 
 //-----------------------------------------------------------------------------
@@ -214,7 +214,7 @@ void AssistorServer::waitForAllAssistorThreads()
 //-----------------------------------------------------------------------------
 void AssistorServer::interruptAssistorThreadSleep(int assistorIndex)
 {
-	threadPool_.interruptThreadSleep(assistorIndex);
+    threadPool_.interruptThreadSleep(assistorIndex);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

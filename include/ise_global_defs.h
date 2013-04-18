@@ -39,6 +39,15 @@
 #include <stdint.h>
 #endif
 
+// boost headers
+#include "boost/function.hpp"
+#include "boost/bind.hpp"
+#include "boost/utility.hpp"
+#include "boost/any.hpp"
+#include "boost/shared_ptr.hpp"
+#include "boost/weak_ptr.hpp"
+#include "boost/enable_shared_from_this.hpp"
+
 #include "ise_stldefs.h"
 
 namespace ise
@@ -81,6 +90,13 @@ typedef UINT16*   PWORD;
 typedef UINT32*   PDWORD;
 #endif
 
+#ifdef ISE_WINDOWS
+typedef UINT32 THREAD_ID;
+#endif
+#ifdef ISE_LINUX
+typedef pthread_t THREAD_ID;
+#endif
+
 typedef void* POINTER;
 
 typedef vector<string> StringArray;
@@ -88,10 +104,13 @@ typedef vector<int> IntegerArray;
 typedef vector<bool> BooleanArray;
 typedef set<int> IntegerSet;
 
+typedef boost::any Context;
+typedef boost::function<void(void)> Functor;
+
 ///////////////////////////////////////////////////////////////////////////////
 // 常量定义
 
-#ifdef ISE_WIN32
+#ifdef ISE_WINDOWS
 const char PATH_DELIM               = '\\';
 const char DRIVER_DELIM             = ':';
 const char FILE_EXT_DELIM           = '.';
@@ -107,7 +126,7 @@ const char* const S_CRLF            = "\n";
 const unsigned int FA_READ_ONLY     = 0x00000001;
 const unsigned int FA_HIDDEN        = 0x00000002;
 const unsigned int FA_SYS_FILE      = 0x00000004;
-const unsigned int FA_VOLUME_ID     = 0x00000008;    // Win32 Only
+const unsigned int FA_VOLUME_ID     = 0x00000008;    // Windows Only
 const unsigned int FA_DIRECTORY     = 0x00000010;
 const unsigned int FA_ARCHIVE       = 0x00000020;
 const unsigned int FA_SYM_LINK      = 0x00000040;    // Linux Only
@@ -136,6 +155,8 @@ const unsigned int FA_ANY_FILE      = 0x0000003F;
 
 #define TRUE_STR                    "true"
 #define FALSE_STR                   "false"
+
+const Context EMPTY_CONTEXT = Context();
 
 ///////////////////////////////////////////////////////////////////////////////
 // 宏定义
