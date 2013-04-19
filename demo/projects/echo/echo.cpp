@@ -7,6 +7,8 @@ IseBusiness* createIseBusinessObject()
     return new AppBusiness();
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
 //-----------------------------------------------------------------------------
 // 描述: 初始化 (失败则抛出异常)
 //-----------------------------------------------------------------------------
@@ -20,9 +22,9 @@ void AppBusiness::initialize()
 //-----------------------------------------------------------------------------
 void AppBusiness::finalize()
 {
-    const char *pMsg = "Echo server stoped.";
-    cout << pMsg << endl;
-    logger().writeStr(pMsg);
+    const char *msg = "Echo server stoped.";
+    cout << msg << endl;
+    logger().writeStr(msg);
 }
 
 //-----------------------------------------------------------------------------
@@ -34,17 +36,17 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
     {
     case SS_AFTER_START:
         {
-            const char *pMsg = "Echo server started.";
-            cout << endl << pMsg << endl;
-            logger().writeStr(pMsg);
+            const char *msg = "Echo server started.";
+            cout << endl << msg << endl;
+            logger().writeStr(msg);
         }
         break;
 
     case SS_START_FAIL:
         {
-            const char *pMsg = "Fail to start echo server.";
-            cout << endl << pMsg << endl;
-            logger().writeStr(pMsg);
+            const char *msg = "Fail to start echo server.";
+            cout << endl << msg << endl;
+            logger().writeStr(msg);
         }
         break;
     }
@@ -95,14 +97,14 @@ void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pa
 {
     logger().writeStr("onTcpRecvComplete");
 
-    string strMsg((char*)packetBuffer, packetSize);
-    strMsg = trimString(strMsg);
-    if (strMsg == "bye")
+    string msg((char*)packetBuffer, packetSize);
+    msg = trimString(msg);
+    if (msg == "bye")
         connection->disconnect();
     else
         connection->send((char*)packetBuffer, packetSize);
 
-    logger().writeFmt("Received message: %s", strMsg.c_str());
+    logger().writeFmt("Received message: %s", msg.c_str());
 }
 
 //-----------------------------------------------------------------------------

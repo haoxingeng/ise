@@ -396,10 +396,10 @@ void TcpEventLoop::executeFinalizer()
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpEventLoopList
 
-TcpEventLoopList::TcpEventLoopList(int nLoopCount) :
+TcpEventLoopList::TcpEventLoopList(int loopCount) :
     items_(false, true)
 {
-    setCount(nLoopCount);
+    setCount(loopCount);
 }
 
 TcpEventLoopList::~TcpEventLoopList()

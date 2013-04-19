@@ -156,13 +156,13 @@ bool MySqlDataSet::next()
     if (row_)
     {
         MySqlField* field;
-        int nFieldCount;
-        unsigned long* pLengths;
+        int fieldCount;
+        unsigned long *lengths;
 
-        nFieldCount = mysql_num_fields(res_);
-        pLengths = (unsigned long*)mysql_fetch_lengths(res_);
+        fieldCount = mysql_num_fields(res_);
+        lengths = (unsigned long*)mysql_fetch_lengths(res_);
 
-        for (int i = 0; i < nFieldCount; i++)
+        for (int i = 0; i < fieldCount; i++)
         {
             if (i < dbFieldList_.getCount())
             {
@@ -174,7 +174,7 @@ bool MySqlDataSet::next()
                 dbFieldList_.add(field);
             }
 
-            field->setData(row_[i], pLengths[i]);
+            field->setData(row_[i], lengths[i]);
         }
     }
 
@@ -222,21 +222,21 @@ void MySqlDataSet::initDataSet()
 //-----------------------------------------------------------------------------
 void MySqlDataSet::initFieldDefs()
 {
-    MYSQL_FIELD *pMySqlFields;
+    MYSQL_FIELD *mySqlFields;
     DbFieldDef* fieldDef;
-    int nFieldCount;
+    int fieldCount;
 
     dbFieldDefList_.clear();
-    nFieldCount = mysql_num_fields(res_);
-    pMySqlFields = mysql_fetch_fields(res_);
+    fieldCount = mysql_num_fields(res_);
+    mySqlFields = mysql_fetch_fields(res_);
 
-    if (nFieldCount <= 0)
+    if (fieldCount <= 0)
         iseThrowDbException(SEM_MYSQL_NUM_FIELDS_ERROR);
 
-    for (int i = 0; i < nFieldCount; i++)
+    for (int i = 0; i < fieldCount; i++)
     {
         fieldDef = new DbFieldDef();
-        fieldDef->setData(pMySqlFields[i].name, pMySqlFields[i].type);
+        fieldDef->setData(mySqlFields[i].name, mySqlFields[i].type);
         dbFieldDefList_.add(fieldDef);
     }
 }
@@ -279,15 +279,15 @@ string MySqlQuery::escapeString(const string& str)
 {
     if (str.empty()) return "";
 
-    int nSrcLen = (int)str.size();
-    Buffer buffer(nSrcLen * 2 + 1);
-    char *pEnd;
+    int srcLen = (int)str.size();
+    Buffer buffer(srcLen * 2 + 1);
+    char *end;
 
     ensureConnected();
 
-    pEnd = (char*)buffer.data();
-    pEnd += mysql_real_escape_string(&getConnObject(), pEnd, str.c_str(), nSrcLen);
-    *pEnd = '\0';
+    end = (char*)buffer.data();
+    end += mysql_real_escape_string(&getConnObject(), end, str.c_str(), srcLen);
+    *end = '\0';
 
     return (char*)buffer.data();
 }
@@ -343,7 +343,7 @@ void MySqlQuery::doExecute(DbDataSet *resultDataSet)
        指定不让 mysql_real_query() 自动重连，而是由程序显式重连。
     */
 
-    for (int nTimes = 0; nTimes < 2; nTimes++)
+    for (int times = 0; times < 2; times++)
     {
         int r = mysql_real_query(&getConnObject(), sql_.c_str(), (int)sql_.length());
 
@@ -351,10 +351,10 @@ void MySqlQuery::doExecute(DbDataSet *resultDataSet)
         if (r != 0)
         {
             // 如果是首次，并且错误类型为连接丢失，则重试连接
-            if (nTimes == 0)
+            if (times == 0)
             {
-                int nErrNo = mysql_errno(&getConnObject());
-                if (nErrNo == CR_SERVER_GONE_ERROR || nErrNo == CR_SERVER_LOST)
+                int errNum = mysql_errno(&getConnObject());
+                if (errNum == CR_SERVER_GONE_ERROR || errNum == CR_SERVER_LOST)
                 {
                     logger().writeStr(SEM_MYSQL_LOST_CONNNECTION);
 

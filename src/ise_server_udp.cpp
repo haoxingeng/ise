@@ -78,7 +78,7 @@ bool ThreadTimeOutChecker::getStarted()
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpPacket
 
-void UdpPacket::setPacketBuffer(void *pPakcetBuffer, int packetSize)
+void UdpPacket::setPacketBuffer(void *packetBuffer, int packetSize)
 {
     if (packetBuffer_)
     {
@@ -90,7 +90,7 @@ void UdpPacket::setPacketBuffer(void *pPakcetBuffer, int packetSize)
     if (!packetBuffer_)
         iseThrowMemoryException();
 
-    memcpy(packetBuffer_, pPakcetBuffer, packetSize);
+    memcpy(packetBuffer_, packetBuffer, packetSize);
 }
 
 //-----------------------------------------------------------------------------
@@ -136,7 +136,7 @@ UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup)
 //-----------------------------------------------------------------------------
 // 描述: 向队列中添加数据包
 //-----------------------------------------------------------------------------
-void UdpRequestQueue::addPacket(UdpPacket *pPacket)
+void UdpRequestQueue::addPacket(UdpPacket *packet)
 {
     if (capacity_ <= 0) return;
     bool removed = false;
@@ -154,7 +154,7 @@ void UdpRequestQueue::addPacket(UdpPacket *pPacket)
             removed = true;
         }
 
-        packetList_.push_back(pPacket);
+        packetList_.push_back(packet);
         packetCount_++;
     }
 

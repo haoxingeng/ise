@@ -104,7 +104,7 @@ public:
     virtual ~UdpPacket()
         { if (packetBuffer_) free(packetBuffer_); }
 
-    void setPacketBuffer(void *pPakcetBuffer, int packetSize);
+    void setPacketBuffer(void *packetBuffer, int packetSize);
     inline void* getPacketBuffer() const { return packetBuffer_; }
 
 public:
@@ -125,7 +125,7 @@ public:
     explicit UdpRequestQueue(UdpRequestGroup *ownGroup);
     virtual ~UdpRequestQueue() { clear(); }
 
-    void addPacket(UdpPacket *pPacket);
+    void addPacket(UdpPacket *packet);
     UdpPacket* extractPacket();
     void clear();
     void breakWaiting(int semCount);

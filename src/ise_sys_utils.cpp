@@ -238,16 +238,16 @@ void formatStringV(string& result, const char *format, va_list argList)
 
     while (buffer)
     {
-        int nChars;
+        int charCount;
 
         va_copy(args, argList);
-        nChars = vsnprintf(buffer, size, format, args);
+        charCount = vsnprintf(buffer, size, format, args);
         va_end(args);
 
-        if (nChars > -1 && nChars < size)
+        if (charCount > -1 && charCount < size)
             break;
-        if (nChars > -1)
-            size = nChars + 1;
+        if (charCount > -1)
+            size = charCount + 1;
         else
             size *= 2;
         buffer = (char *)realloc(buffer, size);

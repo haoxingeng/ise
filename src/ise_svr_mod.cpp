@@ -52,9 +52,9 @@ void IseServerModuleMgr::initServerModuleList(const PointerList& list)
     items_.clear();
     for (int i = 0; i < list.getCount(); i++)
     {
-        IseServerModule *pModule = (IseServerModule*)list[i];
-        pModule->svrModIndex_ = i;
-        items_.add(pModule);
+        IseServerModule *module = (IseServerModule*)list[i];
+        module->svrModIndex_ = i;
+        items_.add(module);
     }
 }
 
@@ -358,7 +358,7 @@ void IseSvrModBusiness::updateIseOptions()
         IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
         for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
         {
-            UDP_GROUP_OPTIONS grpOpt;
+            UdpGroupOptions grpOpt;
             memset(&grpOpt, 0, sizeof(grpOpt));
             serverModule.getUdpGroupOptions(groupIndex, grpOpt);
             options.setUdpRequestQueueCapacity(globalGroupIndex, grpOpt.queueCapacity);
@@ -374,7 +374,7 @@ void IseSvrModBusiness::updateIseOptions()
         IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
         for (int serverIndex = 0; serverIndex < serverModule.getTcpServerCount(); serverIndex++)
         {
-            TCP_SERVER_OPTIONS svrOpt;
+            TcpServerOptions svrOpt;
             memset(&svrOpt, 0, sizeof(svrOpt));
             serverModule.getTcpServerOptions(serverIndex, svrOpt);
             options.setTcpServerPort(globalServerIndex, svrOpt.port);

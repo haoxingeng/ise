@@ -359,7 +359,7 @@ public:
     inline IseScheduleTaskMgr& getScheduleTaskMgr() { return IseScheduleTaskMgr::instance(); }
 
     inline void setTerminated(bool value) { terminated_ = value; }
-    inline bool getTerminated() { return terminated_; }
+    inline bool isTerminated() { return terminated_; }
 
     // 取得可执行文件的全名(含绝对路径)
     string getExeName() { return exeName_; }

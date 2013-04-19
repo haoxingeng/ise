@@ -703,7 +703,7 @@ protected:
 
 protected:
     void init();
-    void error(const char* msg, int nData) const;
+    void error(const char* msg, int data) const;
     int getUpdateCount() const { return updateCount_; }
     string extractName(const char* str) const;
 

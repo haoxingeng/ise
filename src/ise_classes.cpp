@@ -621,11 +621,11 @@ void SignalMasker::restore()
 
 int SignalMasker::sigProcMask(int how, const sigset_t *newSet, sigset_t *oldSet)
 {
-    int nRet;
-    if ((nRet = sigprocmask(how, newSet, oldSet)) < 0)
+    int result;
+    if ((result = sigprocmask(how, newSet, oldSet)) < 0)
         iseThrowException(strerror(errno));
 
-    return nRet;
+    return result;
 }
 
 #endif
@@ -2446,9 +2446,9 @@ void Strings::init()
 
 //-----------------------------------------------------------------------------
 
-void Strings::error(const char* msg, int nData) const
+void Strings::error(const char* msg, int data) const
 {
-    iseThrowException(formatString(msg, nData).c_str());
+    iseThrowException(formatString(msg, data).c_str());
 }
 
 //-----------------------------------------------------------------------------

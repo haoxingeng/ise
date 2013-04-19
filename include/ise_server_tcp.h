@@ -214,7 +214,7 @@ public:
     enum { MAX_LOOP_COUNT = 64 };
 
 public:
-    TcpEventLoopList(int nLoopCount);
+    TcpEventLoopList(int loopCount);
     virtual ~TcpEventLoopList();
 
     void start();

@@ -48,7 +48,7 @@ class IseSvrModBusiness;
 typedef vector<UINT> ActionCodeArray;
 
 // UDP组别的配置
-struct UDP_GROUP_OPTIONS
+struct UdpGroupOptions
 {
     int queueCapacity;
     int minThreads;
@@ -56,7 +56,7 @@ struct UDP_GROUP_OPTIONS
 };
 
 // TCP服务器的配置
-struct TCP_SERVER_OPTIONS
+struct TcpServerOptions
 {
     int port;
 };
@@ -77,11 +77,11 @@ public:
     // 取得该模块中某UDP组别所接管的动作代码
     virtual void getUdpGroupActionCodes(int groupIndex, ActionCodeArray& list) {}
     // 取得该模块中某UDP组别的配置
-    virtual void getUdpGroupOptions(int groupIndex, UDP_GROUP_OPTIONS& options) {}
+    virtual void getUdpGroupOptions(int groupIndex, UdpGroupOptions& options) {}
     // 取得该服务模块中的TCP服务器数量
     virtual int getTcpServerCount() { return 0; }
     // 取得该模块中某TCP服务器的配置
-    virtual void getTcpServerOptions(int serverIndex, TCP_SERVER_OPTIONS& options) {}
+    virtual void getTcpServerOptions(int serverIndex, TcpServerOptions& options) {}
 
     // UDP数据包分派
     virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, UdpPacket& ) {}

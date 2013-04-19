@@ -498,7 +498,7 @@ void IseMainServer::runBackground()
     int adjustThreadInterval = iseApp().getIseOptions().getAdjustThreadInterval();
     int secondCount = 0;
 
-    while (!iseApp().getTerminated())
+    while (!iseApp().isTerminated())
     try
     {
         try
