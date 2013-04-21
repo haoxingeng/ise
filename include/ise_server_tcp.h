@@ -52,6 +52,7 @@ class IoBuffer;
 class TcpEventLoopThread;
 class TcpEventLoop;
 class TcpEventLoopList;
+class TcpServer;
 class TcpConnection;
 
 #ifdef ISE_WINDOWS
@@ -86,9 +87,12 @@ typedef boost::function<void (
 ///////////////////////////////////////////////////////////////////////////////
 // 预定义数据包分界器
 
+void bytePacketSplitter(const char *data, int bytes, int& splitBytes);
 void linePacketSplitter(const char *data, int bytes, int& splitBytes);
 void nullTerminatedPacketSplitter(const char *data, int bytes, int& splitBytes);
 
+// 每次接收一个字节的数据包分界器
+const PacketSplitter BYTE_PACKET_SPLITTER = boost::bind(&ise::bytePacketSplitter, _1, _2, _3);
 // 以 '\r'或'\n' 或其组合为分界字符的数据包分界器
 const PacketSplitter LINE_PACKET_SPLITTER = boost::bind(&ise::linePacketSplitter, _1, _2, _3);
 // 以 '\0' 为分界字符的数据包分界器
@@ -232,6 +236,29 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// class TcpServer
+
+class TcpServer : public BaseTcpServer
+{
+public:
+    friend class TcpConnection;
+
+    int getConnectionCount() const { return connCount_.get(); }
+
+protected:
+    virtual BaseTcpConnection* createConnection(SOCKET socketHandle);
+
+private:
+    string generateConnectionName(SOCKET socketHandle);
+    void incConnCount() { connCount_.increment(); }
+    void decConnCount() { connCount_.decrement(); }
+
+private:
+    SeqNumberAlloc connIdAlloc_;
+    mutable AtomicInt connCount_;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // class TcpConnection - Proactor模型下的TCP连接
 
 class TcpConnection :
@@ -263,8 +290,10 @@ public:
     void send(const void *buffer, int size, const Context& context = EMPTY_CONTEXT);
     void recv(const PacketSplitter& packetSplitter, const Context& context = EMPTY_CONTEXT);
 
+    const string& getConnectionName() const { return connectionName_; }
     int getServerIndex() const { return boost::any_cast<int>(tcpServer_->getContext()); }
     int getServerPort() const { return tcpServer_->getLocalPort(); }
+    int getServerConnCount() const { return tcpServer_->getConnectionCount(); }
 
 protected:
     virtual void doDisconnect();
@@ -281,6 +310,7 @@ protected:
 protected:
     TcpServer *tcpServer_;           // 所属 TcpServer
     TcpEventLoop *eventLoop_;        // 所属 TcpEventLoop
+    string connectionName_;          // 连接名称
     IoBuffer sendBuffer_;            // 数据发送缓存
     IoBuffer recvBuffer_;            // 数据接收缓存
     SendTaskQueue sendTaskQueue_;    // 发送任务队列
@@ -627,9 +657,7 @@ private:
     void doOpen();
     void doClose();
 
-    void onCreateConnection(TcpServer *tcpServer, SOCKET socketHandle,
-        const string& connectionName, BaseTcpConnection*& connection);
-    void onAcceptConnection(TcpServer *tcpServer, BaseTcpConnection *connection);
+    void onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection);
 
 private:
     typedef vector<TcpServer*> TcpServerList;

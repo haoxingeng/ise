@@ -10,7 +10,7 @@ INC_PATH = ../../include
 
 CC = g++
 CDEFINES = 
-CFLAGS = -g -O2 $(CDEFINES)
+CFLAGS = -g -O2 -march=i486 $(CDEFINES)
 
 INCS = -I$(INC_PATH) -I$(BOOST_INC_PATH) -I$(MYSQL_INC_PATH)
 

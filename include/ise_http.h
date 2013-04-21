@@ -411,7 +411,7 @@ public:
     /// Indicates the number of redirects encountered in the last request for the http client.
     int getRedirectCount() { return redirectCount_; }
     /// Returns the tcp client object.
-    TcpClient& getTcpClient() { return tcpClient_; }
+    BaseTcpClient& getTcpClient() { return tcpClient_; }
 
     /// Determines if the http client can handle redirections.
     void setHandleRedirects(bool value) { handleRedirects_ = value; }
@@ -427,7 +427,7 @@ protected:
     void tcpDisconnect(bool force = false);
 
 protected:
-    TcpClient tcpClient_;
+    BaseTcpClient tcpClient_;
     HttpRequest request_;
     HttpResponse response_;
     HttpClientOptions options_;

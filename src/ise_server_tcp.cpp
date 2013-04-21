@@ -37,6 +37,11 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 预定义数据包分界器
 
+void bytePacketSplitter(const char *data, int bytes, int& splitBytes)
+{
+    splitBytes = (bytes > 0 ? 1 : 0);
+}
+
 void linePacketSplitter(const char *data, int bytes, int& splitBytes)
 {
     splitBytes = 0;
@@ -466,21 +471,57 @@ void TcpEventLoopList::setCount(int count)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// class TcpServer
+
+//-----------------------------------------------------------------------------
+// 描述: 创建连接对象
+//-----------------------------------------------------------------------------
+BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
+{
+    BaseTcpConnection *result = NULL;
+    string connectionName = generateConnectionName(socketHandle);
+
+#ifdef ISE_WINDOWS
+    result = new WinTcpConnection(this, socketHandle, connectionName);
+#endif
+#ifdef ISE_LINUX
+    result = new LinuxTcpConnection(this, socketHandle, connectionName);
+#endif
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 产生一个 TcpServer 范围内唯一的连接名称
+//-----------------------------------------------------------------------------
+string TcpServer::generateConnectionName(SOCKET socketHandle)
+{
+    string result = formatString("%s-%s#%u",
+        getSocket().getLocalAddr().getDisplayStr().c_str(),
+        getSocketPeerAddr(socketHandle).getDisplayStr().c_str(),
+        (UINT)connIdAlloc_.allocId());
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // class TcpConnection
 
 TcpConnection::TcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
     const string& connectionName) :
-        BaseTcpConnection(socketHandle, connectionName),
+        BaseTcpConnection(socketHandle),
         tcpServer_(tcpServer),
-        eventLoop_(NULL)
+        eventLoop_(NULL),
+        connectionName_(connectionName)
 {
-    // nothing
+    tcpServer_->incConnCount();
 }
 
 TcpConnection::~TcpConnection()
 {
-    //logger().writeFmt("destroy conn: %s", getConnectionName().c_str());  // debug
+    logger().writeFmt("destroy conn: %s", getConnectionName().c_str());  // debug
+
     setEventLoop(NULL);
+    tcpServer_->decConnCount();
 }
 
 //-----------------------------------------------------------------------------
@@ -520,12 +561,15 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
 // 描述: 断开连接
 // 备注:
 //   如果直接 close socket，Linux下 EPoll 将不会产生通知，从而无法捕获错误，
-//   而 shutdown 则没有问题。
-//   无论是 close 还是 shutdown，Windows下 IOCP 都可以捕获错误。
+//   而 shutdown 则没有问题。在 Windows 下，无论是 close 还是 shutdown，
+//   只要连接上存在接收或发送动作，IOCP 都可以捕获错误。
 //-----------------------------------------------------------------------------
 void TcpConnection::doDisconnect()
 {
-    getSocket().shutdown(true, true);
+    getSocket().shutdown();
+
+    // 在用户不调用 recv 的情况下确保能引发错误
+    recv(BYTE_PACKET_SPLITTER);
 }
 
 //-----------------------------------------------------------------------------
@@ -539,12 +583,13 @@ void TcpConnection::errorOccurred()
 {
     ISE_ASSERT(eventLoop_ != NULL);
 
-    disconnect();
+    getSocket().shutdown();
 
     getEventLoop()->executeInLoop(
         boost::bind(&IseBusiness::onTcpDisconnect,
         &iseApp().getIseBusiness(), shared_from_this()));
 
+    // setEventLoop(NULL) 可使 shared_ptr<TcpConnection> 减少引用计数，进而销毁对象
     getEventLoop()->addFinalizer(boost::bind(&TcpConnection::setEventLoop, this, (TcpEventLoop*)NULL));
 }
 
@@ -652,7 +697,7 @@ void WinTcpConnection::tryRecv()
 
     if (!recvTaskQueue_.empty())
     {
-        const int MAX_RECV_SIZE = 1024*8;
+        const int MAX_RECV_SIZE = 1024*16;
 
         isRecving_ = true;
         recvBuffer_.append(MAX_RECV_SIZE);
@@ -1359,7 +1404,7 @@ void LinuxTcpConnection::tryRecv()
         return;
     }
 
-    const int BUFFER_SIZE = 1024*64;
+    const int BUFFER_SIZE = 1024*16;
     char dataBuf[BUFFER_SIZE];
 
     int bytesRecved = recvBuffer(dataBuf, BUFFER_SIZE, false);
@@ -1725,9 +1770,7 @@ void MainTcpServer::createTcpServerList()
 
         tcpServerList_[i] = tcpServer;
 
-        tcpServer->setCreateConnCallback(boost::bind(&MainTcpServer::onCreateConnection, this, _1, _2, _3, _4));
         tcpServer->setAcceptConnCallback(boost::bind(&MainTcpServer::onAcceptConnection, this, _1, _2));
-
         tcpServer->setLocalPort(iseApp().getIseOptions().getTcpServerPort(i));
     }
 }
@@ -1765,20 +1808,6 @@ void MainTcpServer::doClose()
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 创建连接对象
-//-----------------------------------------------------------------------------
-void MainTcpServer::onCreateConnection(TcpServer *tcpServer, SOCKET socketHandle,
-    const string& connectionName, BaseTcpConnection*& connection)
-{
-#ifdef ISE_WINDOWS
-    connection = new WinTcpConnection(tcpServer, socketHandle, connectionName);
-#endif
-#ifdef ISE_LINUX
-    connection = new LinuxTcpConnection(tcpServer, socketHandle, connectionName);
-#endif
-}
-
-//-----------------------------------------------------------------------------
 // 描述: 收到新的连接
 // 注意:
 //   此回调在TCP服务器监听线程(TcpListenerThread)中执行。
@@ -1788,7 +1817,7 @@ void MainTcpServer::onCreateConnection(TcpServer *tcpServer, SOCKET socketHandle
 //   这样做的另一个好处是，对于同一个TCP连接，IseBusiness::onTcpXXX() 系列回调
 //   均在同一个线程中执行。
 //-----------------------------------------------------------------------------
-void MainTcpServer::onAcceptConnection(TcpServer *tcpServer, BaseTcpConnection *connection)
+void MainTcpServer::onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection)
 {
     // round-robin
     static int index = 0;

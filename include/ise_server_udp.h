@@ -263,7 +263,7 @@ public:
     // 等待所有工作者线程退出
     void waitForAllWorkerThreads();
 
-    UdpServer& getUdpServer() { return udpServer_; }
+    BaseUdpServer& getUdpServer() { return udpServer_; }
 
 private:
     void initUdpServer();
@@ -273,7 +273,7 @@ private:
     void onRecvData(void *packetBuffer, int packetSize, const InetAddress& peerAddr);
 
 private:
-    UdpServer udpServer_;
+    BaseUdpServer udpServer_;
     vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
     int requestGroupCount_;                        // 请求组别总数
 };

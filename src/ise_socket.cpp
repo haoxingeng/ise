@@ -563,10 +563,11 @@ void Socket::setProtocol(int value)
 void Socket::bind(WORD port)
 {
     SockAddr addr = InetAddress(ntohl(INADDR_ANY), port).getSockAddr();
-    int value = 1;
+    int optVal = 1;
 
     // 强制重新绑定，而不受其它因素的影响
-    setsockopt(handle_, SOL_SOCKET, SO_REUSEADDR, (char*)&value, sizeof(int));
+    setsockopt(handle_, SOL_SOCKET, SO_REUSEADDR, (char*)&optVal, sizeof(optVal));
+
     // 绑定套接字
     if (::bind(handle_, (struct sockaddr*)&addr, sizeof(addr)) < 0)
         iseThrowSocketLastError();
@@ -680,7 +681,7 @@ void UdpSocket::open()
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpServer
 
-UdpServer::UdpServer() :
+BaseUdpServer::BaseUdpServer() :
     localPort_(0),
     listenerThreadPool_(NULL)
 {
@@ -690,7 +691,7 @@ UdpServer::UdpServer() :
 
 //-----------------------------------------------------------------------------
 
-UdpServer::~UdpServer()
+BaseUdpServer::~BaseUdpServer()
 {
     delete listenerThreadPool_;
 }
@@ -698,7 +699,7 @@ UdpServer::~UdpServer()
 //-----------------------------------------------------------------------------
 // 描述: 设置监听端口
 //-----------------------------------------------------------------------------
-void UdpServer::setLocalPort(int value)
+void BaseUdpServer::setLocalPort(int value)
 {
     if (value != localPort_)
     {
@@ -710,7 +711,7 @@ void UdpServer::setLocalPort(int value)
 //-----------------------------------------------------------------------------
 // 描述: 开启 UDP 服务器
 //-----------------------------------------------------------------------------
-void UdpServer::open()
+void BaseUdpServer::open()
 {
     try
     {
@@ -734,7 +735,7 @@ void UdpServer::open()
 //-----------------------------------------------------------------------------
 // 描述: 关闭 UDP 服务器
 //-----------------------------------------------------------------------------
-void UdpServer::close()
+void BaseUdpServer::close()
 {
     if (isActive())
     {
@@ -746,7 +747,7 @@ void UdpServer::close()
 //-----------------------------------------------------------------------------
 // 描述: 取得监听线程的数量
 //-----------------------------------------------------------------------------
-int UdpServer::getListenerThreadCount() const
+int BaseUdpServer::getListenerThreadCount() const
 {
     return listenerThreadPool_->getMaxThreadCount();
 }
@@ -754,7 +755,7 @@ int UdpServer::getListenerThreadCount() const
 //-----------------------------------------------------------------------------
 // 描述: 设置监听线程的数量
 //-----------------------------------------------------------------------------
-void UdpServer::setListenerThreadCount(int value)
+void BaseUdpServer::setListenerThreadCount(int value)
 {
     if (value < 1) value = 1;
     listenerThreadPool_->setMaxThreadCount(value);
@@ -763,7 +764,7 @@ void UdpServer::setListenerThreadCount(int value)
 //-----------------------------------------------------------------------------
 // 描述: 设置“收到数据包”的回调
 //-----------------------------------------------------------------------------
-void UdpServer::setRecvDataCallback(const UdpSvrRecvDataCallback& callback)
+void BaseUdpServer::setRecvDataCallback(const UdpSvrRecvDataCallback& callback)
 {
     onRecvData_ = callback;
 }
@@ -771,7 +772,7 @@ void UdpServer::setRecvDataCallback(const UdpSvrRecvDataCallback& callback)
 //-----------------------------------------------------------------------------
 // 描述: 启动监听线程
 //-----------------------------------------------------------------------------
-void UdpServer::startListenerThreads()
+void BaseUdpServer::startListenerThreads()
 {
     listenerThreadPool_->startThreads();
 }
@@ -779,7 +780,7 @@ void UdpServer::startListenerThreads()
 //-----------------------------------------------------------------------------
 // 描述: 停止监听线程
 //-----------------------------------------------------------------------------
-void UdpServer::stopListenerThreads()
+void BaseUdpServer::stopListenerThreads()
 {
     listenerThreadPool_->stopThreads();
 }
@@ -787,7 +788,7 @@ void UdpServer::stopListenerThreads()
 //-----------------------------------------------------------------------------
 // 描述: 收到数据包
 //-----------------------------------------------------------------------------
-void UdpServer::dataReceived(void *packetBuffer, int packetSize, const InetAddress& peerAddr)
+void BaseUdpServer::dataReceived(void *packetBuffer, int packetSize, const InetAddress& peerAddr)
 {
     if (onRecvData_)
         onRecvData_(packetBuffer, packetSize, peerAddr);
@@ -826,9 +827,8 @@ BaseTcpConnection::BaseTcpConnection() :
 
 //-----------------------------------------------------------------------------
 
-BaseTcpConnection::BaseTcpConnection(SOCKET socketHandle, const string& connectionName) :
-    isDisconnected_(false),
-    connectionName_(connectionName)
+BaseTcpConnection::BaseTcpConnection(SOCKET socketHandle) :
+    isDisconnected_(false)
 {
     socket_.setHandle(socketHandle);
     socket_.setBlockMode(false);
@@ -850,6 +850,26 @@ void BaseTcpConnection::disconnect()
     if (isConnected())
         doDisconnect();
     isDisconnected_ = true;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 设置 TCP_NODELAY 标志
+//-----------------------------------------------------------------------------
+void BaseTcpConnection::setNoDelay(bool value)
+{
+    int optVal = value ? 1 : 0;
+    ::setsockopt(getSocket().getHandle(), IPPROTO_TCP, TCP_NODELAY,
+        (char*)&optVal, sizeof(optVal));
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 设置 SO_KEEPALIVE 标志
+//-----------------------------------------------------------------------------
+void BaseTcpConnection::setKeepAlive(bool value)
+{
+    int optVal = value ? 1 : 0;
+    ::setsockopt(getSocket().getHandle(), IPPROTO_TCP, SO_KEEPALIVE,
+        (char*)&optVal, sizeof(optVal));
 }
 
 //-----------------------------------------------------------------------------
@@ -1180,7 +1200,7 @@ int BaseTcpConnection::doAsyncRecvBuffer(void *buffer, int size)
 // 描述: 发起TCP连接请求 (阻塞式)
 // 备注: 若连接失败，则抛出异常。
 //-----------------------------------------------------------------------------
-void TcpClient::connect(const string& ip, int port)
+void BaseTcpClient::connect(const string& ip, int port)
 {
     if (isConnected()) disconnect();
 
@@ -1218,7 +1238,7 @@ void TcpClient::connect(const string& ip, int port)
 // 备注:
 //   不抛异常。
 //-----------------------------------------------------------------------------
-int TcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
+int BaseTcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
 {
     int result = ACS_CONNECTING;
 
@@ -1266,7 +1286,7 @@ int TcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
 // 备注:
 //   不抛异常。
 //-----------------------------------------------------------------------------
-int TcpClient::checkAsyncConnectState(int timeoutMSecs)
+int BaseTcpClient::checkAsyncConnectState(int timeoutMSecs)
 {
     if (!socket_.isActive()) return ACS_FAILED;
 
@@ -1320,9 +1340,9 @@ int TcpClient::checkAsyncConnectState(int timeoutMSecs)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpServer
+// class BaseTcpServer
 
-TcpServer::TcpServer() :
+BaseTcpServer::BaseTcpServer() :
     localPort_(0),
     listenerThread_(NULL)
 {
@@ -1331,7 +1351,7 @@ TcpServer::TcpServer() :
 
 //-----------------------------------------------------------------------------
 
-TcpServer::~TcpServer()
+BaseTcpServer::~BaseTcpServer()
 {
     close();
 }
@@ -1339,7 +1359,7 @@ TcpServer::~TcpServer()
 //-----------------------------------------------------------------------------
 // 描述: 开启TCP服务器
 //-----------------------------------------------------------------------------
-void TcpServer::open()
+void BaseTcpServer::open()
 {
     try
     {
@@ -1362,7 +1382,7 @@ void TcpServer::open()
 //-----------------------------------------------------------------------------
 // 描述: 关闭TCP服务器
 //-----------------------------------------------------------------------------
-void TcpServer::close()
+void BaseTcpServer::close()
 {
     if (isActive())
     {
@@ -1374,7 +1394,7 @@ void TcpServer::close()
 //-----------------------------------------------------------------------------
 // 描述: 开启/关闭TCP服务器
 //-----------------------------------------------------------------------------
-void TcpServer::setActive(bool value)
+void BaseTcpServer::setActive(bool value)
 {
     if (isActive() != value)
     {
@@ -1386,7 +1406,7 @@ void TcpServer::setActive(bool value)
 //-----------------------------------------------------------------------------
 // 描述: 设置TCP服务器监听端口
 //-----------------------------------------------------------------------------
-void TcpServer::setLocalPort(WORD value)
+void BaseTcpServer::setLocalPort(WORD value)
 {
     if (value != localPort_)
     {
@@ -1398,7 +1418,7 @@ void TcpServer::setLocalPort(WORD value)
 //-----------------------------------------------------------------------------
 // 描述: 设置“创建新连接”的回调
 //-----------------------------------------------------------------------------
-void TcpServer::setCreateConnCallback(const TcpSvrCreateConnCallback& callback)
+void BaseTcpServer::setCreateConnCallback(const TcpSvrCreateConnCallback& callback)
 {
     onCreateConn_ = callback;
 }
@@ -1406,7 +1426,7 @@ void TcpServer::setCreateConnCallback(const TcpSvrCreateConnCallback& callback)
 //-----------------------------------------------------------------------------
 // 描述: 设置“收到连接”的回调
 //-----------------------------------------------------------------------------
-void TcpServer::setAcceptConnCallback(const TcpSvrAcceptConnCallback& callback)
+void BaseTcpServer::setAcceptConnCallback(const TcpSvrAcceptConnCallback& callback)
 {
     onAcceptConn_ = callback;
 }
@@ -1414,7 +1434,7 @@ void TcpServer::setAcceptConnCallback(const TcpSvrAcceptConnCallback& callback)
 //-----------------------------------------------------------------------------
 // 描述: 启动监听线程
 //-----------------------------------------------------------------------------
-void TcpServer::startListenerThread()
+void BaseTcpServer::startListenerThread()
 {
     if (!listenerThread_)
     {
@@ -1426,7 +1446,7 @@ void TcpServer::startListenerThread()
 //-----------------------------------------------------------------------------
 // 描述: 停止监听线程
 //-----------------------------------------------------------------------------
-void TcpServer::stopListenerThread()
+void BaseTcpServer::stopListenerThread()
 {
     if (listenerThread_)
     {
@@ -1438,30 +1458,17 @@ void TcpServer::stopListenerThread()
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 产生一个 TcpServer 范围内唯一的连接名称
-//-----------------------------------------------------------------------------
-string TcpServer::generateConnectionName(SOCKET socketHandle)
-{
-    string result = formatString("%s-%s#%u",
-        getSocket().getLocalAddr().getDisplayStr().c_str(),
-        getSocketPeerAddr(socketHandle).getDisplayStr().c_str(),
-        connIdAlloc_.allocId());
-    return result;
-}
-
-//-----------------------------------------------------------------------------
 // 描述: 创建连接对象
 //-----------------------------------------------------------------------------
-BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
+BaseTcpConnection* BaseTcpServer::createConnection(SOCKET socketHandle)
 {
     BaseTcpConnection *result = NULL;
-    string connectionName = generateConnectionName(socketHandle);
 
     if (onCreateConn_)
-        onCreateConn_(this, socketHandle, connectionName, result);
+        onCreateConn_(this, socketHandle, result);
 
     if (result == NULL)
-        result = new BaseTcpConnection(socketHandle, connectionName);
+        result = new BaseTcpConnection(socketHandle);
 
     return result;
 }
@@ -1469,7 +1476,7 @@ BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
 //-----------------------------------------------------------------------------
 // 描述: 收到连接 (注: connection 是堆对象，需使用者释放)
 //-----------------------------------------------------------------------------
-void TcpServer::acceptConnection(BaseTcpConnection *connection)
+void BaseTcpServer::acceptConnection(BaseTcpConnection *connection)
 {
     if (onAcceptConn_)
         onAcceptConn_(this, connection);
@@ -1545,7 +1552,7 @@ void UdpListenerThread::execute()
 ///////////////////////////////////////////////////////////////////////////////
 // class UdpListenerThreadPool
 
-UdpListenerThreadPool::UdpListenerThreadPool(UdpServer *udpServer) :
+UdpListenerThreadPool::UdpListenerThreadPool(BaseUdpServer *udpServer) :
     udpServer_(udpServer),
     maxThreadCount_(0)
 {
@@ -1600,7 +1607,7 @@ void UdpListenerThreadPool::stopThreads()
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpListenerThread
 
-TcpListenerThread::TcpListenerThread(TcpServer *tcpServer) :
+TcpListenerThread::TcpListenerThread(BaseTcpServer *tcpServer) :
     tcpServer_(tcpServer)
 {
     setFreeOnTerminate(false);

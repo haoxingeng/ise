@@ -60,12 +60,12 @@ namespace ise
 class InetAddress;
 class Socket;
 class UdpSocket;
-class UdpClient;
-class UdpServer;
+class BaseUdpClient;
+class BaseUdpServer;
 class TcpSocket;
 class BaseTcpConnection;
-class TcpClient;
-class TcpServer;
+class BaseTcpClient;
+class BaseTcpServer;
 class ListenerThread;
 class UdpListenerThread;
 class UdpListenerThreadPool;
@@ -322,7 +322,7 @@ public:
 class Socket : boost::noncopyable
 {
 public:
-    friend class TcpServer;
+    friend class BaseTcpServer;
 
 public:
     Socket();
@@ -381,18 +381,18 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class UdpClient - UDP Client 类
+// class UdpClient - UDP Client 基类
 
-class UdpClient : public UdpSocket
+class BaseUdpClient : public UdpSocket
 {
 public:
-    UdpClient() { open(); }
+    BaseUdpClient() { open(); }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class UdpServer - UDP Server 类
+// class UdpServer - UDP Server 基类
 
-class UdpServer :
+class BaseUdpServer :
     public UdpSocket,
     public ObjectContext
 {
@@ -403,8 +403,8 @@ public:
         const InetAddress& peerAddr)> UdpSvrRecvDataCallback;
 
 public:
-    UdpServer();
-    virtual ~UdpServer();
+    BaseUdpServer();
+    virtual ~BaseUdpServer();
 
     virtual void open();
     virtual void close();
@@ -443,7 +443,7 @@ public:
         isBlockMode_ = false;
     }
 
-    void shutdown(bool closeSend, bool closeRecv);
+    void shutdown(bool closeSend = true, bool closeRecv = true);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -455,15 +455,17 @@ class BaseTcpConnection :
 {
 public:
     BaseTcpConnection();
-    BaseTcpConnection(SOCKET socketHandle, const string& connectionName);
+    BaseTcpConnection(SOCKET socketHandle);
     virtual ~BaseTcpConnection() {}
 
     virtual bool isConnected() const;
     void disconnect();
 
+    void setNoDelay(bool value);
+    void setKeepAlive(bool value);
+
     TcpSocket& getSocket() { return socket_; }
     const TcpSocket& getSocket() const { return socket_; }
-    const string& getConnectionName() const { return connectionName_; }
     const InetAddress& getLocalAddr() const;
     const InetAddress& getPeerAddr() const;
 
@@ -483,16 +485,15 @@ private:
 protected:
     TcpSocket socket_;
 private:
-    string connectionName_;
     bool isDisconnected_;
     mutable InetAddress localAddr_;
     mutable InetAddress peerAddr_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpClient - TCP Client 类
+// class BaseTcpClient - TCP Client 基类
 
-class TcpClient : public BaseTcpConnection
+class BaseTcpClient : public BaseTcpConnection
 {
 public:
     // 阻塞式连接
@@ -507,26 +508,26 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpServer - TCP Server 类
+// class BaseTcpServer - TCP Server 基类
 
-class TcpServer :
+class BaseTcpServer :
     boost::noncopyable,
     public ObjectContext
 {
 public:
     friend class TcpListenerThread;
 
-    typedef boost::function<void (TcpServer *tcpServer, SOCKET socketHandle,
-        const string& connectionName, BaseTcpConnection*& connection)> TcpSvrCreateConnCallback;
-    typedef boost::function<void (TcpServer *tcpServer,
+    typedef boost::function<void (BaseTcpServer *tcpServer, SOCKET socketHandle,
+        BaseTcpConnection*& connection)> TcpSvrCreateConnCallback;
+    typedef boost::function<void (BaseTcpServer *tcpServer,
         BaseTcpConnection *connection)> TcpSvrAcceptConnCallback;
 
 public:
     enum { LISTEN_QUEUE_SIZE = 30 };   // TCP监听队列长度
 
 public:
-    TcpServer();
-    virtual ~TcpServer();
+    BaseTcpServer();
+    virtual ~BaseTcpServer();
 
     virtual void open();
     virtual void close();
@@ -546,15 +547,12 @@ protected:
     virtual void startListenerThread();
     virtual void stopListenerThread();
 
-private:
-    string generateConnectionName(SOCKET socketHandle);
-    BaseTcpConnection* createConnection(SOCKET socketHandle);
-    void acceptConnection(BaseTcpConnection *connection);
+    virtual BaseTcpConnection* createConnection(SOCKET socketHandle);
+    virtual void acceptConnection(BaseTcpConnection *connection);
 
 private:
     TcpSocket socket_;
     WORD localPort_;
-    SeqNumberAlloc connIdAlloc_;
     TcpListenerThread *listenerThread_;
     TcpSvrCreateConnCallback onCreateConn_;
     TcpSvrAcceptConnCallback onAcceptConn_;
@@ -594,7 +592,7 @@ protected:
     virtual void execute();
 private:
     UdpListenerThreadPool *threadPool_;  // 所属线程池
-    UdpServer *udpServer_;               // 所属UDP服务器
+    BaseUdpServer *udpServer_;               // 所属UDP服务器
     int index_;                          // 线程在池中的索引号(0-based)
 };
 
@@ -604,7 +602,7 @@ private:
 class UdpListenerThreadPool : boost::noncopyable
 {
 public:
-    explicit UdpListenerThreadPool(UdpServer *udpServer);
+    explicit UdpListenerThreadPool(BaseUdpServer *udpServer);
     virtual ~UdpListenerThreadPool();
 
     void registerThread(UdpListenerThread *thread);
@@ -617,10 +615,10 @@ public:
     void setMaxThreadCount(int value) { maxThreadCount_ = value; }
 
     // 返回所属UDP服务器
-    UdpServer& getUdpServer() { return *udpServer_; }
+    BaseUdpServer& getUdpServer() { return *udpServer_; }
 
 private:
-    UdpServer *udpServer_;                // 所属UDP服务器
+    BaseUdpServer *udpServer_;                // 所属UDP服务器
     ThreadList threadList_;               // 线程列表
     int maxThreadCount_;                  // 允许最大线程数量
 };
@@ -631,11 +629,11 @@ private:
 class TcpListenerThread : public ListenerThread
 {
 public:
-    explicit TcpListenerThread(TcpServer *tcpServer);
+    explicit TcpListenerThread(BaseTcpServer *tcpServer);
 protected:
     virtual void execute();
 private:
-    TcpServer *tcpServer_;
+    BaseTcpServer *tcpServer_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -15,7 +15,7 @@ SRC_PATH = ../../../projects/$(PROJECT_NAME)
 
 CC = g++
 CDEFINES = 
-CFLAGS = -g $(CDEFINES)
+CFLAGS = -g -march=i486 $(CDEFINES)
 
 SRCS = $(wildcard $(SRC_PATH)/*.cpp)
 

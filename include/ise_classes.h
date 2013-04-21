@@ -342,6 +342,107 @@ private:
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+// class AtomicInteger - 提供原子操作的整数类
+
+#ifdef ISE_WINDOWS
+
+class AtomicInt : boost::noncopyable
+{
+public:
+    AtomicInt() : value_(0) {}
+
+    LONG get() { return InterlockedCompareExchange(&value_, 0, 0); }
+    LONG set(LONG newValue) { return InterlockedExchange(&value_, newValue); }
+    LONG getAndAdd(LONG x) { return InterlockedExchangeAdd(&value_, x); }
+    LONG addAndGet(LONG x) { return getAndAdd(x) + x; }
+    LONG increment() { return InterlockedIncrement(&value_); }
+    LONG decrement() { return InterlockedDecrement(&value_); }
+    LONG getAndSet(LONG newValue) { return set(newValue); }
+
+private:
+    volatile LONG value_;
+};
+
+class AtomicInt64 : boost::noncopyable
+{
+public:
+    AtomicInt64() : value_(0) {}
+
+    INT64 get()
+    {
+        AutoLocker locker(lock_);
+        return value_;
+    }
+    INT64 set(INT64 newValue)
+    {
+        AutoLocker locker(lock_);
+        INT64 temp = value_;
+        value_ = newValue;
+        return temp;
+    }
+    INT64 getAndAdd(INT64 x)
+    {
+        AutoLocker locker(lock_);
+        INT64 temp = value_;
+        value_ += x;
+        return temp;
+    }
+    INT64 addAndGet(INT64 x)
+    {
+        AutoLocker locker(lock_);
+        value_ += x;
+        return value_;
+    }
+    INT64 increment()
+    {
+        AutoLocker locker(lock_);
+        ++value_;
+        return value_;
+    }
+    INT64 decrement()
+    {
+        AutoLocker locker(lock_);
+        --value_;
+        return value_;
+    }
+    INT64 getAndSet(INT64 newValue)
+    {
+        return set(newValue);
+    }
+
+private:
+    volatile INT64 value_;
+    CriticalSection lock_;
+};
+
+#endif
+
+#ifdef ISE_LINUX
+
+template<typename T>
+class AtomicInteger : boost::noncopyable
+{
+public:
+    AtomicInteger() : value_(0) {}
+
+    T get() { return __sync_val_compare_and_swap(&value_, 0, 0); }
+    T set(T newValue) { return __sync_lock_test_and_set(&value_, newValue); }
+    T getAndAdd(T x) { return __sync_fetch_and_add(&value_, x); }
+    T addAndGet(T x) { return __sync_add_and_fetch(&value_, x); }
+    T increment() { return addAndGet(1); }
+    T decrement() { return addAndGet(-1); }
+    T getAndSet(T newValue) { return set(newValue); }
+
+private:
+    volatile T value_;
+};
+
+typedef AtomicInteger<long> AtomicInt;
+typedef AtomicInteger<INT64> AtomicInt64;
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
 // class SeqNumberAlloc - 整数序列号分配器类
 //
 // 说明:
@@ -351,14 +452,14 @@ private:
 class SeqNumberAlloc : boost::noncopyable
 {
 public:
-    explicit SeqNumberAlloc(UINT startId = 0);
+    explicit SeqNumberAlloc(UINT64 startId = 0);
 
     // 返回一个新分配的ID
-    UINT allocId();
+    UINT64 allocId();
 
 private:
     CriticalSection lock_;
-    UINT currentId_;
+    UINT64 currentId_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

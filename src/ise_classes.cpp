@@ -638,7 +638,7 @@ int SignalMasker::sigProcMask(int how, const sigset_t *newSet, sigset_t *oldSet)
 // 参数:
 //   startId - 起始序列号
 //-----------------------------------------------------------------------------
-SeqNumberAlloc::SeqNumberAlloc(UINT startId)
+SeqNumberAlloc::SeqNumberAlloc(UINT64 startId)
 {
     currentId_ = startId;
 }
@@ -646,7 +646,7 @@ SeqNumberAlloc::SeqNumberAlloc(UINT startId)
 //-----------------------------------------------------------------------------
 // 描述: 返回一个新分配的ID
 //-----------------------------------------------------------------------------
-UINT SeqNumberAlloc::allocId()
+UINT64 SeqNumberAlloc::allocId()
 {
     AutoLocker locker(lock_);
     return currentId_++;

@@ -76,7 +76,9 @@ void AppBusiness::initIseOptions(IseOptions& options)
 //-----------------------------------------------------------------------------
 void AppBusiness::onTcpConnect(const TcpConnectionPtr& connection)
 {
-    logger().writeFmt("onTcpConnect (%s)", connection->getPeerAddr().getDisplayStr().c_str());
+    logger().writeFmt("onTcpConnect (%s) (ConnCount: %d)",
+        connection->getPeerAddr().getDisplayStr().c_str(),
+        connection->getServerConnCount());
 
     connection->recv(LINE_PACKET_SPLITTER);
 }
@@ -113,5 +115,6 @@ void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pa
 void AppBusiness::onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context)
 {
     logger().writeStr("onTcpSendComplete");
+
     connection->recv(LINE_PACKET_SPLITTER);
 }
