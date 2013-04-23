@@ -248,7 +248,9 @@ void WinThreadImpl::run()
     // 注意: 请查阅 CRT::_beginthreadex 和 API::CreateThread 的区别，前者兼容于CRT。
     handle_ = (HANDLE)_beginthreadex(NULL, 0, threadExecProc, (LPVOID)this,
         CREATE_SUSPENDED, (UINT*)&threadId_);
-    //handle_ = CreateThread(NULL, 0, threadExecProc, (LPVOID)this, CREATE_SUSPENDED, (LPDWORD)&threadId_);
+    /*
+    handle_ = CreateThread(NULL, 0, threadExecProc, (LPVOID)this, CREATE_SUSPENDED, (LPDWORD)&threadId_);
+    */
 
     checkThreadError(handle_ != 0);
 
@@ -377,6 +379,9 @@ void* threadExecProc(void *param)
         delete threadImpl->execSem_;
         threadImpl->execSem_ = NULL;
 
+        // 获取线程内核ID
+        threadImpl->threadId_ = getCurThreadId();
+
         threadImpl->setExecuting(true);
 
         // 线程对 cancel 信号的响应方式有三种: (1)不响应 (2)推迟到取消点再响应 (3)尽量立即响应。
@@ -422,6 +427,7 @@ void* threadExecProc(void *param)
 //-----------------------------------------------------------------------------
 LinuxThreadImpl::LinuxThreadImpl(Thread *thread) :
     ThreadImpl(thread),
+    pthreadId_(0),
     policy_(THREAD_POL_DEFAULT),
     priority_(THREAD_PRI_DEFAULT),
     execSem_(NULL)
@@ -437,7 +443,7 @@ LinuxThreadImpl::~LinuxThreadImpl()
     delete execSem_;
     execSem_ = NULL;
 
-    if (threadId_ != 0)
+    if (pthreadId_ != 0)
     {
         if (isExecuting_)
             terminate();
@@ -445,9 +451,9 @@ LinuxThreadImpl::~LinuxThreadImpl()
             waitFor();
     }
 
-    if (threadId_ != 0)
+    if (pthreadId_ != 0)
     {
-        pthread_detach(threadId_);
+        pthread_detach(pthreadId_);
     }
 }
 
@@ -464,7 +470,7 @@ void LinuxThreadImpl::run()
     execSem_ = new Semaphore(0);
 
     // 创建线程
-    checkThreadError(pthread_create((pthread_t*)&threadId_, NULL, threadExecProc, (void*)this));
+    checkThreadError(pthread_create((pthread_t*)&pthreadId_, NULL, threadExecProc, (void*)this));
 
     // 设置线程调度策略
     if (policy_ != THREAD_POL_DEFAULT)
@@ -499,14 +505,14 @@ void LinuxThreadImpl::terminate()
 //-----------------------------------------------------------------------------
 void LinuxThreadImpl::kill()
 {
-    if (threadId_ != 0)
+    if (pthreadId_ != 0)
     {
         beforeKill();
 
         if (isExecuting_)
         {
             setFreeOnTerminate(true);
-            pthread_cancel(threadId_);
+            pthread_cancel(pthreadId_);
             return;
         }
     }
@@ -522,10 +528,11 @@ int LinuxThreadImpl::waitFor()
 {
     ISE_ASSERT(isFreeOnTerminate_ == false);
 
-    pthread_t threadId = threadId_;
+    pthread_t threadId = pthreadId_;
 
-    if (threadId_ != 0)
+    if (pthreadId_ != 0)
     {
+        pthreadId_ = 0;
         threadId_ = 0;
         checkThreadError(pthread_join(threadId, (void**)&returnValue_));
     }
@@ -547,11 +554,11 @@ void LinuxThreadImpl::setPolicy(int value)
 
     policy_ = value;
 
-    if (threadId_ != 0)
+    if (pthreadId_ != 0)
     {
         struct sched_param param;
         param.sched_priority = priority_;
-        pthread_setschedparam(threadId_, policy_, &param);
+        pthread_setschedparam(pthreadId_, policy_, &param);
     }
 }
 
@@ -565,11 +572,11 @@ void LinuxThreadImpl::setPriority(int value)
 
     priority_ = value;
 
-    if (threadId_ != 0)
+    if (pthreadId_ != 0)
     {
         struct sched_param param;
         param.sched_priority = priority_;
-        pthread_setschedparam(threadId_, policy_, &param);
+        pthread_setschedparam(pthreadId_, policy_, &param);
     }
 }
 

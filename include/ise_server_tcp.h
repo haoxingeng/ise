@@ -24,6 +24,48 @@
 // ise_server_tcp.h
 ///////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////
+// 说明:
+//
+// * 收到连接后(onTcpConnect)，即使用户不调用 connection->recv()，ISE也会在后台
+//   自动接收数据。接收到的数据暂存于缓存中。
+//
+// * 即使用户在连接上无任何动作(既不 send 也不 recv)，当对方断开连接 (close/shutdown) 时，
+//   我方也能够感知，并通过 onTcpDisconnect() 通知用户。
+//
+// * connection->disconnect() 会立即双向 shutdown，而不管该连接的ISE缓存中有没有
+//   未发送完的数据。
+//
+// * 连接对象 (TcpConnection) 采用 boost::shared_ptr 管理，由以下几个角色持有:
+//   1. TcpEventLoop.
+//      由 TcpEventLoop::tcpConnMap_ 持有，TcpEventLoop::removeConnection() 时释放。
+//      当调用 TcpConnection::setEventLoop(NULL) 时，将引发 removeConnection()。
+//      程序正常退出 (kill 或 iseApp().setTerminated(true)) 时，将清理全部连接
+//      (TcpEventLoop::clearConnections())，从而使 TcpEventLoop 释放它持有的全部
+//      boost::shared_ptr。
+//   2. ISE_WINDOWS::IOCP.
+//      由 IocpTaskData::callback_ 持有。callback_ 作为一个 boost::function，保存
+//      了由 TcpConnection::shared_from_this() 传递过来的 shared_ptr。
+//      当一次IOCP轮循完毕后，会调用 IocpObject::destroyOverlappedData()，此处会
+//      析构 callback_，从而释放 shared_ptr。
+//      这说明要想销毁一个连接对象，至少应保证在该连接上投递给IOCP的请求在轮循中
+//      得到了处理。只有处理完请求，IOCP 才会释放 shared_ptr。
+//   3. ISE 的用户.
+//      业务接口中 IseBusiness::onTcpXXX() 系列函数将连接对象以 shared_ptr 形式
+//      传递给用户。大部分情况下，ISE对连接对象的自动管理能满足实际需要，但用户
+//      仍然可以持有 shared_ptr，以免连接被自动销毁。
+//
+// * 连接对象 (TcpConnection) 的几个销毁场景:
+//   1. IseBusiness::onTcpConnect() 之后，用户调用了 connection->disconnect()，
+//      引发 IOCP/EPoll 错误，调用 errorOccurred()，执行 onTcpDisconnect() 和
+//      TcpConnecton::setEventLoop(NULL)。
+//   2. IseBusiness::onTcpConnect() 之后，用户没有任何动作，但对方断开了连接，
+//      我方检测到后引发 IOCP/EPoll 错误，之后同1。
+//   3. 程序在 Linux 下被 kill，或程序中执行了 iseApp().setTerminated(true)，
+//      当前剩余连接全部在 TcpEventLoop::clearConnections() 中 被 disconnect()，
+//      在接下来的轮循中引发了 IOCP/EPoll 错误，之后同1。
+
+
 #ifndef _ISE_SERVER_TCP_H_
 #define _ISE_SERVER_TCP_H_
 
@@ -183,12 +225,14 @@ public:
 
     bool isRunning();
     bool isInLoopThread();
+    void assertInLoopThread();
     void executeInLoop(const Functor& functor);
     void delegateToLoop(const Functor& functor);
     void addFinalizer(const Functor& finalizer);
 
     void addConnection(TcpConnection *connection);
     void removeConnection(TcpConnection *connection);
+    void clearConnections();
 
 protected:
     virtual void doLoopWork(Thread *thread) = 0;
@@ -267,6 +311,7 @@ class TcpConnection :
 {
 public:
     friend class MainTcpServer;
+    friend class TcpEventLoop;
 
     struct SendTask
     {
@@ -288,7 +333,8 @@ public:
     virtual ~TcpConnection();
 
     void send(const void *buffer, int size, const Context& context = EMPTY_CONTEXT);
-    void recv(const PacketSplitter& packetSplitter, const Context& context = EMPTY_CONTEXT);
+    void recv(const PacketSplitter& packetSplitter = BYTE_PACKET_SPLITTER,
+        const Context& context = EMPTY_CONTEXT);
 
     const string& getConnectionName() const { return connectionName_; }
     int getServerIndex() const { return boost::any_cast<int>(tcpServer_->getContext()); }
@@ -297,6 +343,7 @@ public:
 
 protected:
     virtual void doDisconnect();
+    virtual void eventLoopChanged() {}
     virtual void postSendTask(const void *buffer, int size, const Context& context) = 0;
     virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context) = 0;
 
@@ -340,6 +387,7 @@ class WinTcpConnection : public TcpConnection
 public:
     WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
 protected:
+    virtual void eventLoopChanged();
     virtual void postSendTask(const void *buffer, int size, const Context& context);
     virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context);
 
@@ -349,7 +397,7 @@ private:
     void trySend();
     void tryRecv();
 
-    void onIocpCallback(const IocpTaskData& taskData);
+    static void onIocpCallback(const TcpConnectionPtr& thisObj, const IocpTaskData& taskData);
     void onSendCallback(const IocpTaskData& taskData);
     void onRecvCallback(const IocpTaskData& taskData);
 
@@ -401,7 +449,7 @@ private:
 };
 
 #pragma pack(1)
-struct CIocpOverlappedData
+struct IocpOverlappedData
 {
     OVERLAPPED overlapped;
     IocpTaskData taskData;
@@ -486,11 +534,11 @@ private:
     void initialize();
     void finalize();
     void throwGeneralError();
-    CIocpOverlappedData* createOverlappedData(IOCP_TASK_TYPE taskType,
+    IocpOverlappedData* createOverlappedData(IOCP_TASK_TYPE taskType,
         HANDLE fileHandle, PVOID buffer, int size, int offset,
         const IocpCallback& callback, PVOID caller, const Context& context);
-    void destroyOverlappedData(CIocpOverlappedData *ovDataPtr);
-    void postError(int errorCode, CIocpOverlappedData *ovDataPtr);
+    void destroyOverlappedData(IocpOverlappedData *ovDataPtr);
+    void postError(int errorCode, IocpOverlappedData *ovDataPtr);
     void invokeCallback(const IocpTaskData& taskData);
 
 private:
@@ -541,6 +589,7 @@ public:
 public:
     LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
 protected:
+    virtual void eventLoopChanged();
     virtual void postSendTask(const void *buffer, int size, const Context& context);
     virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context);
 

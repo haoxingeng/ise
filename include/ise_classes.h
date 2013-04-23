@@ -671,13 +671,13 @@ public:
     enum { PROP_ITEM_SEP  = ',' };        // 属性项目之间的分隔符
     enum { PROP_ITEM_QUOT = '"' };
 
-    struct CPropertyItem
+    struct PropertyItem
     {
         string name, value;
     public:
-        CPropertyItem(const CPropertyItem& src) :
+        PropertyItem(const PropertyItem& src) :
             name(src.name), value(src.value) {}
-        CPropertyItem(const string& _name, const string& _value) :
+        PropertyItem(const string& _name, const string& _value) :
             name(_name), value(_value) {}
     };
 
@@ -693,7 +693,7 @@ public:
     bool getValue(const string& name, string& value) const;
     int getCount() const { return items_.getCount(); }
     bool isEmpty() const { return (getCount() <= 0); }
-    const CPropertyItem& getItems(int index) const;
+    const PropertyItem& getItems(int index) const;
     string getPropString() const;
     void setPropString(const string& propString);
 
@@ -701,7 +701,7 @@ public:
     string& operator[] (const string& name);
 
 private:
-    CPropertyItem* find(const string& name);
+    PropertyItem* find(const string& name);
     static bool isReservedChar(char ch);
     static bool hasReservedChar(const string& str);
     static char* scanStr(char *str, char ch);
@@ -709,7 +709,7 @@ private:
     static string extractQuotedStr(char*& strPtr);
 
 private:
-    PointerList items_;                        // (CPropertyItem* [])
+    PointerList items_;                        // (PropertyItem* [])
 };
 
 ///////////////////////////////////////////////////////////////////////////////

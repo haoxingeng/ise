@@ -1549,10 +1549,10 @@ void PropertyList::add(const string& name, const string& value)
     if (name.find(NAME_VALUE_SEP, 0) != string::npos)
         iseThrowException(SEM_PROPLIST_NAME_ERROR);
 
-    CPropertyItem *item = find(name);
+    PropertyItem *item = find(name);
     if (!item)
     {
-        item = new CPropertyItem(name, value);
+        item = new PropertyItem(name, value);
         items_.add(item);
     }
     else
@@ -1572,7 +1572,7 @@ bool PropertyList::remove(const string& name)
 
     if (result)
     {
-        delete (CPropertyItem*)items_[i];
+        delete (PropertyItem*)items_[i];
         items_.del(i);
     }
 
@@ -1585,7 +1585,7 @@ bool PropertyList::remove(const string& name)
 void PropertyList::clear()
 {
     for (int i = 0; i < items_.getCount(); i++)
-        delete (CPropertyItem*)items_[i];
+        delete (PropertyItem*)items_[i];
     items_.clear();
 }
 
@@ -1597,7 +1597,7 @@ int PropertyList::indexOf(const string& name) const
     int result = -1;
 
     for (int i = 0; i < items_.getCount(); i++)
-        if (sameText(name, ((CPropertyItem*)items_[i])->name))
+        if (sameText(name, ((PropertyItem*)items_[i])->name))
         {
             result = i;
             break;
@@ -1624,7 +1624,7 @@ bool PropertyList::getValue(const string& name, string& value) const
     bool result = (i >= 0);
 
     if (result)
-        value = ((CPropertyItem*)items_[i])->value;
+        value = ((PropertyItem*)items_[i])->value;
 
     return result;
 }
@@ -1632,12 +1632,12 @@ bool PropertyList::getValue(const string& name, string& value) const
 //-----------------------------------------------------------------------------
 // 描述: 根据下标号(0-based)取得属性项目
 //-----------------------------------------------------------------------------
-const PropertyList::CPropertyItem& PropertyList::getItems(int index) const
+const PropertyList::PropertyItem& PropertyList::getItems(int index) const
 {
     if (index < 0 || index >= getCount())
         iseThrowException(SEM_INDEX_ERROR);
 
-    return *((CPropertyItem*)items_[index]);
+    return *((PropertyItem*)items_[index]);
 }
 
 //-----------------------------------------------------------------------------
@@ -1659,7 +1659,7 @@ string PropertyList::getPropString() const
 
     for (int index = 0; index < getCount(); index++)
     {
-        const CPropertyItem& item = getItems(index);
+        const PropertyItem& item = getItems(index);
 
         itemStr = item.name + (char)NAME_VALUE_SEP + item.value;
         if (hasReservedChar(itemStr))
@@ -1726,16 +1726,16 @@ string& PropertyList::operator[] (const string& name)
         i = getCount() - 1;
     }
 
-    return ((CPropertyItem*)items_[i])->value;
+    return ((PropertyItem*)items_[i])->value;
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 查找某个属性项目，没找到则返回 NULL
 //-----------------------------------------------------------------------------
-PropertyList::CPropertyItem* PropertyList::find(const string& name)
+PropertyList::PropertyItem* PropertyList::find(const string& name)
 {
     int i = indexOf(name);
-    CPropertyItem *result = (i >= 0? (CPropertyItem*)items_[i] : NULL);
+    PropertyItem *result = (i >= 0? (PropertyItem*)items_[i] : NULL);
     return result;
 }
 

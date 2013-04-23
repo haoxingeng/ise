@@ -239,6 +239,7 @@ TcpEventLoop::TcpEventLoop() :
 
 TcpEventLoop::~TcpEventLoop()
 {
+    tcpConnMap_.clear();
     stop(false, true);
 }
 
@@ -299,6 +300,14 @@ bool TcpEventLoop::isInLoopThread()
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 确保当前调用在事件循环线程内
+//-----------------------------------------------------------------------------
+void TcpEventLoop::assertInLoopThread()
+{
+    ISE_ASSERT(isInLoopThread());
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 在事件循环线程中立即执行指定的仿函数
 // 备注: 线程安全
 //-----------------------------------------------------------------------------
@@ -352,7 +361,27 @@ void TcpEventLoop::addConnection(TcpConnection *connection)
 void TcpEventLoop::removeConnection(TcpConnection *connection)
 {
     unregisterConnection(connection);
+
+    // 此处 shared_ptr 计数递减，有可能会销毁 TcpConnection 对象
     tcpConnMap_.erase(connection->getConnectionName());
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 清除全部连接
+// 备注:
+//   conn->disconnect() 使 IOCP 返回错误，从而释放 IOCP 持有的 shared_ptr。
+//   之后 TcpConnection::errorOccurred() 被调用，进而调用 onTcpDisconnect() 和
+//   TcpConnection::setEventLoop(NULL)。
+//-----------------------------------------------------------------------------
+void TcpEventLoop::clearConnections()
+{
+    assertInLoopThread();
+
+    for (TcpConnectionMap::iterator iter = tcpConnMap_.begin(); iter != tcpConnMap_.end(); ++iter)
+    {
+        TcpConnectionPtr conn = tcpConnMap_.begin()->second;
+        conn->disconnect();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -360,8 +389,15 @@ void TcpEventLoop::removeConnection(TcpConnection *connection)
 //-----------------------------------------------------------------------------
 void TcpEventLoop::runLoop(Thread *thread)
 {
-    while (!thread->isTerminated())
+    bool isTerminated = false;
+    while (!isTerminated)
     {
+        if (thread->isTerminated())
+        {
+            clearConnections();
+            isTerminated = true;
+        }
+
         doLoopWork(thread);
         executeDelegatedFunctors();
         executeFinalizer();
@@ -422,7 +458,7 @@ void TcpEventLoopList::start()
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 停止全部 eventLoop 的工作线程
+// 描述: 全部 eventLoop 停止工作
 //-----------------------------------------------------------------------------
 void TcpEventLoopList::stop()
 {
@@ -518,7 +554,7 @@ TcpConnection::TcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
 
 TcpConnection::~TcpConnection()
 {
-    logger().writeFmt("destroy conn: %s", getConnectionName().c_str());  // debug
+    //logger().writeFmt("destroy conn: %s", getConnectionName().c_str());  // debug
 
     setEventLoop(NULL);
     tcpServer_->decConnCount();
@@ -567,9 +603,6 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
 void TcpConnection::doDisconnect()
 {
     getSocket().shutdown();
-
-    // 在用户不调用 recv 的情况下确保能引发错误
-    recv(BYTE_PACKET_SPLITTER);
 }
 
 //-----------------------------------------------------------------------------
@@ -583,14 +616,17 @@ void TcpConnection::errorOccurred()
 {
     ISE_ASSERT(eventLoop_ != NULL);
 
-    getSocket().shutdown();
+    disconnect();
 
-    getEventLoop()->executeInLoop(
-        boost::bind(&IseBusiness::onTcpDisconnect,
+    getEventLoop()->executeInLoop(boost::bind(
+        &IseBusiness::onTcpDisconnect,
         &iseApp().getIseBusiness(), shared_from_this()));
 
     // setEventLoop(NULL) 可使 shared_ptr<TcpConnection> 减少引用计数，进而销毁对象
-    getEventLoop()->addFinalizer(boost::bind(&TcpConnection::setEventLoop, this, (TcpEventLoop*)NULL));
+    getEventLoop()->addFinalizer(boost::bind(
+        &TcpConnection::setEventLoop,
+        shared_from_this(),   // 保证在调用 setEventLoop(NULL) 期间不会销毁 TcpConnection 对象
+        (TcpEventLoop*)NULL));
 }
 
 //-----------------------------------------------------------------------------
@@ -605,17 +641,23 @@ void TcpConnection::postSendTask(const string& data, const Context& context)
 //-----------------------------------------------------------------------------
 void TcpConnection::setEventLoop(TcpEventLoop *eventLoop)
 {
-    if (eventLoop_)
+    if (eventLoop != eventLoop_)
     {
-        TcpEventLoop *temp = eventLoop_;
-        eventLoop_ = NULL;
-        temp->removeConnection(this);
-    }
+        if (eventLoop_)
+        {
+            TcpEventLoop *temp = eventLoop_;
+            eventLoop_ = NULL;
+            temp->removeConnection(this);
+            eventLoopChanged();
+        }
 
-    if (eventLoop)
-    {
-        eventLoop_ = eventLoop;
-        eventLoop->addConnection(this);
+        if (eventLoop)
+        {
+            eventLoop->assertInLoopThread();
+            eventLoop_ = eventLoop;
+            eventLoop->addConnection(this);
+            eventLoopChanged();
+        }
     }
 }
 
@@ -635,6 +677,17 @@ WinTcpConnection::WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
         bytesRecved_(0)
 {
     // nothing
+}
+
+//-----------------------------------------------------------------------------
+
+void WinTcpConnection::eventLoopChanged()
+{
+    if (getEventLoop() != NULL)
+    {
+        getEventLoop()->assertInLoopThread();
+        tryRecv();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -682,9 +735,10 @@ void WinTcpConnection::trySend()
         int sendSize = ise::min(readableBytes, MAX_SEND_SIZE);
 
         isSending_ = true;
-        getEventLoop()->getIocpObject()->send(getSocket().getHandle(),
+        getEventLoop()->getIocpObject()->send(
+            getSocket().getHandle(),
             (PVOID)buffer, sendSize, 0,
-            boost::bind(&WinTcpConnection::onIocpCallback, this, _1),
+            boost::bind(&WinTcpConnection::onIocpCallback, shared_from_this(), _1),
             this, EMPTY_CONTEXT);
     }
 }
@@ -695,40 +749,40 @@ void WinTcpConnection::tryRecv()
 {
     if (isRecving_) return;
 
-    if (!recvTaskQueue_.empty())
-    {
-        const int MAX_RECV_SIZE = 1024*16;
+    const int MAX_RECV_SIZE = 1024*16;
 
-        isRecving_ = true;
-        recvBuffer_.append(MAX_RECV_SIZE);
-        const char *buffer = recvBuffer_.peek() + bytesRecved_;
+    isRecving_ = true;
+    recvBuffer_.append(MAX_RECV_SIZE);
+    const char *buffer = recvBuffer_.peek() + bytesRecved_;
 
-        getEventLoop()->getIocpObject()->recv(getSocket().getHandle(),
-            (PVOID)buffer, MAX_RECV_SIZE, 0,
-            boost::bind(&WinTcpConnection::onIocpCallback, this, _1),
-            this, EMPTY_CONTEXT);
-    }
+    getEventLoop()->getIocpObject()->recv(
+        getSocket().getHandle(),
+        (PVOID)buffer, MAX_RECV_SIZE, 0,
+        boost::bind(&WinTcpConnection::onIocpCallback, shared_from_this(), _1),
+        this, EMPTY_CONTEXT);
 }
 
 //-----------------------------------------------------------------------------
 
-void WinTcpConnection::onIocpCallback(const IocpTaskData& taskData)
+void WinTcpConnection::onIocpCallback(const TcpConnectionPtr& thisObj, const IocpTaskData& taskData)
 {
+    WinTcpConnection *thisPtr = static_cast<WinTcpConnection*>(thisObj.get());
+
     if (taskData.getErrorCode() == 0)
     {
         switch (taskData.getTaskType())
         {
         case ITT_SEND:
-            onSendCallback(taskData);
+            thisPtr->onSendCallback(taskData);
             break;
         case ITT_RECV:
-            onRecvCallback(taskData);
+            thisPtr->onRecvCallback(taskData);
             break;
         }
     }
     else
     {
-        errorOccurred();
+        thisPtr->errorOccurred();
     }
 }
 
@@ -819,8 +873,7 @@ void WinTcpConnection::onRecvCallback(const IocpTaskData& taskData)
             break;
     }
 
-    if (!recvTaskQueue_.empty())
-        tryRecv();
+    tryRecv();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -981,7 +1034,7 @@ int IocpPendingCounter::get(IOCP_TASK_TYPE taskType)
 ///////////////////////////////////////////////////////////////////////////////
 // class IocpObject
 
-IocpBufferAllocator IocpObject::bufferAlloc_(sizeof(CIocpOverlappedData));
+IocpBufferAllocator IocpObject::bufferAlloc_(sizeof(IocpOverlappedData));
 SeqNumberAlloc IocpObject::taskSeqAlloc_(0);
 IocpPendingCounter IocpObject::pendingCounter_;
 
@@ -1019,32 +1072,6 @@ bool IocpObject::isComplete(PVOID caller)
 
 void IocpObject::work()
 {
-    const int IOCP_WAIT_TIMEOUT = 1000*1;  // ms
-
-    CIocpOverlappedData *overlappedPtr = NULL;
-    DWORD bytesTransferred = 0, nTemp = 0;
-    int errorCode = 0;
-
-    struct AutoFinalizer
-    {
-    private:
-        IocpObject& iocpObject_;
-        CIocpOverlappedData*& ovPtr_;
-    public:
-        AutoFinalizer(IocpObject& iocpObject, CIocpOverlappedData*& ovPtr) :
-            iocpObject_(iocpObject), ovPtr_(ovPtr) {}
-        ~AutoFinalizer()
-        {
-            if (ovPtr_)
-            {
-                iocpObject_.pendingCounter_.dec(
-                    ovPtr_->taskData.getCaller(),
-                    ovPtr_->taskData.getTaskType());
-                iocpObject_.destroyOverlappedData(ovPtr_);
-            }
-        }
-    } finalizer(*this, overlappedPtr);
-
     /*
     FROM MSDN:
 
@@ -1067,37 +1094,68 @@ void IocpObject::work()
     ERROR_SUCCESS (0), with *lpOverlapped non-NULL and lpNumberOfBytes equal zero.
     */
 
-    if (::GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &nTemp,
-        (LPOVERLAPPED*)&overlappedPtr, IOCP_WAIT_TIMEOUT))
+    const int IOCP_WAIT_TIMEOUT = 1000*1;  // ms
+
+    while (true)
     {
-        if (overlappedPtr != NULL && bytesTransferred == 0)
+        IocpOverlappedData *overlappedPtr = NULL;
+        DWORD bytesTransferred = 0, nTemp = 0;
+        int errorCode = 0;
+
+        struct AutoFinalizer
         {
-            errorCode = overlappedPtr->taskData.getErrorCode();
-            if (errorCode == 0)
-                errorCode = GetLastError();
-            if (errorCode == 0)
-                errorCode = SOCKET_ERROR;
+        private:
+            IocpObject& iocpObject_;
+            IocpOverlappedData*& ovPtr_;
+        public:
+            AutoFinalizer(IocpObject& iocpObject, IocpOverlappedData*& ovPtr) :
+                iocpObject_(iocpObject), ovPtr_(ovPtr) {}
+            ~AutoFinalizer()
+            {
+                if (ovPtr_)
+                {
+                    iocpObject_.pendingCounter_.dec(
+                        ovPtr_->taskData.getCaller(),
+                        ovPtr_->taskData.getTaskType());
+                    iocpObject_.destroyOverlappedData(ovPtr_);
+                }
+            }
+        } finalizer(*this, overlappedPtr);
+
+        if (::GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &nTemp,
+            (LPOVERLAPPED*)&overlappedPtr, IOCP_WAIT_TIMEOUT))
+        {
+            if (overlappedPtr != NULL && bytesTransferred == 0)
+            {
+                errorCode = overlappedPtr->taskData.getErrorCode();
+                if (errorCode == 0)
+                    errorCode = GetLastError();
+                if (errorCode == 0)
+                    errorCode = SOCKET_ERROR;
+            }
         }
-    }
-    else
-    {
-        if (overlappedPtr != NULL)
-            errorCode = GetLastError();
         else
         {
-            if (GetLastError() != WAIT_TIMEOUT)
-                throwGeneralError();
+            if (overlappedPtr != NULL)
+                errorCode = GetLastError();
+            else
+            {
+                if (GetLastError() != WAIT_TIMEOUT)
+                    throwGeneralError();
+            }
         }
-    }
 
-    if (overlappedPtr != NULL)
-    {
-        IocpTaskData *taskPtr = &overlappedPtr->taskData;
-        taskPtr->bytesTrans_ = bytesTransferred;
-        if (taskPtr->errorCode_ == 0)
-            taskPtr->errorCode_ = errorCode;
+        if (overlappedPtr != NULL)
+        {
+            IocpTaskData *taskPtr = &overlappedPtr->taskData;
+            taskPtr->bytesTrans_ = bytesTransferred;
+            if (taskPtr->errorCode_ == 0)
+                taskPtr->errorCode_ = errorCode;
 
-        invokeCallback(*taskPtr);
+            invokeCallback(*taskPtr);
+        }
+        else
+            break;
     }
 }
 
@@ -1113,7 +1171,7 @@ void IocpObject::wakeup()
 void IocpObject::send(SOCKET socketHandle, PVOID buffer, int size, int offset,
     const IocpCallback& callback, PVOID caller, const Context& context)
 {
-    CIocpOverlappedData *ovDataPtr;
+    IocpOverlappedData *ovDataPtr;
     IocpTaskData *taskPtr;
     DWORD numberOfBytesSent;
 
@@ -1136,7 +1194,7 @@ void IocpObject::send(SOCKET socketHandle, PVOID buffer, int size, int offset,
 void IocpObject::recv(SOCKET socketHandle, PVOID buffer, int size, int offset,
     const IocpCallback& callback, PVOID caller, const Context& context)
 {
-    CIocpOverlappedData *ovDataPtr;
+    IocpOverlappedData *ovDataPtr;
     IocpTaskData *taskPtr;
     DWORD nNumberOfBytesRecvd, flags = 0;
 
@@ -1180,7 +1238,7 @@ void IocpObject::throwGeneralError()
 
 //-----------------------------------------------------------------------------
 
-CIocpOverlappedData* IocpObject::createOverlappedData(IOCP_TASK_TYPE taskType,
+IocpOverlappedData* IocpObject::createOverlappedData(IOCP_TASK_TYPE taskType,
     HANDLE fileHandle, PVOID buffer, int size, int offset,
     const IocpCallback& callback, PVOID caller, const Context& context)
 {
@@ -1189,7 +1247,7 @@ CIocpOverlappedData* IocpObject::createOverlappedData(IOCP_TASK_TYPE taskType,
     ISE_ASSERT(offset >= 0);
     ISE_ASSERT(offset < size);
 
-    CIocpOverlappedData *result = (CIocpOverlappedData*)bufferAlloc_.allocBuffer();
+    IocpOverlappedData *result = (IocpOverlappedData*)bufferAlloc_.allocBuffer();
     memset(result, 0, sizeof(*result));
 
     result->taskData.iocpHandle_ = iocpHandle_;
@@ -1209,14 +1267,18 @@ CIocpOverlappedData* IocpObject::createOverlappedData(IOCP_TASK_TYPE taskType,
 
 //-----------------------------------------------------------------------------
 
-void IocpObject::destroyOverlappedData(CIocpOverlappedData *ovDataPtr)
+void IocpObject::destroyOverlappedData(IocpOverlappedData *ovDataPtr)
 {
+    // 很重要。ovDataPtr->taskData 中的对象需要析构。
+    // 比如 taskData.callback_ 中持有 TcpConnection 的 shared_ptr。
+    ovDataPtr->~IocpOverlappedData();
+
     bufferAlloc_.returnBuffer(ovDataPtr);
 }
 
 //-----------------------------------------------------------------------------
 
-void IocpObject::postError(int errorCode, CIocpOverlappedData *ovDataPtr)
+void IocpObject::postError(int errorCode, IocpOverlappedData *ovDataPtr)
 {
     ovDataPtr->taskData.errorCode_ = errorCode;
     ::PostQueuedCompletionStatus(iocpHandle_, 0, 0, LPOVERLAPPED(ovDataPtr));
@@ -1297,6 +1359,17 @@ LinuxTcpConnection::LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle
         enableRecv_(false)
 {
     // nothing
+}
+
+//-----------------------------------------------------------------------------
+
+void LinuxTcpConnection::eventLoopChanged()
+{
+    if (getEventLoop() != NULL)
+    {
+        getEventLoop()->assertInLoopThread();
+        setRecvEnabled(true);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1398,12 +1471,6 @@ void LinuxTcpConnection::trySend()
 //-----------------------------------------------------------------------------
 void LinuxTcpConnection::tryRecv()
 {
-    if (recvTaskQueue_.empty())
-    {
-        setRecvEnabled(false);
-        return;
-    }
-
     const int BUFFER_SIZE = 1024*16;
     char dataBuf[BUFFER_SIZE];
 
@@ -1692,14 +1759,14 @@ void LinuxTcpEventLoop::unregisterConnection(TcpConnection *connection)
 //-----------------------------------------------------------------------------
 void LinuxTcpEventLoop::onEpollNotifyEvent(TcpConnection *connection, EpollObject::EVENT_TYPE eventType)
 {
-    LinuxTcpConnection *theConn = static_cast<LinuxTcpConnection*>(connection);
+    LinuxTcpConnection *conn = static_cast<LinuxTcpConnection*>(connection);
 
     if (eventType == EpollObject::ET_ALLOW_SEND)
-        theConn->trySend();
+        conn->trySend();
     else if (eventType == EpollObject::ET_ALLOW_RECV)
-        theConn->tryRecv();
+        conn->tryRecv();
     else if (eventType == EpollObject::ET_ERROR)
-        theConn->errorOccurred();
+        conn->errorOccurred();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1810,12 +1877,8 @@ void MainTcpServer::doClose()
 //-----------------------------------------------------------------------------
 // 描述: 收到新的连接
 // 注意:
-//   此回调在TCP服务器监听线程(TcpListenerThread)中执行。
-//   为了避免TCP服务器的监听线程成为系统的瓶颈，故不应在此监听线程中触发
-//   iseApp().getIseBusiness().onTcpConnect() 回调。正确的做法是，将新产生
-//   的连接通知给 TcpEventLoop，再由事件循环线程(TcpEventLoopThread)触发回调。
-//   这样做的另一个好处是，对于同一个TCP连接，IseBusiness::onTcpXXX() 系列回调
-//   均在同一个线程中执行。
+//   1. 此回调在TCP服务器监听线程(TcpListenerThread)中执行。
+//   2. 对 connection->setEventLoop() 的调用在事件循环线程中执行。
 //-----------------------------------------------------------------------------
 void MainTcpServer::onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection)
 {
@@ -1824,7 +1887,11 @@ void MainTcpServer::onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnecti
     TcpEventLoop *eventLoop = eventLoopList_[index];
     index = (index >= eventLoopList_.getCount() - 1 ? 0 : index + 1);
 
-    ((TcpConnection*)connection)->setEventLoop(eventLoop);
+    // 将 ((TcpConnection*)connection)->setEventLoop(eventLoop) 委托给事件循环线程
+    eventLoop->delegateToLoop(boost::bind(
+        &TcpConnection::setEventLoop,
+        static_cast<TcpConnection*>(connection),
+        eventLoop));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

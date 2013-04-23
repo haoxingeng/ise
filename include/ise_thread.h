@@ -144,7 +144,7 @@ protected:
 
 protected:
     Thread& thread_;              // 相关联的 Thread 对象
-    THREAD_ID threadId_;          // 线程ID
+    THREAD_ID threadId_;          // 线程ID (线程在内核中的ID)
     bool isExecuting_;            // 线程是否正在执行线程函数
     bool isRunCalled_;            // run() 函数是否已被调用过
     int termTime_;                // 调用 terminate() 时的时间戳
@@ -212,6 +212,7 @@ private:
     void checkThreadError(int errorCode);
 
 protected:
+    pthread_t pthreadId_;         // POSIX线程ID
     int policy_;                  // 线程调度策略 (THREAD_POLICY_XXX)
     int priority_;                // 线程优先级 (0..99)
     Semaphore *execSem_;          // 用于启动线程函数时暂时阻塞

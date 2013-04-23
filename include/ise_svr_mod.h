@@ -88,7 +88,7 @@ public:
 
     // 接受了一个新的TCP连接
     virtual void onTcpConnect(const TcpConnectionPtr& connection) {}
-    // 断开了一个TCP连接 (ISE将随之删除此连接对象)
+    // 断开了一个TCP连接
     virtual void onTcpDisconnect(const TcpConnectionPtr& connection) {}
     // TCP连接上的一个接收任务已完成
     virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,

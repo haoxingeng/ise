@@ -178,7 +178,7 @@ enum CRC32_TYPE
 };
 
 // Cipher context
-struct CCipherContext
+struct CipherContext
 {
     int keySize;               // maximal key size in bytes
     int blockSize;             // mininmal block size in bytes, eg. 1 = Streamcipher
@@ -410,7 +410,7 @@ public:
     Cipher();
     virtual ~Cipher();
 
-    virtual CCipherContext context() = 0;
+    virtual CipherContext context() = 0;
 
     void init(PVOID key, int size, PVOID iVector, int iVectorSize, BYTE iFiller = 0xFF);
     void init(const binary& key, const binary& iVector = "", BYTE iFiller = 0xFF);
@@ -492,7 +492,7 @@ private:
 class Cipher_Null : public Cipher
 {
 public:
-    virtual CCipherContext context();
+    virtual CipherContext context();
 protected:
     virtual void doInit(PVOID key, int size);
     virtual void doEncode(PVOID source, PVOID dest, int size);
@@ -505,7 +505,7 @@ protected:
 class Cipher_Blowfish : public Cipher
 {
 public:
-    virtual CCipherContext context();
+    virtual CipherContext context();
 protected:
     virtual void doInit(PVOID key, int size);
     virtual void doEncode(PVOID source, PVOID dest, int size);
@@ -518,7 +518,7 @@ protected:
 class Cipher_IDEA : public Cipher
 {
 public:
-    virtual CCipherContext context();
+    virtual CipherContext context();
 protected:
     virtual void doInit(PVOID key, int size);
     virtual void doEncode(PVOID source, PVOID dest, int size);
@@ -531,7 +531,7 @@ protected:
 class Cipher_DES : public Cipher
 {
 public:
-    virtual CCipherContext context();
+    virtual CipherContext context();
 protected:
     virtual void doInit(PVOID key, int size);
     virtual void doEncode(PVOID source, PVOID dest, int size);
@@ -546,7 +546,7 @@ protected:
 class Cipher_Gost : public Cipher
 {
 public:
-    virtual CCipherContext context();
+    virtual CipherContext context();
 protected:
     virtual void doInit(PVOID key, int size);
     virtual void doEncode(PVOID source, PVOID dest, int size);

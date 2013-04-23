@@ -94,7 +94,7 @@ typedef UINT32*   PDWORD;
 typedef UINT32 THREAD_ID;
 #endif
 #ifdef ISE_LINUX
-typedef pthread_t THREAD_ID;
+typedef pid_t THREAD_ID;
 #endif
 
 typedef void* POINTER;

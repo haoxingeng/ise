@@ -1267,7 +1267,7 @@ THREAD_ID getCurThreadId()
 #ifdef ISE_LINUX
     static __thread THREAD_ID t_tid = 0;
     if (t_tid == 0)
-        t_tid = syscall(224);
+        t_tid = syscall(SYS_gettid);
     return t_tid;
 #endif
 }

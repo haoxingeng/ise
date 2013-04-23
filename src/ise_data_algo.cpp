@@ -2172,7 +2172,7 @@ void Cipher::ensureInternalInit()
     if (data_ == NULL)
     {
         bool mustUserSaved;
-        CCipherContext context = this->context();
+        CipherContext context = this->context();
 
         bufferSize_ = context.bufferSize;
         userSize_ = context.userSize;
@@ -2845,9 +2845,9 @@ void Cipher_Null::doDecode(PVOID source, PVOID dest, int size)
 
 //-----------------------------------------------------------------------------
 
-CCipherContext Cipher_Null::context()
+CipherContext Cipher_Null::context()
 {
-    CCipherContext context;
+    CipherContext context;
 
     context.keySize = 0;
     context.blockSize = 1;
@@ -2974,9 +2974,9 @@ void Cipher_Blowfish::doDecode(PVOID source, PVOID dest, int size)
 
 //-----------------------------------------------------------------------------
 
-CCipherContext Cipher_Blowfish::context()
+CipherContext Cipher_Blowfish::context()
 {
-    CCipherContext context;
+    CipherContext context;
 
     context.keySize = 56;
     context.blockSize = 8;
@@ -3186,9 +3186,9 @@ void Cipher_IDEA::doDecode(PVOID source, PVOID dest, int size)
 
 //-----------------------------------------------------------------------------
 
-CCipherContext Cipher_IDEA::context()
+CipherContext Cipher_IDEA::context()
 {
-    CCipherContext context;
+    CipherContext context;
 
     context.keySize = 16;
     context.blockSize = 8;
@@ -3288,9 +3288,9 @@ void Cipher_DES::doDecode(PVOID source, PVOID dest, int size)
 
 //-----------------------------------------------------------------------------
 
-CCipherContext Cipher_DES::context()
+CipherContext Cipher_DES::context()
 {
-    CCipherContext context;
+    CipherContext context;
 
     context.keySize = 8;
     context.blockSize = 8;
@@ -3491,9 +3491,9 @@ void Cipher_Gost::doDecode(PVOID source, PVOID dest, int size)
 
 //-----------------------------------------------------------------------------
 
-CCipherContext Cipher_Gost::context()
+CipherContext Cipher_Gost::context()
 {
-    CCipherContext context;
+    CipherContext context;
 
     context.keySize = 32;
     context.blockSize = 8;

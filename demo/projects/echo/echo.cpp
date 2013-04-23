@@ -84,7 +84,7 @@ void AppBusiness::onTcpConnect(const TcpConnectionPtr& connection)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 断开了一个TCP连接 (ISE将随之删除此连接对象)
+// 描述: 断开了一个TCP连接
 //-----------------------------------------------------------------------------
 void AppBusiness::onTcpDisconnect(const TcpConnectionPtr& connection)
 {

@@ -45,6 +45,7 @@
 #include <sys/ioctl.h>
 #include <net/if_arp.h>
 #include <net/if.h>
+#include <netinet/tcp.h>
 #include <string>
 #endif
 
