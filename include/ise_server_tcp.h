@@ -141,6 +141,25 @@ const PacketSplitter LINE_PACKET_SPLITTER = boost::bind(&ise::linePacketSplitter
 const PacketSplitter NULL_TERMINATED_PACKET_SPLITTER = boost::bind(&ise::nullTerminatedPacketSplitter, _1, _2, _3);
 
 ///////////////////////////////////////////////////////////////////////////////
+// class TcpInspectInfo
+
+class TcpInspectInfo : boost::noncopyable
+{
+public:
+    AtomicInt tcpConnCreateCount;    // TcpConnection 对象的创建次数
+    AtomicInt tcpConnDestroyCount;   // TcpConnection 对象的销毁次数
+    AtomicInt errorOccurredCount;    // TcpConnection::errorOccurred() 的调用次数
+    AtomicInt addConnCount;          // TcpEventLoop::addConnection() 的调用次数
+    AtomicInt removeConnCount;       // TcpEventLoop::removeConnection() 的调用次数
+public:
+    static TcpInspectInfo& instance()
+    {
+        static TcpInspectInfo obj;
+        return obj;
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // class IoBuffer - 输入输出缓存
 //
 // +-----------------+------------------+------------------+
@@ -601,6 +620,8 @@ private:
 
     void trySend();
     void tryRecv();
+
+    bool tryRetrievePacket();
 
 private:
     int bytesSent_;                  // 自从上次发送任务完成回调以来共发送了多少字节

@@ -348,6 +348,8 @@ void TcpEventLoop::addFinalizer(const Functor& finalizer)
 //-----------------------------------------------------------------------------
 void TcpEventLoop::addConnection(TcpConnection *connection)
 {
+    TcpInspectInfo::instance().addConnCount.increment();
+
     TcpConnectionPtr connPtr(connection);
     tcpConnMap_[connection->getConnectionName()] = connPtr;
 
@@ -360,6 +362,8 @@ void TcpEventLoop::addConnection(TcpConnection *connection)
 //-----------------------------------------------------------------------------
 void TcpEventLoop::removeConnection(TcpConnection *connection)
 {
+    TcpInspectInfo::instance().removeConnCount.increment();
+
     unregisterConnection(connection);
 
     // 此处 shared_ptr 计数递减，有可能会销毁 TcpConnection 对象
@@ -549,6 +553,7 @@ TcpConnection::TcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
         eventLoop_(NULL),
         connectionName_(connectionName)
 {
+    TcpInspectInfo::instance().tcpConnCreateCount.increment();
     tcpServer_->incConnCount();
 }
 
@@ -556,6 +561,7 @@ TcpConnection::~TcpConnection()
 {
     //logger().writeFmt("destroy conn: %s", getConnectionName().c_str());  // debug
 
+    TcpInspectInfo::instance().tcpConnDestroyCount.increment();
     setEventLoop(NULL);
     tcpServer_->decConnCount();
 }
@@ -614,6 +620,8 @@ void TcpConnection::doDisconnect()
 //-----------------------------------------------------------------------------
 void TcpConnection::errorOccurred()
 {
+    TcpInspectInfo::instance().errorOccurredCount.increment();
+
     ISE_ASSERT(eventLoop_ != NULL);
 
     disconnect();
@@ -1402,6 +1410,8 @@ void LinuxTcpConnection::postRecvTask(const PacketSplitter& packetSplitter, cons
 
     if (!enableRecv_)
         setRecvEnabled(true);
+
+    tryRetrievePacket();
 }
 
 //-----------------------------------------------------------------------------
@@ -1486,28 +1496,37 @@ void LinuxTcpConnection::tryRecv()
 
     while (!recvTaskQueue_.empty())
     {
-        RecvTask& task = recvTaskQueue_.front();
-        const char *buffer = recvBuffer_.peek();
-        int readableBytes = recvBuffer_.getReadableBytes();
-        bool packetRecved = false;
-
-        if (readableBytes > 0)
-        {
-            int packetSize = 0;
-            task.packetSplitter(buffer, readableBytes, packetSize);
-            if (packetSize > 0)
-            {
-                iseApp().getIseBusiness().onTcpRecvComplete(shared_from_this(),
-                    (void*)buffer, packetSize, task.context);
-                recvTaskQueue_.pop_front();
-                recvBuffer_.retrieve(packetSize);
-                packetRecved = true;
-            }
-        }
-
+        bool packetRecved = tryRetrievePacket();
         if (!packetRecved)
             break;
     }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 尝试从缓存中取出一个完整数据包
+//-----------------------------------------------------------------------------
+bool LinuxTcpConnection::tryRetrievePacket()
+{
+    bool result = false;
+    RecvTask& task = recvTaskQueue_.front();
+    const char *buffer = recvBuffer_.peek();
+    int readableBytes = recvBuffer_.getReadableBytes();
+
+    if (readableBytes > 0)
+    {
+        int packetSize = 0;
+        task.packetSplitter(buffer, readableBytes, packetSize);
+        if (packetSize > 0)
+        {
+            iseApp().getIseBusiness().onTcpRecvComplete(shared_from_this(),
+                (void*)buffer, packetSize, task.context);
+            recvTaskQueue_.pop_front();
+            recvBuffer_.retrieve(packetSize);
+            result = true;
+        }
+    }
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
