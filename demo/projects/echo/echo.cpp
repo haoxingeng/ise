@@ -9,6 +9,8 @@ IseBusiness* createIseBusinessObject()
 
 ///////////////////////////////////////////////////////////////////////////////
 
+const int RECV_TIMEOUT = 1000*5;  // ms
+
 //-----------------------------------------------------------------------------
 // 描述: 初始化 (失败则抛出异常)
 //-----------------------------------------------------------------------------
@@ -80,7 +82,7 @@ void AppBusiness::onTcpConnect(const TcpConnectionPtr& connection)
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    connection->recv(LINE_PACKET_SPLITTER);
+    connection->recv(LINE_PACKET_SPLITTER, EMPTY_CONTEXT, RECV_TIMEOUT);
 }
 
 //-----------------------------------------------------------------------------
@@ -116,5 +118,5 @@ void AppBusiness::onTcpSendComplete(const TcpConnectionPtr& connection, const Co
 {
     logger().writeStr("onTcpSendComplete");
 
-    connection->recv(LINE_PACKET_SPLITTER);
+    connection->recv(LINE_PACKET_SPLITTER, EMPTY_CONTEXT, RECV_TIMEOUT);
 }

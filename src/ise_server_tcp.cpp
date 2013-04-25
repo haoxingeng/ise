@@ -232,7 +232,8 @@ void TcpEventLoopThread::afterExecute()
 
 TcpEventLoop::TcpEventLoop() :
     thread_(NULL),
-    loopThreadId_(0)
+    loopThreadId_(0),
+    lastCheckTimeoutTicks_(0)
 {
     // nothing
 }
@@ -403,6 +404,7 @@ void TcpEventLoop::runLoop(Thread *thread)
         }
 
         doLoopWork(thread);
+        checkTimeout();
         executeDelegatedFunctors();
         executeFinalizer();
     }
@@ -436,6 +438,26 @@ void TcpEventLoop::executeFinalizer()
 
     for (size_t i = 0; i < finalizers.size(); ++i)
         finalizers[i]();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 检查每个TCP连接的超时
+//-----------------------------------------------------------------------------
+void TcpEventLoop::checkTimeout()
+{
+    const int CHECK_INTERVAL = 1000;  // ms
+
+    UINT curTicks = getCurTicks();
+    if (getTickDiff(lastCheckTimeoutTicks_, curTicks) >= CHECK_INTERVAL)
+    {
+        lastCheckTimeoutTicks_ = curTicks;
+
+        for (TcpConnectionMap::iterator iter = tcpConnMap_.begin(); iter != tcpConnMap_.end(); ++iter)
+        {
+            TcpConnectionPtr& connPtr = iter->second;
+            connPtr->checkTimeout(curTicks);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -568,34 +590,38 @@ TcpConnection::~TcpConnection()
 
 //-----------------------------------------------------------------------------
 // 描述: 提交一个发送任务 (线程安全)
+// 参数:
+//   timeout - 超时值 (毫秒)
 //-----------------------------------------------------------------------------
-void TcpConnection::send(const void *buffer, int size, const Context& context)
+void TcpConnection::send(const void *buffer, int size, const Context& context, int timeout)
 {
     if (!buffer || size <= 0) return;
 
     if (getEventLoop()->isInLoopThread())
-        postSendTask(buffer, size, context);
+        postSendTask(buffer, size, context, timeout);
     else
     {
         string data((const char*)buffer, size);
         getEventLoop()->delegateToLoop(
-            boost::bind(&TcpConnection::postSendTask, this, data, context));
+            boost::bind(&TcpConnection::postSendTask, this, data, context, timeout));
     }
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 提交一个接收任务 (线程安全)
+// 参数:
+//   timeout - 超时值 (毫秒)
 //-----------------------------------------------------------------------------
-void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& context)
+void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& context, int timeout)
 {
     if (!packetSplitter) return;
 
     if (getEventLoop()->isInLoopThread())
-        postRecvTask(packetSplitter, context);
+        postRecvTask(packetSplitter, context, timeout);
     else
     {
         getEventLoop()->delegateToLoop(
-            boost::bind(&TcpConnection::postRecvTask, this, packetSplitter, context));
+            boost::bind(&TcpConnection::postRecvTask, this, packetSplitter, context, timeout));
     }
 }
 
@@ -638,10 +664,48 @@ void TcpConnection::errorOccurred()
 }
 
 //-----------------------------------------------------------------------------
-
-void TcpConnection::postSendTask(const string& data, const Context& context)
+// 描述: 检查接收和发送任务是否超时
+//-----------------------------------------------------------------------------
+void TcpConnection::checkTimeout(UINT curTicks)
 {
-    postSendTask(data.c_str(), (int)data.size(), context);
+    if (!sendTaskQueue_.empty())
+    {
+        SendTask& task = sendTaskQueue_.front();
+
+        if (task.startTicks == 0)
+            task.startTicks = curTicks;
+        else
+        {
+            if (task.timeout > 0 &&
+                (int)getTickDiff(task.startTicks, curTicks) > task.timeout)
+            {
+                disconnect();
+            }
+        }
+    }
+
+    if (!recvTaskQueue_.empty())
+    {
+        RecvTask& task = recvTaskQueue_.front();
+
+        if (task.startTicks == 0)
+            task.startTicks = curTicks;
+        else
+        {
+            if (task.timeout > 0 &&
+                (int)getTickDiff(task.startTicks, curTicks) > task.timeout)
+            {
+                disconnect();
+            }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnection::postSendTask(const string& data, const Context& context, int timeout)
+{
+    postSendTask(data.c_str(), (int)data.size(), context, timeout);
 }
 
 //-----------------------------------------------------------------------------
@@ -701,13 +765,15 @@ void WinTcpConnection::eventLoopChanged()
 //-----------------------------------------------------------------------------
 // 描述: 提交一个发送任务
 //-----------------------------------------------------------------------------
-void WinTcpConnection::postSendTask(const void *buffer, int size, const Context& context)
+void WinTcpConnection::postSendTask(const void *buffer, int size,
+    const Context& context, int timeout)
 {
     sendBuffer_.append(buffer, size);
 
     SendTask task;
     task.bytes = size;
     task.context = context;
+    task.timeout = timeout;
 
     sendTaskQueue_.push_back(task);
 
@@ -717,11 +783,13 @@ void WinTcpConnection::postSendTask(const void *buffer, int size, const Context&
 //-----------------------------------------------------------------------------
 // 描述: 提交一个接收任务
 //-----------------------------------------------------------------------------
-void WinTcpConnection::postRecvTask(const PacketSplitter& packetSplitter, const Context& context)
+void WinTcpConnection::postRecvTask(const PacketSplitter& packetSplitter,
+    const Context& context, int timeout)
 {
     RecvTask task;
     task.packetSplitter = packetSplitter;
     task.context = context;
+    task.timeout = timeout;
 
     recvTaskQueue_.push_back(task);
 
@@ -1383,13 +1451,15 @@ void LinuxTcpConnection::eventLoopChanged()
 //-----------------------------------------------------------------------------
 // 描述: 提交一个发送任务
 //-----------------------------------------------------------------------------
-void LinuxTcpConnection::postSendTask(const void *buffer, int size, const Context& context)
+void LinuxTcpConnection::postSendTask(const void *buffer, int size,
+    const Context& context, int timeout)
 {
     sendBuffer_.append(buffer, size);
 
     SendTask task;
     task.bytes = size;
     task.context = context;
+    task.timeout = timeout;
 
     sendTaskQueue_.push_back(task);
 
@@ -1400,11 +1470,13 @@ void LinuxTcpConnection::postSendTask(const void *buffer, int size, const Contex
 //-----------------------------------------------------------------------------
 // 描述: 提交一个接收任务
 //-----------------------------------------------------------------------------
-void LinuxTcpConnection::postRecvTask(const PacketSplitter& packetSplitter, const Context& context)
+void LinuxTcpConnection::postRecvTask(const PacketSplitter& packetSplitter,
+    const Context& context, int timeout)
 {
     RecvTask task;
     task.packetSplitter = packetSplitter;
     task.context = context;
+    task.timeout = timeout;
 
     recvTaskQueue_.push_back(task);
 
@@ -1463,7 +1535,7 @@ void LinuxTcpConnection::trySend()
 
         while (!sendTaskQueue_.empty())
         {
-            const SendTask& task = sendTaskQueue_.front();
+            SendTask& task = sendTaskQueue_.front();
             if (bytesSent_ >= task.bytes)
             {
                 bytesSent_ -= task.bytes;
@@ -1511,6 +1583,7 @@ bool LinuxTcpConnection::tryRetrievePacket()
     RecvTask& task = recvTaskQueue_.front();
     const char *buffer = recvBuffer_.peek();
     int readableBytes = recvBuffer_.getReadableBytes();
+    UINT curTicks = getCurTicks();
 
     if (readableBytes > 0)
     {

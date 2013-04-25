@@ -156,6 +156,8 @@ const unsigned int FA_ANY_FILE      = 0x0000003F;
 #define TRUE_STR                    "true"
 #define FALSE_STR                   "false"
 
+const int TIMEOUT_INFINITE = -1;
+
 const Context EMPTY_CONTEXT = Context();
 
 ///////////////////////////////////////////////////////////////////////////////

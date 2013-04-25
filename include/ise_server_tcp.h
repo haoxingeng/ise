@@ -265,11 +265,15 @@ protected:
     void executeFinalizer();
 
 private:
+    void checkTimeout();
+
+private:
     TcpEventLoopThread *thread_;
     THREAD_ID loopThreadId_;
     TcpConnectionMap tcpConnMap_;
     FunctorList delegatedFunctors_;
     FunctorList finalizers_;
+    UINT lastCheckTimeoutTicks_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -334,14 +338,33 @@ public:
 
     struct SendTask
     {
+    public:
         int bytes;
         Context context;
+        int timeout;
+        UINT startTicks;
+    public:
+        SendTask()
+        {
+            bytes = 0;
+            timeout = 0;
+            startTicks = 0;
+        }
     };
 
     struct RecvTask
     {
+    public:
         PacketSplitter packetSplitter;
         Context context;
+        int timeout;
+        UINT startTicks;
+    public:
+        RecvTask()
+        {
+            timeout = 0;
+            startTicks = 0;
+        }
     };
 
     typedef deque<SendTask> SendTaskQueue;
@@ -351,9 +374,18 @@ public:
     TcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
     virtual ~TcpConnection();
 
-    void send(const void *buffer, int size, const Context& context = EMPTY_CONTEXT);
-    void recv(const PacketSplitter& packetSplitter = BYTE_PACKET_SPLITTER,
-        const Context& context = EMPTY_CONTEXT);
+    void send(
+        const void *buffer,
+        int size,
+        const Context& context = EMPTY_CONTEXT,
+        int timeout = TIMEOUT_INFINITE
+        );
+
+    void recv(
+        const PacketSplitter& packetSplitter = BYTE_PACKET_SPLITTER,
+        const Context& context = EMPTY_CONTEXT,
+        int timeout = TIMEOUT_INFINITE
+        );
 
     const string& getConnectionName() const { return connectionName_; }
     int getServerIndex() const { return boost::any_cast<int>(tcpServer_->getContext()); }
@@ -363,12 +395,13 @@ public:
 protected:
     virtual void doDisconnect();
     virtual void eventLoopChanged() {}
-    virtual void postSendTask(const void *buffer, int size, const Context& context) = 0;
-    virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context) = 0;
+    virtual void postSendTask(const void *buffer, int size, const Context& context, int timeout) = 0;
+    virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context, int timeout) = 0;
 
 protected:
     void errorOccurred();
-    void postSendTask(const string& data, const Context& context);
+    void checkTimeout(UINT curTicks);
+    void postSendTask(const string& data, const Context& context, int timeout);
 
     void setEventLoop(TcpEventLoop *eventLoop);
     TcpEventLoop* getEventLoop() { return eventLoop_; }
@@ -407,8 +440,8 @@ public:
     WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
 protected:
     virtual void eventLoopChanged();
-    virtual void postSendTask(const void *buffer, int size, const Context& context);
-    virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context);
+    virtual void postSendTask(const void *buffer, int size, const Context& context, int timeout);
+    virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context, int timeout);
 
 private:
     WinTcpEventLoop* getEventLoop() { return (WinTcpEventLoop*)eventLoop_; }
@@ -609,8 +642,8 @@ public:
     LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
 protected:
     virtual void eventLoopChanged();
-    virtual void postSendTask(const void *buffer, int size, const Context& context);
-    virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context);
+    virtual void postSendTask(const void *buffer, int size, const Context& context, int timeout);
+    virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context, int timeout);
 
 private:
     LinuxTcpEventLoop* getEventLoop() { return (LinuxTcpEventLoop*)eventLoop_; }
