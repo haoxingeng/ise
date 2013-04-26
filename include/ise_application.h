@@ -390,6 +390,7 @@ private:
     void initDaemon();
     void initSignals();
     void initNewOperHandler();
+    void openTerminal();
     void closeTerminal();
     void doFinalize();
 

@@ -35,6 +35,8 @@
 //
 // * connection->disconnect() 会立即双向 shutdown，而不管该连接的ISE缓存中有没有
 //   未发送完的数据。
+//   如果希望只关闭“发送”和“接收”中的一者，可调用 connection->shutdown()，
+//   此方法提供两个参数 (closeSend, closeRecv) 用于控制关闭发送或接收。
 //
 // * 连接对象 (TcpConnection) 采用 boost::shared_ptr 管理，由以下几个角色持有:
 //   1. TcpEventLoop.

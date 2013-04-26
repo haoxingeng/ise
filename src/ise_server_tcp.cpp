@@ -1762,6 +1762,26 @@ void EpollObject::processPipeEvent()
 //-----------------------------------------------------------------------------
 void EpollObject::processEvents(int eventCount)
 {
+/*
+// from epoll.h
+enum EPOLL_EVENTS
+{
+    EPOLLIN      = 0x001,
+    EPOLLPRI     = 0x002,
+    EPOLLOUT     = 0x004,
+    EPOLLRDNORM  = 0x040,
+    EPOLLRDBAND  = 0x080,
+    EPOLLWRNORM  = 0x100,
+    EPOLLWRBAND  = 0x200,
+    EPOLLMSG     = 0x400,
+    EPOLLERR     = 0x008,
+    EPOLLHUP     = 0x010,
+    EPOLLRDHUP   = 0x2000,
+    EPOLLONESHOT = (1 << 30),
+    EPOLLET      = (1 << 31)
+};
+*/
+
 #ifndef EPOLLRDHUP
 #define EPOLLRDHUP 0x2000
 #endif
@@ -1778,9 +1798,11 @@ void EpollObject::processEvents(int eventCount)
             TcpConnection *connection = (TcpConnection*)ev.data.ptr;
             EVENT_TYPE eventType = ET_NONE;
 
-            if (ev.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+            //logger().writeFmt("processEvents: %u", ev.events);  // debug
+
+            if ((ev.events & EPOLLERR) || ((ev.events & EPOLLHUP) && !(ev.events & EPOLLIN)))
                 eventType = ET_ERROR;
-            else if (ev.events & (EPOLLIN | EPOLLPRI))
+            else if (ev.events & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))
                 eventType = ET_ALLOW_RECV;
             else if (ev.events & EPOLLOUT)
                 eventType = ET_ALLOW_SEND;

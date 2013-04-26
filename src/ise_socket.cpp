@@ -853,6 +853,14 @@ void BaseTcpConnection::disconnect()
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 执行 shutdown 操作
+//-----------------------------------------------------------------------------
+void BaseTcpConnection::shutdown(bool closeSend, bool closeRecv)
+{
+    socket_.shutdown(closeSend, closeRecv);
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 设置 TCP_NODELAY 标志
 //-----------------------------------------------------------------------------
 void BaseTcpConnection::setNoDelay(bool value)

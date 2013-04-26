@@ -461,6 +461,7 @@ public:
 
     virtual bool isConnected() const;
     void disconnect();
+    void shutdown(bool closeSend = true, bool closeRecv = true);
 
     void setNoDelay(bool value);
     void setKeepAlive(bool value);

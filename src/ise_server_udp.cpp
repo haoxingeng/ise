@@ -248,7 +248,6 @@ void UdpWorkerThread::execute()
 {
     int groupIndex;
     UdpRequestQueue *requestQueue;
-    UdpPacket *packet;
 
     groupIndex = ownPool_->getRequestGroup().getGroupIndex();
     requestQueue = &(ownPool_->getRequestGroup().getRequestQueue());
@@ -256,10 +255,9 @@ void UdpWorkerThread::execute()
     while (!isTerminated())
     try
     {
-        packet = requestQueue->extractPacket();
+        boost::scoped_ptr<UdpPacket> packet(requestQueue->extractPacket());
         if (packet)
         {
-            std::auto_ptr<UdpPacket> AutoPtr(packet);
             AutoInvoker autoInvoker(timeoutChecker_);
 
             // 分派数据包

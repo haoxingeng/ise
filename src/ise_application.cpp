@@ -605,6 +605,7 @@ void IseApplication::initialize()
     }
     catch (Exception&)
     {
+        openTerminal();
         iseBusiness_->doStartupState(SS_START_FAIL);
         doFinalize();
         throw;
@@ -618,6 +619,7 @@ void IseApplication::finalize()
 {
     if (initialized_)
     {
+        openTerminal();
         doFinalize();
         initialized_ = false;
     }
@@ -900,18 +902,50 @@ void IseApplication::initNewOperHandler()
 }
 
 //-----------------------------------------------------------------------------
+
+#ifdef ISE_LINUX
+static int s_oldStdInFd = -1;
+static int s_oldStdOutFd = -1;
+static int s_oldStdErrFd = -1;
+#endif
+
+//-----------------------------------------------------------------------------
+// 描述: 打开终端
+//-----------------------------------------------------------------------------
+void IseApplication::openTerminal()
+{
+#ifdef ISE_LINUX
+    if (s_oldStdInFd != -1)
+        dup2(s_oldStdInFd, 0);
+
+    if (s_oldStdOutFd != -1)
+        dup2(s_oldStdOutFd, 1);
+
+    if (s_oldStdErrFd != -1)
+        dup2(s_oldStdErrFd, 2);
+#endif
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 关闭终端
 //-----------------------------------------------------------------------------
 void IseApplication::closeTerminal()
 {
-#ifdef ISE_WINDOWS
-#endif
 #ifdef ISE_LINUX
-    close(0);  // 关闭标准输入(stdin)
-    /*
-    close(1);  // 关闭标准输出(stdout)
-    close(2);  // 关闭标准错误输出(stderr)
-    */
+    s_oldStdInFd = dup(0);
+    s_oldStdOutFd = dup(1);
+    s_oldStdErrFd = dup(2);
+
+    int fd = open("/dev/null", O_RDWR);
+    if (fd != -1)
+    {
+        dup2(fd, 0);  // stdin
+        dup2(fd, 1);  // stdout
+        dup2(fd, 2);  // stderr
+
+        if (fd > 2)
+            close(fd);
+    }
 #endif
 }
 

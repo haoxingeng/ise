@@ -662,11 +662,11 @@ binary hashString(HASH_TYPE hashType, const binary& sourceStr, PVOID digest)
 
 binary hashBuffer(HASH_TYPE hashType, PVOID buffer, int dataSize, PVOID digest)
 {
-    std::auto_ptr<Hash> HashObj(createHashObject(hashType));
+    std::auto_ptr<Hash> hashObj(createHashObject(hashType));
 
-    binary s = HashObj->calcBuffer(buffer, dataSize, FT_COPY);
+    binary s = hashObj->calcBuffer(buffer, dataSize, FT_COPY);
     if (digest)
-        memmove(digest, s.c_str(), HashObj->digestSize());
+        memmove(digest, s.c_str(), hashObj->digestSize());
 
     Format_HEX formatObj;
     return formatObj.encode(s);
@@ -676,11 +676,11 @@ binary hashBuffer(HASH_TYPE hashType, PVOID buffer, int dataSize, PVOID digest)
 
 binary hashStream(HASH_TYPE hashType, Stream& stream, PVOID digest)
 {
-    std::auto_ptr<Hash> HashObj(createHashObject(hashType));
+    std::auto_ptr<Hash> hashObj(createHashObject(hashType));
 
-    binary s = HashObj->calcStream(stream, -1, FT_COPY);
+    binary s = hashObj->calcStream(stream, -1, FT_COPY);
     if (digest)
-        memmove(digest, s.c_str(), HashObj->digestSize());
+        memmove(digest, s.c_str(), hashObj->digestSize());
 
     Format_HEX formatObj;
     return formatObj.encode(s);
@@ -690,11 +690,11 @@ binary hashStream(HASH_TYPE hashType, Stream& stream, PVOID digest)
 
 binary hashFile(HASH_TYPE hashType, char *fileName, PVOID digest)
 {
-    std::auto_ptr<Hash> HashObj(createHashObject(hashType));
+    std::auto_ptr<Hash> hashObj(createHashObject(hashType));
 
-    binary s = HashObj->calcFile(fileName, FT_COPY);
+    binary s = hashObj->calcFile(fileName, FT_COPY);
     if (digest)
-        memmove(digest, s.c_str(), HashObj->digestSize());
+        memmove(digest, s.c_str(), hashObj->digestSize());
 
     Format_HEX formatObj;
     return formatObj.encode(s);
