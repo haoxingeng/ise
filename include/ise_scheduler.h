@@ -99,7 +99,7 @@ public:
     ~IseScheduleTaskMgr();
     static IseScheduleTaskMgr& instance();
 
-    void execute(Thread& ExecutorThread);
+    void execute(Thread& executorThread);
 
     UINT addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
         const SchTaskTriggerCallback& onTrigger,

@@ -1,4 +1,4 @@
-PROJECT_NAME = echo
+PROJECT_NAME = chargen_server
 
 TARGET_NAME = $(PROJECT_NAME)
 TARGET_PATH = .

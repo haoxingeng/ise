@@ -87,9 +87,9 @@ public:
     virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, UdpPacket& ) {}
 
     // 接受了一个新的TCP连接
-    virtual void onTcpConnect(const TcpConnectionPtr& connection) {}
+    virtual void onTcpConnected(const TcpConnectionPtr& connection) {}
     // 断开了一个TCP连接
-    virtual void onTcpDisconnect(const TcpConnectionPtr& connection) {}
+    virtual void onTcpDisconnected(const TcpConnectionPtr& connection) {}
     // TCP连接上的一个接收任务已完成
     virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
         int packetSize, const Context& context) {}
@@ -150,8 +150,8 @@ public:
     virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex);
     virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet);
 
-    virtual void onTcpConnect(const TcpConnectionPtr& connection);
-    virtual void onTcpDisconnect(const TcpConnectionPtr& connection);
+    virtual void onTcpConnected(const TcpConnectionPtr& connection);
+    virtual void onTcpDisconnected(const TcpConnectionPtr& connection);
     virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
         int packetSize, const Context& context);
     virtual void onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context);

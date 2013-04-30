@@ -27,16 +27,29 @@
 ///////////////////////////////////////////////////////////////////////////////
 // 说明:
 //
-// * 收到连接后(onTcpConnect)，即使用户不调用 connection->recv()，ISE也会在后台
+// * 收到连接后(onTcpConnected)，即使用户不调用 connection->recv()，ISE也会在后台
 //   自动接收数据。接收到的数据暂存于缓存中。
 //
 // * 即使用户在连接上无任何动作(既不 send 也不 recv)，当对方断开连接 (close/shutdown) 时，
-//   我方也能够感知，并通过 onTcpDisconnect() 通知用户。
+//   我方也能够感知，并通过 onTcpDisconnected() 通知用户。
 //
-// * connection->disconnect() 会立即双向 shutdown，而不管该连接的ISE缓存中有没有
-//   未发送完的数据。
-//   如果希望只关闭“发送”和“接收”中的一者，可调用 connection->shutdown()，
-//   此方法提供两个参数 (closeSend, closeRecv) 用于控制关闭发送或接收。
+// * 关于连接的断开:
+//   connection->disconnect() 会立即关闭 (shutdown) 发送通道，而不管该连接的
+//   ISE缓存中有没有未发送完的数据。由于没有关闭接收通道，所以此时程序仍可以接
+//   收对方的数据。正常情况下，对方在检测到我方关闭发送 (read 返回 0) 后，应断
+//   开连接 (close)，这样我方才能引发接收错误，进入 errorOccurred()，既而销毁连接。
+//
+//   如果希望把缓存中的数据发送完毕后再 disconnect()，可在 onTcpSendComplete()
+//   中进行断开操作。
+//
+//   TcpConnection 提供了更灵活的 shutdown(bool closeSend, bool closeRecv) 方法。
+//   用户如果希望断开连接时双向关闭，可直接调用 connection->shutdown() 方法，
+//   而不是 connection->disconnect()。
+//
+//   以下情况ISE会立即双向关闭 (shutdown(true, true)) 连接:
+//   1. 连接上有错误发生 (errorOccurred())；
+//   2. 发送或接收超时 (checkTimeout())；
+//   3. 程序退出时关闭现存连接 (clearConnections())。
 //
 // * 连接对象 (TcpConnection) 采用 boost::shared_ptr 管理，由以下几个角色持有:
 //   1. TcpEventLoop.
@@ -58,10 +71,10 @@
 //      仍然可以持有 shared_ptr，以免连接被自动销毁。
 //
 // * 连接对象 (TcpConnection) 的几个销毁场景:
-//   1. IseBusiness::onTcpConnect() 之后，用户调用了 connection->disconnect()，
-//      引发 IOCP/EPoll 错误，调用 errorOccurred()，执行 onTcpDisconnect() 和
+//   1. IseBusiness::onTcpConnected() 之后，用户调用了 connection->disconnect()，
+//      引发 IOCP/EPoll 错误，调用 errorOccurred()，执行 onTcpDisconnected() 和
 //      TcpConnecton::setEventLoop(NULL)。
-//   2. IseBusiness::onTcpConnect() 之后，用户没有任何动作，但对方断开了连接，
+//   2. IseBusiness::onTcpConnected() 之后，用户没有任何动作，但对方断开了连接，
 //      我方检测到后引发 IOCP/EPoll 错误，之后同1。
 //   3. 程序在 Linux 下被 kill，或程序中执行了 iseApp().setTerminated(true)，
 //      当前剩余连接全部在 TcpEventLoop::clearConnections() 中 被 disconnect()，
@@ -96,8 +109,10 @@ class IoBuffer;
 class TcpEventLoopThread;
 class TcpEventLoop;
 class TcpEventLoopList;
-class TcpServer;
 class TcpConnection;
+class TcpClient;
+class TcpServer;
+class TcpConnector;
 
 #ifdef ISE_WINDOWS
 class WinTcpConnection;
@@ -125,22 +140,25 @@ typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;
 typedef boost::function<void (
     const char *data,   // 缓存中可用数据的首字节指针
     int bytes,          // 缓存中可用数据的字节数
-    int& splitBytes     // 返回分离出来的数据包大小，返回0表示现存数据中尚不足以分离出一个完整数据包
+    int& retrieveBytes  // 返回分离出来的数据包大小，返回0表示现存数据中尚不足以分离出一个完整数据包
 )> PacketSplitter;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 预定义数据包分界器
 
-void bytePacketSplitter(const char *data, int bytes, int& splitBytes);
-void linePacketSplitter(const char *data, int bytes, int& splitBytes);
-void nullTerminatedPacketSplitter(const char *data, int bytes, int& splitBytes);
+void bytePacketSplitter(const char *data, int bytes, int& retrieveBytes);
+void linePacketSplitter(const char *data, int bytes, int& retrieveBytes);
+void nullTerminatedPacketSplitter(const char *data, int bytes, int& retrieveBytes);
+void anyPacketSplitter(const char *data, int bytes, int& retrieveBytes);
 
 // 每次接收一个字节的数据包分界器
-const PacketSplitter BYTE_PACKET_SPLITTER = boost::bind(&ise::bytePacketSplitter, _1, _2, _3);
+const PacketSplitter BYTE_PACKET_SPLITTER = &ise::bytePacketSplitter;
 // 以 '\r'或'\n' 或其组合为分界字符的数据包分界器
-const PacketSplitter LINE_PACKET_SPLITTER = boost::bind(&ise::linePacketSplitter, _1, _2, _3);
+const PacketSplitter LINE_PACKET_SPLITTER = &ise::linePacketSplitter;
 // 以 '\0' 为分界字符的数据包分界器
-const PacketSplitter NULL_TERMINATED_PACKET_SPLITTER = boost::bind(&ise::nullTerminatedPacketSplitter, _1, _2, _3);
+const PacketSplitter NULL_TERMINATED_PACKET_SPLITTER = &ise::nullTerminatedPacketSplitter;
+// 无论收到多少字节都立即获取的数据包分界器
+const PacketSplitter ANY_PACKET_SPLITTER = &ise::anyPacketSplitter;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpInspectInfo
@@ -226,8 +244,6 @@ private:
 class TcpEventLoop : boost::noncopyable
 {
 public:
-    friend class TcpEventLoopThread;
-
     typedef vector<Functor> Functors;
     typedef map<string, TcpConnectionPtr> TcpConnectionMap;  // <connectionName, TcpConnectionPtr>
 
@@ -276,6 +292,8 @@ private:
     FunctorList delegatedFunctors_;
     FunctorList finalizers_;
     UINT lastCheckTimeoutTicks_;
+
+    friend class TcpEventLoopThread;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -305,29 +323,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpServer
-
-class TcpServer : public BaseTcpServer
-{
-public:
-    friend class TcpConnection;
-
-    int getConnectionCount() const { return connCount_.get(); }
-
-protected:
-    virtual BaseTcpConnection* createConnection(SOCKET socketHandle);
-
-private:
-    string generateConnectionName(SOCKET socketHandle);
-    void incConnCount() { connCount_.increment(); }
-    void decConnCount() { connCount_.decrement(); }
-
-private:
-    SeqNumberAlloc connIdAlloc_;
-    mutable AtomicInt connCount_;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // class TcpConnection - Proactor模型下的TCP连接
 
 class TcpConnection :
@@ -335,9 +330,6 @@ class TcpConnection :
     public boost::enable_shared_from_this<TcpConnection>
 {
 public:
-    friend class MainTcpServer;
-    friend class TcpEventLoop;
-
     struct SendTask
     {
     public:
@@ -373,7 +365,8 @@ public:
     typedef deque<RecvTask> RecvTaskQueue;
 
 public:
-    TcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
+    TcpConnection();
+    TcpConnection(TcpServer *tcpServer, SOCKET socketHandle);
     virtual ~TcpConnection();
 
     void send(
@@ -384,15 +377,15 @@ public:
         );
 
     void recv(
-        const PacketSplitter& packetSplitter = BYTE_PACKET_SPLITTER,
+        const PacketSplitter& packetSplitter = ANY_PACKET_SPLITTER,
         const Context& context = EMPTY_CONTEXT,
         int timeout = TIMEOUT_INFINITE
         );
 
-    const string& getConnectionName() const { return connectionName_; }
-    int getServerIndex() const { return boost::any_cast<int>(tcpServer_->getContext()); }
-    int getServerPort() const { return tcpServer_->getLocalPort(); }
-    int getServerConnCount() const { return tcpServer_->getConnectionCount(); }
+    const string& getConnectionName() const;
+    int getServerIndex() const;
+    int getServerPort() const;
+    int getServerConnCount() const;
 
 protected:
     virtual void doDisconnect();
@@ -408,14 +401,121 @@ protected:
     void setEventLoop(TcpEventLoop *eventLoop);
     TcpEventLoop* getEventLoop() { return eventLoop_; }
 
+private:
+    void init();
+
 protected:
     TcpServer *tcpServer_;           // 所属 TcpServer
     TcpEventLoop *eventLoop_;        // 所属 TcpEventLoop
-    string connectionName_;          // 连接名称
+    mutable string connectionName_;  // 连接名称
     IoBuffer sendBuffer_;            // 数据发送缓存
     IoBuffer recvBuffer_;            // 数据接收缓存
     SendTaskQueue sendTaskQueue_;    // 发送任务队列
     RecvTaskQueue recvTaskQueue_;    // 接收任务队列
+    bool isErrorOccurred_;           // 连接上是否发生了错误
+
+    friend class MainTcpServer;
+    friend class TcpEventLoop;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class TcpClient
+
+class TcpClient : public BaseTcpClient
+{
+public:
+    TcpConnection& getConnection() { return *static_cast<TcpConnection*>(connection_); }
+protected:
+    virtual BaseTcpConnection* createConnection();
+private:
+    bool registerToEventLoop(int index = -1);
+private:
+    friend class TcpConnector;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class TcpServer
+
+class TcpServer : public BaseTcpServer
+{
+public:
+    int getConnectionCount() const { return connCount_.get(); }
+
+protected:
+    virtual BaseTcpConnection* createConnection(SOCKET socketHandle);
+
+private:
+    void incConnCount() { connCount_.increment(); }
+    void decConnCount() { connCount_.decrement(); }
+
+private:
+    mutable AtomicInt connCount_;
+    friend class TcpConnection;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class TcpConnector - TCP连接器类
+
+class TcpConnector : boost::noncopyable
+{
+public:
+    typedef boost::function<void (bool success, TcpConnection *connection,
+        const InetAddress& peerAddr, const Context& context)> CompleteCallback;
+
+private:
+    typedef vector<SOCKET> FdList;
+
+    struct TaskItem
+    {
+        TcpClient tcpClient;
+        InetAddress peerAddr;
+        CompleteCallback completeCallback;
+        ASYNC_CONNECT_STATE state;
+        Context context;
+    };
+
+    typedef ObjectList<TaskItem> TaskList;
+
+    class WorkerThread : public Thread
+    {
+    public:
+        WorkerThread(TcpConnector& owner) : owner_(owner) {}
+    protected:
+        virtual void execute() { owner_.work(*this); }
+        virtual void afterExecute() { owner_.thread_ = NULL; }
+    private:
+        TcpConnector& owner_;
+    };
+
+    friend class WorkerThread;
+
+public:
+    ~TcpConnector();
+    static TcpConnector& instance();
+
+    void connect(const InetAddress& peerAddr,
+        const CompleteCallback& completeCallback,
+        const Context& context = EMPTY_CONTEXT);
+    void clear();
+
+private:
+    TcpConnector();
+
+private:
+    void start();
+    void stop();
+    void work(WorkerThread& thread);
+
+    void tryConnect();
+    void getPendingFdsFromTaskList(int& fromIndex, FdList& fds);
+    void checkAsyncConnectState(const FdList& fds, FdList& connectedFds, FdList& failedFds);
+    TaskItem* findTask(SOCKET fd);
+    void invokeCompleteCallback();
+
+private:
+    TaskList taskList_;
+    CriticalSection lock_;
+    WorkerThread *thread_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -439,13 +539,17 @@ typedef boost::function<void (const IocpTaskData& taskData)> IocpCallback;
 class WinTcpConnection : public TcpConnection
 {
 public:
-    WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
+    WinTcpConnection();
+    WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle);
+
 protected:
     virtual void eventLoopChanged();
     virtual void postSendTask(const void *buffer, int size, const Context& context, int timeout);
     virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context, int timeout);
 
 private:
+    void init();
+
     WinTcpEventLoop* getEventLoop() { return (WinTcpEventLoop*)eventLoop_; }
 
     void trySend();
@@ -467,9 +571,6 @@ private:
 
 class IocpTaskData
 {
-public:
-    friend class IocpObject;
-
 public:
     IocpTaskData();
 
@@ -500,6 +601,8 @@ private:
     int bytesTrans_;
     int errorCode_;
     IocpCallback callback_;
+
+    friend class IocpObject;
 };
 
 #pragma pack(1)
@@ -567,9 +670,6 @@ private:
 class IocpObject : boost::noncopyable
 {
 public:
-    friend class AutoFinalizer;
-
-public:
     IocpObject();
     virtual ~IocpObject();
 
@@ -601,6 +701,8 @@ private:
     static IocpPendingCounter pendingCounter_;
 
     HANDLE iocpHandle_;
+
+    friend class AutoFinalizer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -639,15 +741,17 @@ private:
 class LinuxTcpConnection : public TcpConnection
 {
 public:
-    friend class LinuxTcpEventLoop;
-public:
-    LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle, const string& connectionName);
+    LinuxTcpConnection();
+    LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle);
+
 protected:
     virtual void eventLoopChanged();
     virtual void postSendTask(const void *buffer, int size, const Context& context, int timeout);
     virtual void postRecvTask(const PacketSplitter& packetSplitter, const Context& context, int timeout);
 
 private:
+    void init();
+
     LinuxTcpEventLoop* getEventLoop() { return (LinuxTcpEventLoop*)eventLoop_; }
 
     void setSendEnabled(bool enabled);
@@ -662,6 +766,8 @@ private:
     int bytesSent_;                  // 自从上次发送任务完成回调以来共发送了多少字节
     bool enableSend_;                // 是否监视可发送事件
     bool enableRecv_;                // 是否监视可接收事件
+
+    friend class LinuxTcpEventLoop;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -755,6 +861,8 @@ public:
 
     void open();
     void close();
+
+    bool registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex = -1);
 
 private:
     void createTcpServerList();

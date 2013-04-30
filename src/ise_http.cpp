@@ -840,7 +840,7 @@ int HttpClient::requestFile(const string& url)
 
 int HttpClient::receiveFile(void *buffer, int size, int timeoutMSecs)
 {
-    return tcpClient_.recvBuffer(buffer, size, true, timeoutMSecs);
+    return tcpClient_.getConnection().recvBuffer(buffer, size, true, timeoutMSecs);
 }
 
 //-----------------------------------------------------------------------------
@@ -853,7 +853,7 @@ int HttpClient::executeHttpAction(HTTP_METHOD_TYPE httpMethod, const string& url
     private:
         HttpClient& owner_;
     public:
-        AutoFinalizer(HttpClient& Owner) : owner_(Owner) {}
+        AutoFinalizer(HttpClient& owner) : owner_(owner) {}
         ~AutoFinalizer() { owner_.tcpDisconnect(); }
     } finalizer(*this);
 
@@ -930,7 +930,7 @@ int HttpClient::tcpConnect()
     if (tcpClient_.isConnected())
     {
         InetAddress inetAddr = getInetAddrFromUrl(url_);
-        if (tcpClient_.getPeerAddr() != inetAddr)
+        if (tcpClient_.getConnection().getPeerAddr() != inetAddr)
             tcpClient_.disconnect();
     }
 
@@ -946,7 +946,7 @@ int HttpClient::tcpConnect()
 
     if (tcpClient_.isConnected())
     {
-        SOCKET handle = tcpClient_.getSocket().getHandle();
+        SOCKET handle = tcpClient_.getConnection().getSocket().getHandle();
         int timeout = options_.socketOpTimeOut;
         ::setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
         ::setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
@@ -963,7 +963,9 @@ int HttpClient::sendRequestHeader()
     Buffer buffer;
     makeRequestBuffer(buffer);
 
-    int r = tcpClient_.sendBuffer(buffer.data(), buffer.getSize(), true, options_.sendReqHeaderTimeOut);
+    int r = tcpClient_.getConnection().sendBuffer(buffer.data(), buffer.getSize(),
+        true, options_.sendReqHeaderTimeOut);
+
     if (r != buffer.getSize())
         result = EC_HTTP_SOCKET_ERROR;
 
@@ -988,7 +990,9 @@ int HttpClient::sendRequestContent()
         int readSize = stream->read(buffer.data(), BLOCK_SIZE);
         if (readSize > 0)
         {
-            int r = tcpClient_.sendBuffer(buffer.data(), readSize, true, options_.sendReqContBlockTimeOut);
+            int r = tcpClient_.getConnection().sendBuffer(buffer.data(), readSize,
+                true, options_.sendReqContBlockTimeOut);
+
             if (r < 0)
             {
                 result = EC_HTTP_SOCKET_ERROR;
@@ -1025,7 +1029,7 @@ int HttpClient::recvResponseHeader()
         {
             int remainTimeout = ise::max(0, RECV_TIMEOUT - (int)getTickDiff(startTicks, getCurTicks()));
 
-            int r = tcpClient_.recvBuffer(&ch, sizeof(ch), true, remainTimeout);
+            int r = tcpClient_.getConnection().recvBuffer(&ch, sizeof(ch), true, remainTimeout);
             if (r < 0)
             {
                 result = EC_HTTP_SOCKET_ERROR;
@@ -1112,8 +1116,8 @@ int HttpClient::recvResponseContent()
             while (remainSize > 0)
             {
                 int blockSize = (int)ise::min(remainSize, (INT64)BLOCK_SIZE);
-                int recvSize = tcpClient_.recvBuffer(buffer.data(), blockSize,
-                    true, options_.recvResContBlockTimeOut);
+                int recvSize = tcpClient_.getConnection().recvBuffer(buffer.data(),
+                    blockSize, true, options_.recvResContBlockTimeOut);
 
                 if (recvSize < 0)
                 {
@@ -1143,7 +1147,7 @@ int HttpClient::readLine(string& line, int timeout)
     {
         int remainTimeout = ise::max(0, timeout - (int)getTickDiff(startTicks, getCurTicks()));
 
-        int r = tcpClient_.recvBuffer(&ch, sizeof(ch), true, remainTimeout);
+        int r = tcpClient_.getConnection().recvBuffer(&ch, sizeof(ch), true, remainTimeout);
         if (r < 0)
         {
             result = EC_HTTP_SOCKET_ERROR;
@@ -1218,7 +1222,8 @@ int HttpClient::readStream(Stream& stream, int bytes, int timeout)
     {
         int blockSize = (int)ise::min(remainSize, (INT64)BLOCK_SIZE);
         int remainTimeout = ise::max(0, timeout - (int)getTickDiff(startTicks, getCurTicks()));
-        int recvSize = tcpClient_.recvBuffer(buffer.data(), blockSize, true, remainTimeout);
+        int recvSize = tcpClient_.getConnection().recvBuffer(
+            buffer.data(), blockSize, true, remainTimeout);
 
         if (recvSize < 0)
         {

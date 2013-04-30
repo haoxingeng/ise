@@ -135,26 +135,26 @@ void IseSvrModBusiness::dispatchUdpPacket(UdpWorkerThread& workerThread,
 //-----------------------------------------------------------------------------
 // 描述: 接受了一个新的TCP连接
 //-----------------------------------------------------------------------------
-void IseSvrModBusiness::onTcpConnect(const TcpConnectionPtr& connection)
+void IseSvrModBusiness::onTcpConnected(const TcpConnectionPtr& connection)
 {
     TcpServerIndexMap::iterator iter = tcpServerIndexMap_.find(connection->getServerIndex());
     if (iter != tcpServerIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).onTcpConnect(connection);
+        serverModuleMgr_.getItems(modIndex).onTcpConnected(connection);
     }
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开了一个TCP连接
 //-----------------------------------------------------------------------------
-void IseSvrModBusiness::onTcpDisconnect(const TcpConnectionPtr& connection)
+void IseSvrModBusiness::onTcpDisconnected(const TcpConnectionPtr& connection)
 {
     TcpServerIndexMap::iterator iter = tcpServerIndexMap_.find(connection->getServerIndex());
     if (iter != tcpServerIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).onTcpDisconnect(connection);
+        serverModuleMgr_.getItems(modIndex).onTcpDisconnected(connection);
     }
 }
 

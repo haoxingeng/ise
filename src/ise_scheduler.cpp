@@ -154,9 +154,9 @@ IseScheduleTaskMgr& IseScheduleTaskMgr::instance()
 //-----------------------------------------------------------------------------
 // 描述: 由系统定时任务线程执行
 //-----------------------------------------------------------------------------
-void IseScheduleTaskMgr::execute(Thread& ExecutorThread)
+void IseScheduleTaskMgr::execute(Thread& executorThread)
 {
-    while (!ExecutorThread.isTerminated())
+    while (!executorThread.isTerminated())
     {
         try
         {

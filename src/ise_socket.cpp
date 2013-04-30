@@ -596,10 +596,20 @@ void Socket::doSetBlockMode(SOCKET handle, bool value)
 }
 
 //-----------------------------------------------------------------------------
-
+// 备注:
+//   在 Winsock 中，关闭接收通道 (SS_SD_RECV 或 SS_SD_BOTH) 后，如果当前接收缓
+//   存中仍有未取出数据或者之后再有数据到达，TCP会向发送端发送RST包，导致连接
+//   被重置。而 Linux 下的行为有所不同，不会重置连接。
+//-----------------------------------------------------------------------------
 void Socket::doClose()
 {
+#ifdef ISE_WINDOWS
+    ::shutdown(handle_, SS_SD_SEND);
+#endif
+#ifdef ISE_LINUX
     ::shutdown(handle_, SS_SD_BOTH);
+#endif
+
     iseCloseSocket(handle_);
     handle_ = INVALID_SOCKET;
     isActive_ = false;
@@ -1204,33 +1214,48 @@ int BaseTcpConnection::doAsyncRecvBuffer(void *buffer, int size)
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpClient
 
+BaseTcpClient::BaseTcpClient() :
+    connection_(NULL)
+{
+    // nothing
+}
+
+BaseTcpClient::~BaseTcpClient()
+{
+    delete connection_;
+    connection_ = NULL;
+}
+
 //-----------------------------------------------------------------------------
 // 描述: 发起TCP连接请求 (阻塞式)
 // 备注: 若连接失败，则抛出异常。
 //-----------------------------------------------------------------------------
 void BaseTcpClient::connect(const string& ip, int port)
 {
+    ensureConnCreated();
+    TcpSocket& socket = getSocket();
+
     if (isConnected()) disconnect();
 
     try
     {
-        socket_.open();
-        if (socket_.isActive())
+        socket.open();
+        if (socket.isActive())
         {
             SockAddr addr = InetAddress(stringToIp(ip), port).getSockAddr();
 
-            bool oldBlockMode = socket_.isBlockMode();
-            socket_.setBlockMode(true);
+            bool oldBlockMode = socket.isBlockMode();
+            socket.setBlockMode(true);
 
-            if (::connect(socket_.getHandle(), (struct sockaddr*)&addr, sizeof(addr)) < 0)
+            if (::connect(socket.getHandle(), (struct sockaddr*)&addr, sizeof(addr)) < 0)
                 iseThrowSocketLastError();
 
-            socket_.setBlockMode(oldBlockMode);
+            socket.setBlockMode(oldBlockMode);
         }
     }
     catch (SocketException&)
     {
-        socket_.close();
+        socket.close();
         throw;
     }
 }
@@ -1250,16 +1275,20 @@ int BaseTcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
 {
     int result = ACS_CONNECTING;
 
+    ensureConnCreated();
+    TcpSocket& socket = getSocket();
+
     if (isConnected()) disconnect();
+
     try
     {
-        socket_.open();
-        if (socket_.isActive())
+        socket.open();
+        if (socket.isActive())
         {
             SockAddr addr = InetAddress(stringToIp(ip), port).getSockAddr();
 
-            socket_.setBlockMode(false);
-            int r = ::connect(socket_.getHandle(), (struct sockaddr*)&addr, sizeof(addr));
+            socket.setBlockMode(false);
+            int r = ::connect(socket.getHandle(), (struct sockaddr*)&addr, sizeof(addr));
             if (r == 0)
                 result = ACS_CONNECTED;
 #ifdef ISE_WINDOWS
@@ -1273,7 +1302,7 @@ int BaseTcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
     }
     catch (...)
     {
-        socket_.close();
+        socket.close();
         result = ACS_FAILED;
     }
 
@@ -1296,7 +1325,7 @@ int BaseTcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
 //-----------------------------------------------------------------------------
 int BaseTcpClient::checkAsyncConnectState(int timeoutMSecs)
 {
-    if (!socket_.isActive()) return ACS_FAILED;
+    if ((connection_ == NULL) || !getSocket().isActive()) return ACS_FAILED;
 
     const int WAIT_STEP = 100;   // ms
     int result = ACS_CONNECTING;
@@ -1318,10 +1347,10 @@ int BaseTcpClient::checkAsyncConnectState(int timeoutMSecs)
         int r = select(handle + 1, &rset, &wset, NULL, &tv);
         if (r > 0 && (FD_ISSET(handle, &rset) || FD_ISSET(handle, &wset)))
         {
-            socklen_t nErrLen = sizeof(int);
+            socklen_t errLen = sizeof(int);
             int errorCode = 0;
             // If error occurs
-            if (getsockopt(handle, SOL_SOCKET, SO_ERROR, (char*)&errorCode, &nErrLen) < 0 || errorCode)
+            if (getsockopt(handle, SOL_SOCKET, SO_ERROR, (char*)&errorCode, &errLen) < 0 || errorCode)
                 result = ACS_FAILED;
             else
                 result = ACS_CONNECTED;
@@ -1345,6 +1374,42 @@ int BaseTcpClient::checkAsyncConnectState(int timeoutMSecs)
     }
 
     return result;
+}
+
+//-----------------------------------------------------------------------------
+
+void BaseTcpClient::disconnect()
+{
+    if (connection_)
+    {
+        connection_->disconnect();
+        delete connection_;
+        connection_ = NULL;
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+BaseTcpConnection& BaseTcpClient::getConnection()
+{
+    ensureConnCreated();
+    return *connection_;
+}
+
+//-----------------------------------------------------------------------------
+
+void BaseTcpClient::ensureConnCreated()
+{
+    if (connection_ == NULL)
+        connection_ = createConnection();
+}
+
+//-----------------------------------------------------------------------------
+
+TcpSocket& BaseTcpClient::getSocket()
+{
+    ISE_ASSERT(connection_ != NULL);
+    return connection_->getSocket();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

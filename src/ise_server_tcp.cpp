@@ -37,14 +37,14 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 预定义数据包分界器
 
-void bytePacketSplitter(const char *data, int bytes, int& splitBytes)
+void bytePacketSplitter(const char *data, int bytes, int& retrieveBytes)
 {
-    splitBytes = (bytes > 0 ? 1 : 0);
+    retrieveBytes = (bytes > 0 ? 1 : 0);
 }
 
-void linePacketSplitter(const char *data, int bytes, int& splitBytes)
+void linePacketSplitter(const char *data, int bytes, int& retrieveBytes)
 {
-    splitBytes = 0;
+    retrieveBytes = 0;
 
     const char *p = data;
     int i = 0;
@@ -52,12 +52,12 @@ void linePacketSplitter(const char *data, int bytes, int& splitBytes)
     {
         if (*p == '\r' || *p == '\n')
         {
-            splitBytes = i + 1;
+            retrieveBytes = i + 1;
             if (i < bytes - 1)
             {
                 char next = *(p+1);
                 if ((next == '\r' || next == '\n') && next != *p)
-                    ++splitBytes;
+                    ++retrieveBytes;
             }
             break;
         }
@@ -69,19 +69,26 @@ void linePacketSplitter(const char *data, int bytes, int& splitBytes)
 
 //-----------------------------------------------------------------------------
 
-void nullTerminatedPacketSplitter(const char *data, int bytes, int& splitBytes)
+void nullTerminatedPacketSplitter(const char *data, int bytes, int& retrieveBytes)
 {
     const char DELIMITER = '\0';
 
-    splitBytes = 0;
+    retrieveBytes = 0;
     for (int i = 0; i < bytes; ++i)
     {
         if (data[i] == DELIMITER)
         {
-            splitBytes = i + 1;
+            retrieveBytes = i + 1;
             break;
         }
     }
+}
+
+//-----------------------------------------------------------------------------
+
+void anyPacketSplitter(const char *data, int bytes, int& retrieveBytes)
+{
+    retrieveBytes = (bytes > 0 ? bytes : 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -355,7 +362,7 @@ void TcpEventLoop::addConnection(TcpConnection *connection)
     tcpConnMap_[connection->getConnectionName()] = connPtr;
 
     registerConnection(connection);
-    delegateToLoop(boost::bind(&IseBusiness::onTcpConnect, &iseApp().getIseBusiness(), connPtr));
+    delegateToLoop(boost::bind(&IseBusiness::onTcpConnected, &iseApp().getIseBusiness(), connPtr));
 }
 
 //-----------------------------------------------------------------------------
@@ -374,8 +381,8 @@ void TcpEventLoop::removeConnection(TcpConnection *connection)
 //-----------------------------------------------------------------------------
 // 描述: 清除全部连接
 // 备注:
-//   conn->disconnect() 使 IOCP 返回错误，从而释放 IOCP 持有的 shared_ptr。
-//   之后 TcpConnection::errorOccurred() 被调用，进而调用 onTcpDisconnect() 和
+//   conn->shutdown(true, true) 使 IOCP 返回错误，从而释放 IOCP 持有的 shared_ptr。
+//   之后 TcpConnection::errorOccurred() 被调用，进而调用 onTcpDisconnected() 和
 //   TcpConnection::setEventLoop(NULL)。
 //-----------------------------------------------------------------------------
 void TcpEventLoop::clearConnections()
@@ -385,7 +392,7 @@ void TcpEventLoop::clearConnections()
     for (TcpConnectionMap::iterator iter = tcpConnMap_.begin(); iter != tcpConnMap_.end(); ++iter)
     {
         TcpConnectionPtr conn = tcpConnMap_.begin()->second;
-        conn->disconnect();
+        conn->shutdown(true, true);
     }
 }
 
@@ -533,59 +540,42 @@ void TcpEventLoopList::setCount(int count)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpServer
-
-//-----------------------------------------------------------------------------
-// 描述: 创建连接对象
-//-----------------------------------------------------------------------------
-BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
-{
-    BaseTcpConnection *result = NULL;
-    string connectionName = generateConnectionName(socketHandle);
-
-#ifdef ISE_WINDOWS
-    result = new WinTcpConnection(this, socketHandle, connectionName);
-#endif
-#ifdef ISE_LINUX
-    result = new LinuxTcpConnection(this, socketHandle, connectionName);
-#endif
-
-    return result;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 产生一个 TcpServer 范围内唯一的连接名称
-//-----------------------------------------------------------------------------
-string TcpServer::generateConnectionName(SOCKET socketHandle)
-{
-    string result = formatString("%s-%s#%u",
-        getSocket().getLocalAddr().getDisplayStr().c_str(),
-        getSocketPeerAddr(socketHandle).getDisplayStr().c_str(),
-        (UINT)connIdAlloc_.allocId());
-    return result;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // class TcpConnection
 
-TcpConnection::TcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
-    const string& connectionName) :
-        BaseTcpConnection(socketHandle),
-        tcpServer_(tcpServer),
-        eventLoop_(NULL),
-        connectionName_(connectionName)
+TcpConnection::TcpConnection()
 {
+    init();
     TcpInspectInfo::instance().tcpConnCreateCount.increment();
+}
+
+TcpConnection::TcpConnection(TcpServer *tcpServer, SOCKET socketHandle) :
+    BaseTcpConnection(socketHandle)
+{
+    init();
+
+    tcpServer_ = tcpServer;
     tcpServer_->incConnCount();
+    TcpInspectInfo::instance().tcpConnCreateCount.increment();
 }
 
 TcpConnection::~TcpConnection()
 {
     //logger().writeFmt("destroy conn: %s", getConnectionName().c_str());  // debug
 
-    TcpInspectInfo::instance().tcpConnDestroyCount.increment();
     setEventLoop(NULL);
-    tcpServer_->decConnCount();
+
+    if (tcpServer_)
+        tcpServer_->decConnCount();
+    TcpInspectInfo::instance().tcpConnDestroyCount.increment();
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnection::init()
+{
+    tcpServer_ = NULL;
+    eventLoop_ = NULL;
+    isErrorOccurred_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -596,6 +586,9 @@ TcpConnection::~TcpConnection()
 void TcpConnection::send(const void *buffer, int size, const Context& context, int timeout)
 {
     if (!buffer || size <= 0) return;
+
+    if (eventLoop_ == NULL)
+        iseThrowException(SEM_EVENT_LOOP_NOT_SPECIFIED);
 
     if (getEventLoop()->isInLoopThread())
         postSendTask(buffer, size, context, timeout);
@@ -616,6 +609,9 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
 {
     if (!packetSplitter) return;
 
+    if (eventLoop_ == NULL)
+        iseThrowException(SEM_EVENT_LOOP_NOT_SPECIFIED);
+
     if (getEventLoop()->isInLoopThread())
         postRecvTask(packetSplitter, context, timeout);
     else
@@ -623,6 +619,47 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
         getEventLoop()->delegateToLoop(
             boost::bind(&TcpConnection::postRecvTask, this, packetSplitter, context, timeout));
     }
+}
+
+//-----------------------------------------------------------------------------
+
+const string& TcpConnection::getConnectionName() const
+{
+    if (connectionName_.empty() && isConnected())
+    {
+        static CriticalSection lock;
+        static SeqNumberAlloc connIdAlloc_;
+
+        AutoLocker locker(lock);
+
+        connectionName_ = formatString("%s-%s#%s",
+            getSocket().getLocalAddr().getDisplayStr().c_str(),
+            getSocket().getPeerAddr().getDisplayStr().c_str(),
+            intToStr((INT64)connIdAlloc_.allocId()).c_str());
+    }
+
+    return connectionName_;
+}
+
+//-----------------------------------------------------------------------------
+
+int TcpConnection::getServerIndex() const
+{
+    return tcpServer_ ? boost::any_cast<int>(tcpServer_->getContext()) : -1;
+}
+
+//-----------------------------------------------------------------------------
+
+int TcpConnection::getServerPort() const
+{
+    return tcpServer_ ? tcpServer_->getLocalPort() : 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int TcpConnection::getServerConnCount() const
+{
+    return tcpServer_ ? tcpServer_->getConnectionCount() : 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -634,7 +671,7 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
 //-----------------------------------------------------------------------------
 void TcpConnection::doDisconnect()
 {
-    getSocket().shutdown();
+    shutdown(true, false);
 }
 
 //-----------------------------------------------------------------------------
@@ -646,14 +683,17 @@ void TcpConnection::doDisconnect()
 //-----------------------------------------------------------------------------
 void TcpConnection::errorOccurred()
 {
+    if (isErrorOccurred_) return;
+    isErrorOccurred_ = true;
+
     TcpInspectInfo::instance().errorOccurredCount.increment();
+
+    shutdown(true, true);
 
     ISE_ASSERT(eventLoop_ != NULL);
 
-    disconnect();
-
     getEventLoop()->executeInLoop(boost::bind(
-        &IseBusiness::onTcpDisconnect,
+        &IseBusiness::onTcpDisconnected,
         &iseApp().getIseBusiness(), shared_from_this()));
 
     // setEventLoop(NULL) 可使 shared_ptr<TcpConnection> 减少引用计数，进而销毁对象
@@ -679,7 +719,7 @@ void TcpConnection::checkTimeout(UINT curTicks)
             if (task.timeout > 0 &&
                 (int)getTickDiff(task.startTicks, curTicks) > task.timeout)
             {
-                disconnect();
+                shutdown(true, true);
             }
         }
     }
@@ -695,7 +735,7 @@ void TcpConnection::checkTimeout(UINT curTicks)
             if (task.timeout > 0 &&
                 (int)getTickDiff(task.startTicks, curTicks) > task.timeout)
             {
-                disconnect();
+                shutdown(true, true);
             }
         }
     }
@@ -734,21 +774,353 @@ void TcpConnection::setEventLoop(TcpEventLoop *eventLoop)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// class TcpClient
+
+BaseTcpConnection* TcpClient::createConnection()
+{
+    BaseTcpConnection *result = NULL;
+
+#ifdef ISE_WINDOWS
+    result = new WinTcpConnection();
+#endif
+#ifdef ISE_LINUX
+    result = new LinuxTcpConnection();
+#endif
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 将 connection 挂接到 EventLoop 上
+// 参数:
+//   index - EventLoop 的序号 (0-based)，为 -1 表示自动选择
+// 备注:
+//   挂接成功后，TcpClient 将释放对 TcpConnection 的控制权。
+//-----------------------------------------------------------------------------
+bool TcpClient::registerToEventLoop(int index)
+{
+    bool result = false;
+
+    if (connection_ != NULL)
+    {
+        result = iseApp().getMainServer().getMainTcpServer().registerToEventLoop(connection_, index);
+        if (result)
+            connection_ = NULL;
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class TcpServer
+
+//-----------------------------------------------------------------------------
+// 描述: 创建连接对象
+//-----------------------------------------------------------------------------
+BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
+{
+    BaseTcpConnection *result = NULL;
+
+#ifdef ISE_WINDOWS
+    result = new WinTcpConnection(this, socketHandle);
+#endif
+#ifdef ISE_LINUX
+    result = new LinuxTcpConnection(this, socketHandle);
+#endif
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class TcpConnector
+
+TcpConnector::TcpConnector() :
+    taskList_(false, true),
+    thread_(NULL)
+{
+    // nothing
+}
+
+TcpConnector::~TcpConnector()
+{
+    stop();
+    clear();
+}
+
+//-----------------------------------------------------------------------------
+
+TcpConnector& TcpConnector::instance()
+{
+    static TcpConnector obj;
+    return obj;
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::connect(const InetAddress& peerAddr,
+    const CompleteCallback& completeCallback, const Context& context)
+{
+    AutoLocker locker(lock_);
+
+    TaskItem *item = new TaskItem();
+    item->peerAddr = peerAddr;
+    item->completeCallback = completeCallback;
+    item->state = ACS_NONE;
+    item->context = context;
+
+    taskList_.add(item);
+    start();
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::clear()
+{
+    AutoLocker locker(lock_);
+    taskList_.clear();
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::start()
+{
+    if (thread_ == NULL)
+    {
+        thread_ = new WorkerThread(*this);
+        thread_->setFreeOnTerminate(true);
+        thread_->run();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::stop()
+{
+    if (thread_ != NULL)
+    {
+        thread_->terminate();
+        thread_->waitFor();
+        thread_ = NULL;
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::work(WorkerThread& thread)
+{
+    while (!thread.isTerminated() && !taskList_.isEmpty())
+    {
+        tryConnect();
+
+        int fromIndex = 0;
+        FdList fds, connectedFds, failedFds;
+
+        getPendingFdsFromTaskList(fromIndex, fds);
+        checkAsyncConnectState(fds, connectedFds, failedFds);
+
+        if (fromIndex >= taskList_.getCount())
+            fromIndex = 0;
+
+        for (int i = 0; i < (int)connectedFds.size(); ++i)
+        {
+            TaskItem *task = findTask(connectedFds[i]);
+            if (task != NULL)
+            {
+                task->state = ACS_CONNECTED;
+                task->tcpClient.getConnection().setContext(task->context);
+            }
+        }
+
+        for (int i = 0; i < (int)failedFds.size(); ++i)
+        {
+            TaskItem *task = findTask(failedFds[i]);
+            if (task != NULL)
+            {
+                task->state = ACS_FAILED;
+                task->tcpClient.disconnect();
+            }
+        }
+
+        invokeCompleteCallback();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::tryConnect()
+{
+    AutoLocker locker(lock_);
+
+    for (int i = 0; i < taskList_.getCount(); ++i)
+    {
+        TaskItem *task = taskList_[i];
+        if (task->state == ACS_NONE)
+        {
+            task->state = (ASYNC_CONNECT_STATE)task->tcpClient.asyncConnect(
+                ipToString(task->peerAddr.ip), task->peerAddr.port, 0);
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::getPendingFdsFromTaskList(int& fromIndex, FdList& fds)
+{
+    AutoLocker locker(lock_);
+
+    fds.clear();
+    for (int i = fromIndex; i < taskList_.getCount(); ++i)
+    {
+        TaskItem *task = taskList_[i];
+        if (task->state == ACS_CONNECTING)
+        {
+            fds.push_back(task->tcpClient.getConnection().getSocket().getHandle());
+            if (fds.size() >= FD_SETSIZE)
+            {
+                fromIndex = i + 1;
+                break;
+            }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::checkAsyncConnectState(const FdList& fds, 
+    FdList& connectedFds, FdList& failedFds)
+{
+    const int WAIT_TIME = 1;  // ms
+
+    fd_set rset, wset;
+    struct timeval tv;
+
+    connectedFds.clear();
+    failedFds.clear();
+
+    // init wset & rset
+    FD_ZERO(&rset);
+    for (int i = 0; i < (int)fds.size(); ++i)
+        FD_SET(fds[i], &rset);
+    wset = rset;
+
+    // find max fd
+    SOCKET maxFd = 0;
+    for (int i = 0; i < (int)fds.size(); ++i)
+    {
+        if (maxFd < fds[i])
+            maxFd = fds[i];
+    }
+
+    tv.tv_sec = 0;
+    tv.tv_usec = WAIT_TIME * 1000;
+
+    int r = select(maxFd + 1, &rset, &wset, NULL, &tv);
+    if (r > 0)
+    {
+        for (int i = 0; i < (int)fds.size(); ++i)
+        {
+            int state = ACS_CONNECTING;
+            SOCKET fd = fds[i];
+            if (FD_ISSET(fd, &rset) || FD_ISSET(fd, &wset))
+            {
+                socklen_t errLen = sizeof(int);
+                int errorCode = 0;
+                if (getsockopt(fd, SOL_SOCKET, SO_ERROR, (char*)&errorCode, &errLen) < 0 || errorCode)
+                    state = ACS_FAILED;
+                else
+                    state = ACS_CONNECTED;
+            }
+
+            if (state == ACS_CONNECTED)
+                connectedFds.push_back(fd);
+            else if (state == ACS_FAILED)
+                failedFds.push_back(fd);
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+TcpConnector::TaskItem* TcpConnector::findTask(SOCKET fd)
+{
+    TaskItem *result = NULL;
+
+    for (int i = 0; i < taskList_.getCount(); ++i)
+    {
+        TaskItem *task = taskList_[i];
+        if (task->tcpClient.getConnection().getSocket().getHandle() == fd)
+        {
+            result = task;
+            break;
+        }
+    }
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpConnector::invokeCompleteCallback()
+{
+    TaskList completeList(false, true);
+
+    {
+        AutoLocker locker(lock_);
+
+        for (int i = 0; i < taskList_.getCount(); ++i)
+        {
+            TaskItem *task = taskList_[i];
+            if (task->state == ACS_CONNECTED || task->state == ACS_FAILED)
+            {
+                taskList_.extract(i);
+                completeList.add(task);
+            }
+        }
+    }
+
+    for (int i = 0; i < completeList.getCount(); ++i)
+    {
+        TaskItem *task = completeList[i];
+        if (task->completeCallback)
+        {
+            bool success = (task->state == ACS_CONNECTED);
+
+            task->completeCallback(success,
+                success ? &task->tcpClient.getConnection() : NULL,
+                task->peerAddr, task->context);
+
+            if (success)
+                task->tcpClient.registerToEventLoop();
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 #ifdef ISE_WINDOWS
 
 ///////////////////////////////////////////////////////////////////////////////
 // class WinTcpConnection
 
-WinTcpConnection::WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
-    const string& connectionName) :
-        TcpConnection(tcpServer, socketHandle, connectionName),
-        isSending_(false),
-        isRecving_(false),
-        bytesSent_(0),
-        bytesRecved_(0)
+WinTcpConnection::WinTcpConnection()
 {
-    // nothing
+    init();
+}
+
+WinTcpConnection::WinTcpConnection(TcpServer *tcpServer, SOCKET socketHandle) :
+    TcpConnection(tcpServer, socketHandle)
+{
+    init();
+}
+
+//-----------------------------------------------------------------------------
+
+void WinTcpConnection::init()
+{
+    isSending_ = false;
+    isRecving_ = false;
+    bytesSent_ = 0;
+    bytesRecved_ = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -825,7 +1197,11 @@ void WinTcpConnection::tryRecv()
 {
     if (isRecving_) return;
 
+    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize(); 
     const int MAX_RECV_SIZE = 1024*16;
+
+    if (recvTaskQueue_.empty() && recvBuffer_.getReadableBytes() >= MAX_BUFFER_SIZE)
+        return;
 
     isRecving_ = true;
     recvBuffer_.append(MAX_RECV_SIZE);
@@ -1427,14 +1803,24 @@ void WinTcpEventLoop::unregisterConnection(TcpConnection *connection)
 ///////////////////////////////////////////////////////////////////////////////
 // class LinuxTcpConnection
 
-LinuxTcpConnection::LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle,
-    const string& connectionName) :
-        TcpConnection(tcpServer, socketHandle, connectionName),
-        bytesSent_(0),
-        enableSend_(false),
-        enableRecv_(false)
+LinuxTcpConnection::LinuxTcpConnection()
 {
-    // nothing
+    init();
+}
+
+LinuxTcpConnection::LinuxTcpConnection(TcpServer *tcpServer, SOCKET socketHandle) :
+    TcpConnection(tcpServer, socketHandle)
+{
+    init();
+}
+
+//-----------------------------------------------------------------------------
+
+void LinuxTcpConnection::init()
+{
+    bytesSent_ = 0;
+    enableSend_ = false;
+    enableRecv_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1483,7 +1869,9 @@ void LinuxTcpConnection::postRecvTask(const PacketSplitter& packetSplitter,
     if (!enableRecv_)
         setRecvEnabled(true);
 
-    tryRetrievePacket();
+    // 直接调用 tryRetrievePacket() 会造成循环调用
+    getEventLoop()->delegateToLoop(boost::bind(
+        &LinuxTcpConnection::tryRetrievePacket, this));
 }
 
 //-----------------------------------------------------------------------------
@@ -1553,6 +1941,13 @@ void LinuxTcpConnection::trySend()
 //-----------------------------------------------------------------------------
 void LinuxTcpConnection::tryRecv()
 {
+    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize(); 
+    if (recvTaskQueue_.empty() && recvBuffer_.getReadableBytes() >= MAX_BUFFER_SIZE)
+    {
+        setRecvEnabled(false);
+        return;
+    }
+
     const int BUFFER_SIZE = 1024*16;
     char dataBuf[BUFFER_SIZE];
 
@@ -1579,6 +1974,8 @@ void LinuxTcpConnection::tryRecv()
 //-----------------------------------------------------------------------------
 bool LinuxTcpConnection::tryRetrievePacket()
 {
+    if (recvTaskQueue_.empty()) return false;
+
     bool result = false;
     RecvTask& task = recvTaskQueue_.front();
     const char *buffer = recvBuffer_.peek();
@@ -1936,6 +2333,43 @@ void MainTcpServer::close()
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 将 connection 挂接到 EventLoop 上
+// 参数:
+//   index - EventLoop 的序号 (0-based)，为 -1 表示自动选择
+//-----------------------------------------------------------------------------
+bool MainTcpServer::registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex)
+{
+    static CriticalSection s_lock;
+    TcpEventLoop *eventLoop = NULL;
+
+    if (eventLoopIndex >= 0 && eventLoopIndex < eventLoopList_.getCount())
+    {
+        AutoLocker locker(s_lock);
+        eventLoop = eventLoopList_[eventLoopIndex];
+    }
+    else
+    {
+        static int s_index = 0;
+        AutoLocker locker(s_lock);
+        // round-robin
+        eventLoop = eventLoopList_[s_index];
+        s_index = (s_index >= eventLoopList_.getCount() - 1 ? 0 : s_index + 1);
+    }
+
+    bool result = (eventLoop != NULL);
+    if (result)
+    {
+        // 将 ((TcpConnection*)connection)->setEventLoop(eventLoop) 委托给事件循环线程
+        eventLoop->delegateToLoop(boost::bind(
+            &TcpConnection::setEventLoop,
+            static_cast<TcpConnection*>(connection),
+            eventLoop));
+    }
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 创建TCP服务器
 //-----------------------------------------------------------------------------
 void MainTcpServer::createTcpServerList()
@@ -1996,16 +2430,7 @@ void MainTcpServer::doClose()
 //-----------------------------------------------------------------------------
 void MainTcpServer::onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection)
 {
-    // round-robin
-    static int index = 0;
-    TcpEventLoop *eventLoop = eventLoopList_[index];
-    index = (index >= eventLoopList_.getCount() - 1 ? 0 : index + 1);
-
-    // 将 ((TcpConnection*)connection)->setEventLoop(eventLoop) 委托给事件循环线程
-    eventLoop->delegateToLoop(boost::bind(
-        &TcpConnection::setEventLoop,
-        static_cast<TcpConnection*>(connection),
-        eventLoop));
+    registerToEventLoop(connection, -1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

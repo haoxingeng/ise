@@ -82,6 +82,7 @@ const char* const SEM_EPOLL_CTRL_ERROR            = "epoll_ctl error (op: %d).";
 const char* const SEM_THREAD_KILLED               = "Killed %d %s thread.";
 const char* const SEM_IOCP_ERROR                  = "IOCP Error #%d";
 const char* const SEM_INVALID_OP_FOR_IOCP         = "Invalid operation for IOCP.";
+const char* const SEM_EVENT_LOOP_NOT_SPECIFIED    = "Event loop not specified.";
 
 // ise_database
 const char* const SEM_GET_CONN_FROM_POOL_ERROR    = "Cannot get connection from connection pool.";

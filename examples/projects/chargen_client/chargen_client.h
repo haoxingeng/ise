@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ECHO_H_
-#define _ECHO_H_
+#ifndef _CHARGEN_CLIENT_H_
+#define _CHARGEN_CLIENT_H_
 
 #include "ise.h"
 
@@ -18,16 +18,21 @@ public:
     virtual void initialize();
     virtual void finalize();
 
+    virtual bool parseArguments(int argc, char *argv[]);
+    virtual string getAppHelp();
     virtual void doStartupState(STARTUP_STATE state);
     virtual void initIseOptions(IseOptions& options);
 
-    virtual void onTcpConnect(const TcpConnectionPtr& connection);
-    virtual void onTcpDisconnect(const TcpConnectionPtr& connection);
+    virtual void onTcpConnected(const TcpConnectionPtr& connection);
+    virtual void onTcpDisconnected(const TcpConnectionPtr& connection);
     virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
         int packetSize, const Context& context);
-    virtual void onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context);
+
+private:
+    void onConnectComplete(bool success, TcpConnection *connection,
+        const InetAddress& peerAddr, const Context& context);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#endif // _ECHO_H_
+#endif // _CHARGEN_CLIENT_H_

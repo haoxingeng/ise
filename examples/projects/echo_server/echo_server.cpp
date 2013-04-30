@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "echo.h"
+#include "echo_server.h"
 
 IseBusiness* createIseBusinessObject()
 {
@@ -55,7 +55,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 初始化SSE配置信息
+// 描述: 初始化ISE配置信息
 //-----------------------------------------------------------------------------
 void AppBusiness::initIseOptions(IseOptions& options)
 {
@@ -68,29 +68,30 @@ void AppBusiness::initIseOptions(IseOptions& options)
     // 设置TCP服务器的总数
     options.setTcpServerCount(1);
     // 设置TCP服务端口号
-    options.setTcpServerPort(0, 12345);
+    options.setTcpServerPort(10000);
     // 设置TCP事件循环的个数
-    options.setTcpEventLoopCount(3);
+    options.setTcpEventLoopCount(1);
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 接受了一个新的TCP连接
 //-----------------------------------------------------------------------------
-void AppBusiness::onTcpConnect(const TcpConnectionPtr& connection)
+void AppBusiness::onTcpConnected(const TcpConnectionPtr& connection)
 {
-    logger().writeFmt("onTcpConnect (%s) (ConnCount: %d)",
+    logger().writeFmt("onTcpConnected (%s) (ConnCount: %d)",
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    connection->recv(LINE_PACKET_SPLITTER, EMPTY_CONTEXT, RECV_TIMEOUT);
+    string msg = "Welcome to the simple echo server, type 'quit' to exit.\r\n";
+    connection->send(msg.c_str(), msg.length());
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 断开了一个TCP连接
 //-----------------------------------------------------------------------------
-void AppBusiness::onTcpDisconnect(const TcpConnectionPtr& connection)
+void AppBusiness::onTcpDisconnected(const TcpConnectionPtr& connection)
 {
-    logger().writeFmt("onTcpDisconnect (%s)", connection->getPeerAddr().getDisplayStr().c_str());
+    logger().writeFmt("onTcpDisconnected (%s)", connection->getConnectionName().c_str());
 }
 
 //-----------------------------------------------------------------------------
@@ -103,7 +104,7 @@ void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pa
 
     string msg((char*)packetBuffer, packetSize);
     msg = trimString(msg);
-    if (msg == "bye")
+    if (msg == "quit")
         connection->disconnect();
     else
         connection->send((char*)packetBuffer, packetSize);

@@ -380,6 +380,25 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// class HttpTcpClient
+
+class HttpTcpClient : public BaseTcpClient
+{
+public:
+    class HttpTcpConnection : public BaseTcpConnection
+    {
+    public:
+        using BaseTcpConnection::sendBuffer;
+        using BaseTcpConnection::recvBuffer;
+    };
+
+public:
+    HttpTcpConnection& getConnection() { return *static_cast<HttpTcpConnection*>(connection_); }
+protected:
+    virtual BaseTcpConnection* createConnection() { return new HttpTcpConnection(); }
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // class CustomHttpClient - HTTP client base class.
 
 class CustomHttpClient : boost::noncopyable
@@ -411,7 +430,7 @@ public:
     /// Indicates the number of redirects encountered in the last request for the http client.
     int getRedirectCount() { return redirectCount_; }
     /// Returns the tcp client object.
-    BaseTcpClient& getTcpClient() { return tcpClient_; }
+    HttpTcpClient& getTcpClient() { return tcpClient_; }
 
     /// Determines if the http client can handle redirections.
     void setHandleRedirects(bool value) { handleRedirects_ = value; }
@@ -427,7 +446,7 @@ protected:
     void tcpDisconnect(bool force = false);
 
 protected:
-    BaseTcpClient tcpClient_;
+    HttpTcpClient tcpClient_;
     HttpRequest request_;
     HttpResponse response_;
     HttpClientOptions options_;

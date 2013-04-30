@@ -114,9 +114,9 @@ public:
     virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) {}
 
     // 接受了一个新的TCP连接
-    virtual void onTcpConnect(const TcpConnectionPtr& connection) {}
+    virtual void onTcpConnected(const TcpConnectionPtr& connection) {}
     // 断开了一个TCP连接
-    virtual void onTcpDisconnect(const TcpConnectionPtr& connection) {}
+    virtual void onTcpDisconnected(const TcpConnectionPtr& connection) {}
     // TCP连接上的一个接收任务已完成
     virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
         int packetSize, const Context& context) {}
@@ -138,31 +138,32 @@ public:
     // 服务器常规配置缺省值
     enum
     {
-        DEF_SERVER_TYPE             = ST_UDP,    // 服务器默认类型
-        DEF_ADJUST_THREAD_INTERVAL  = 5,         // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
-        DEF_ASSISTOR_THREAD_COUNT   = 0,         // 辅助线程的个数
+        DEF_SERVER_TYPE              = ST_UDP,        // 服务器默认类型
+        DEF_ADJUST_THREAD_INTERVAL   = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
+        DEF_ASSISTOR_THREAD_COUNT    = 0,             // 辅助线程的个数
     };
 
     // UDP服务器配置缺省值
     enum
     {
-        DEF_UDP_SERVER_PORT         = 9000,      // UDP服务默认端口
-        DEF_UDP_LISTENER_THD_COUNT  = 1,         // 监听线程的数量
-        DEF_UDP_REQ_GROUP_COUNT     = 1,         // 请求组别总数的缺省值
-        DEF_UDP_REQ_QUEUE_CAPACITY  = 5000,      // 请求队列的缺省容量(即能放下多少数据包)
-        DEF_UDP_WORKER_THREADS_MIN  = 1,         // 每个组别中工作者线程的缺省最少个数
-        DEF_UDP_WORKER_THREADS_MAX  = 8,         // 每个组别中工作者线程的缺省最多个数
-        DEF_UDP_REQ_EFF_WAIT_TIME   = 10,        // 请求在队列中的有效等待时间缺省值(秒)
-        DEF_UDP_WORKER_THD_TIMEOUT  = 60,        // 工作者线程的工作超时时间缺省值(秒)
-        DEF_UDP_QUEUE_ALERT_LINE    = 500,       // 队列中数据包数量警戒线缺省值，若超过警戒线则尝试增加线程
+        DEF_UDP_SERVER_PORT          = 9000,          // UDP服务默认端口
+        DEF_UDP_LISTENER_THD_COUNT   = 1,             // 监听线程的数量
+        DEF_UDP_REQ_GROUP_COUNT      = 1,             // 请求组别总数的缺省值
+        DEF_UDP_REQ_QUEUE_CAPACITY   = 5000,          // 请求队列的缺省容量(即能放下多少数据包)
+        DEF_UDP_WORKER_THREADS_MIN   = 1,             // 每个组别中工作者线程的缺省最少个数
+        DEF_UDP_WORKER_THREADS_MAX   = 8,             // 每个组别中工作者线程的缺省最多个数
+        DEF_UDP_REQ_EFF_WAIT_TIME    = 10,            // 请求在队列中的有效等待时间缺省值(秒)
+        DEF_UDP_WORKER_THD_TIMEOUT   = 60,            // 工作者线程的工作超时时间缺省值(秒)
+        DEF_UDP_QUEUE_ALERT_LINE     = 500,           // 队列中数据包数量警戒线缺省值，若超过警戒线则尝试增加线程
     };
 
     // TCP服务器配置缺省值
     enum
     {
-        DEF_TCP_SERVER_PORT         = 9000,      // TCP服务默认端口
-        DEF_TCP_REQ_GROUP_COUNT     = 1,         // 请求组别总数的缺省值
-        DEF_TCP_EVENT_LOOP_COUNT    = 8,         // TCP事件循环的个数
+        DEF_TCP_SERVER_PORT          = 9000,          // TCP服务默认端口
+        DEF_TCP_REQ_GROUP_COUNT      = 1,             // 请求组别总数的缺省值
+        DEF_TCP_EVENT_LOOP_COUNT     = 8,             // TCP事件循环的个数
+        DEF_TCP_MAX_RECV_BUFFER_SIZE = 1024*1024*1,   // TCP接收缓存的最大字节数
     };
 
 public:
@@ -210,8 +211,11 @@ public:
     void setTcpServerCount(int count);
     // 设置TCP服务端口号
     void setTcpServerPort(int serverIndex, int port);
+    void setTcpServerPort(int port) { setTcpServerPort(0, port); }
     // 设置TCP事件循环的个数
     void setTcpEventLoopCount(int count);
+    // 设置TCP接收缓存的最大字节数
+    void setTcpMaxRecvBufferSize(int bytes);
 
     // 服务器配置获取----------------------------------------------------------
 
@@ -231,6 +235,7 @@ public:
     int getTcpServerCount() { return tcpServerCount_; }
     int getTcpServerPort(int serverIndex);
     int getTcpEventLoopCount() { return tcpEventLoopCount_; }
+    int getTcpMaxRecvBufferSize() { return tcpMaxRecvBufferSize_; }
 
 private:
     /* ------------ 系统配置: ------------------ */
@@ -300,6 +305,8 @@ private:
     TcpServerOpts tcpServerOpts_;
     // TCP事件循环的个数
     int tcpEventLoopCount_;
+    // TCP接收缓存的最大字节数
+    int tcpMaxRecvBufferSize_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

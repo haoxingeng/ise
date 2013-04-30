@@ -203,6 +203,7 @@ IseOptions::IseOptions()
     for (int i = 0; i < DEF_TCP_REQ_GROUP_COUNT; i++)
         setTcpServerPort(i, DEF_TCP_SERVER_PORT);
     setTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
+    setTcpMaxRecvBufferSize(DEF_TCP_MAX_RECV_BUFFER_SIZE);
 }
 
 //-----------------------------------------------------------------------------
@@ -210,7 +211,7 @@ IseOptions::IseOptions()
 // 参数:
 //   serverType - 服务器器类型(可多选或不选)
 // 示例:
-//   SetServerType(ST_UDP | ST_TCP);
+//   setServerType(ST_UDP | ST_TCP);
 //-----------------------------------------------------------------------------
 void IseOptions::setServerType(UINT serverType)
 {
@@ -231,7 +232,7 @@ void IseOptions::setAdjustThreadInterval(int seconds)
 //-----------------------------------------------------------------------------
 void IseOptions::setAssistorThreadCount(int count)
 {
-    if (count < 0) count = 0;
+    count = ise::max(count, 0);
     assistorThreadCount_ = count;
 }
 
@@ -248,8 +249,7 @@ void IseOptions::setUdpServerPort(int port)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpListenerThreadCount(int count)
 {
-    if (count < 1) count = 1;
-
+    count = ise::max(count, 1);
     udpListenerThreadCount_ = count;
 }
 
@@ -313,7 +313,7 @@ void IseOptions::setUdpRequestEffWaitTime(int seconds)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
 {
-    if (seconds < 0) seconds = 0;
+    seconds = ise::max(seconds, 0);
     udpWorkerThreadTimeOut_ = seconds;
 }
 
@@ -322,7 +322,7 @@ void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
 //-----------------------------------------------------------------------------
 void IseOptions::SetUdpRequestQueueAlertLine(int count)
 {
-    if (count < 1) count = 1;
+    count = ise::max(count, 1);
     udpRequestQueueAlertLine_ = count;
 }
 
@@ -331,7 +331,7 @@ void IseOptions::SetUdpRequestQueueAlertLine(int count)
 //-----------------------------------------------------------------------------
 void IseOptions::setTcpServerCount(int count)
 {
-    if (count < 0) count = 0;
+    count = ise::max(count, 0);
 
     tcpServerCount_ = count;
     tcpServerOpts_.resize(count);
@@ -355,8 +355,17 @@ void IseOptions::setTcpServerPort(int serverIndex, int port)
 //-----------------------------------------------------------------------------
 void IseOptions::setTcpEventLoopCount(int count)
 {
-    if (count < 1) count = 1;
+    count = ise::max(count, 1);
     tcpEventLoopCount_ = count;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 设置TCP接收缓存的最大字节数
+//-----------------------------------------------------------------------------
+void IseOptions::setTcpMaxRecvBufferSize(int bytes)
+{
+    bytes = ise::max(bytes, 0);
+    tcpMaxRecvBufferSize_ = bytes;
 }
 
 //-----------------------------------------------------------------------------

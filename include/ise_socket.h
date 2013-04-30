@@ -289,6 +289,12 @@ public:
 public:
     InetAddress() : ip(0), port(0) {}
     InetAddress(UINT _ip, WORD _port) : ip(_ip), port(_port) {}
+    InetAddress(const string& _ip, WORD _port)
+    {
+        ip = stringToIp(_ip);
+        port = _port;
+    }
+
     InetAddress(const SockAddr& sockAddr)
     {
         ip = ntohl(sockAddr.sin_addr.s_addr);
@@ -495,9 +501,12 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // class BaseTcpClient - TCP Client 基类
 
-class BaseTcpClient : public BaseTcpConnection
+class BaseTcpClient : boost::noncopyable
 {
 public:
+    BaseTcpClient();
+    virtual ~BaseTcpClient();
+
     // 阻塞式连接
     void connect(const string& ip, int port);
     // 异步(非阻塞式)连接 (返回 enum ASYNC_CONNECT_STATE)
@@ -505,8 +514,17 @@ public:
     // 检查异步连接的状态 (返回 enum ASYNC_CONNECT_STATE)
     int checkAsyncConnectState(int timeoutMSecs = -1);
 
-    using BaseTcpConnection::sendBuffer;
-    using BaseTcpConnection::recvBuffer;
+    bool isConnected() { return connection_ && connection_->isConnected(); }
+    void disconnect();
+    BaseTcpConnection& getConnection();
+
+protected:
+    virtual BaseTcpConnection* createConnection() { return new BaseTcpConnection(); }
+private:
+    void ensureConnCreated();
+    TcpSocket& getSocket();
+protected:
+    BaseTcpConnection *connection_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -594,7 +612,7 @@ protected:
     virtual void execute();
 private:
     UdpListenerThreadPool *threadPool_;  // 所属线程池
-    BaseUdpServer *udpServer_;               // 所属UDP服务器
+    BaseUdpServer *udpServer_;           // 所属UDP服务器
     int index_;                          // 线程在池中的索引号(0-based)
 };
 
@@ -620,7 +638,7 @@ public:
     BaseUdpServer& getUdpServer() { return *udpServer_; }
 
 private:
-    BaseUdpServer *udpServer_;                // 所属UDP服务器
+    BaseUdpServer *udpServer_;            // 所属UDP服务器
     ThreadList threadList_;               // 线程列表
     int maxThreadCount_;                  // 允许最大线程数量
 };
