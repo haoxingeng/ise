@@ -523,7 +523,7 @@ void increment8(PDWORD value, DWORD addVal)
     }
 #endif
 #ifdef ISE_LINUX
-    UINT nOk = 0;
+    UINT ok = 0;
 
     __asm__ __volatile
     (
@@ -537,21 +537,21 @@ void increment8(PDWORD value, DWORD addVal)
         adc    $0, 20(%%eax); \
         adc    $0, 24(%%eax); \
         adc    $0, 28(%%eax); \
-        jc     _001; \
-        jmp    _002; \
-    _001: \
+        jc     1f; \
+        jmp    2f; \
+    1: \
         mov    $0, %%eax; \
-        jmp    _003; \
-    _002: \
+        jmp    3f; \
+    2: \
         mov    $1, %%eax; \
-    _003: \
+    3: \
         nop; \
         "
-            : "=eax"(nOk)
+            : "=eax"(ok)
             : "eax"(value), "ecx"(addVal), "edx"(addVal*8)
     );
 
-    if (!nOk)
+    if (!ok)
         hashingOverflowError();
 #endif
 }
@@ -3054,9 +3054,9 @@ static DWORD IDEAMul(DWORD x, DWORD y)
     (
         "\
         and    $0xFFFF, %%eax; \
-        jz     _010; \
+        jz     1f; \
         and    $0xFFFF, %%edx; \
-        jz     _010; \
+        jz     1f; \
         mul    %%edx; \
         mov    %%eax, %%edx; \
         mov    %%eax, %%ecx; \
@@ -3064,12 +3064,12 @@ static DWORD IDEAMul(DWORD x, DWORD y)
         sub    %%edx, %%eax; \
         sub    %%ax, %%cx; \
         adc    $0, %%eax; \
-        jmp    _011; \
-    _010: \
+        jmp    2f; \
+    1: \
         add    %%edx, %%eax; \
         dec    %%eax; \
         neg    %%eax; \
-    _011: \
+    2: \
         nop; \
         "
             : "=eax"(result)

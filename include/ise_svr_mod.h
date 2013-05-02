@@ -180,9 +180,9 @@ private:
     void updateIseOptions();
 
 protected:
-    typedef hash_map<UINT, int> ActionCodeMap;       // <动作代码, UDP组别号>
-    typedef hash_map<UINT, int> UdpGroupIndexMap;    // <全局UDP组别号, 服务模块号>
-    typedef hash_map<UINT, int> TcpServerIndexMap;   // <全局TCP服务器序号, 服务模块号>
+    typedef map<UINT, int> ActionCodeMap;            // <动作代码, UDP组别号>
+    typedef map<UINT, int> UdpGroupIndexMap;         // <全局UDP组别号, 服务模块号>
+    typedef map<UINT, int> TcpServerIndexMap;        // <全局TCP服务器序号, 服务模块号>
 
     IseServerModuleMgr serverModuleMgr_;             // 服务模块管理器
     ActionCodeMap actionCodeMap_;                    // <动作代码, UDP组别号> 映射表

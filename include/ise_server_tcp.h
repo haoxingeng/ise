@@ -382,6 +382,8 @@ public:
         int timeout = TIMEOUT_INFINITE
         );
 
+    bool isFromClient() const { return (tcpServer_ == NULL);}
+    bool isFromServer() const { return (tcpServer_ != NULL);}
     const string& getConnectionName() const;
     int getServerIndex() const;
     int getServerPort() const;
