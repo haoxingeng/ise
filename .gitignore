@@ -11,8 +11,6 @@ Debug MBCS*/
 Debug Unicode*/
 Release MBCS*/
 Release Unicode*/
-Debug/
-Release/
 Output/
 *_i.c
 *_p.c
