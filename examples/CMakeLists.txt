@@ -1,0 +1,6 @@
+add_subdirectory(chargen_client)
+add_subdirectory(chargen_server)
+add_subdirectory(daytime_server)
+add_subdirectory(discard_server)
+add_subdirectory(echo_server)
+add_subdirectory(server_modules)
