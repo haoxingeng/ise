@@ -454,8 +454,8 @@ void TcpEventLoop::checkTimeout()
 {
     const UINT CHECK_INTERVAL = 1000;  // ms
 
-    UINT curTicks = getCurTicks();
-    if (getTickDiff(lastCheckTimeoutTicks_, curTicks) >= CHECK_INTERVAL)
+    UINT64 curTicks = getCurTicks();
+    if (getTickDiff(lastCheckTimeoutTicks_, curTicks) >= (UINT64)CHECK_INTERVAL)
     {
         lastCheckTimeoutTicks_ = curTicks;
 

@@ -1332,27 +1332,27 @@ void sleepSec(double seconds, bool allowInterrupt)
 //-----------------------------------------------------------------------------
 // 描述: 取得当前 Ticks，单位:毫秒
 //-----------------------------------------------------------------------------
-UINT getCurTicks()
+UINT64 getCurTicks()
 {
 #ifdef ISE_WINDOWS
-    return GetTickCount();
+    return static_cast<UINT64>(GetTickCount());
 #endif
 #ifdef ISE_LINUX
     timeval tv;
     gettimeofday(&tv, NULL);
-    return static_cast<UINT>(INT64(tv.tv_sec) * 1000 + tv.tv_usec / 1000);
+    return static_cast<UINT64>(static_cast<UINT64>(tv.tv_sec) * 1000 + tv.tv_usec / 1000);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 取得两个 Ticks 之差
 //-----------------------------------------------------------------------------
-UINT getTickDiff(UINT oldTicks, UINT newTicks)
+UINT64 getTickDiff(UINT64 oldTicks, UINT64 newTicks)
 {
     if (newTicks >= oldTicks)
         return (newTicks - oldTicks);
     else
-        return (UINT(-1) - oldTicks + newTicks);
+        return (UINT64(-1) - oldTicks + newTicks);
 }
 
 //-----------------------------------------------------------------------------

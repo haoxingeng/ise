@@ -1018,7 +1018,7 @@ int HttpClient::recvResponseHeader()
     const int RECV_TIMEOUT = options_.recvResHeaderTimeOut;
 
     int result = EC_HTTP_SUCCESS;
-    UINT startTicks = getCurTicks();
+    UINT64 startTicks = getCurTicks();
 
     do
     {
@@ -1050,7 +1050,7 @@ int HttpClient::recvResponseHeader()
                     break;
             }
 
-            if (getTickDiff(startTicks, getCurTicks()) > (UINT)RECV_TIMEOUT)
+            if (getTickDiff(startTicks, getCurTicks()) > (UINT64)RECV_TIMEOUT)
             {
                 result = EC_HTTP_RECV_TIMEOUT;
                 break;
@@ -1139,7 +1139,7 @@ int HttpClient::recvResponseContent()
 int HttpClient::readLine(string& line, int timeout)
 {
     int result = EC_HTTP_SUCCESS;
-    UINT startTicks = getCurTicks();
+    UINT64 startTicks = getCurTicks();
     MemoryStream stream;
     char ch;
 
@@ -1172,7 +1172,7 @@ int HttpClient::readLine(string& line, int timeout)
                 break;
         }
 
-        if (getTickDiff(startTicks, getCurTicks()) > (UINT)timeout)
+        if (getTickDiff(startTicks, getCurTicks()) > (UINT64)timeout)
         {
             result = EC_HTTP_RECV_TIMEOUT;
             break;
@@ -1214,7 +1214,7 @@ int HttpClient::readStream(Stream& stream, int bytes, int timeout)
     const int BLOCK_SIZE = 1024*64;
 
     int result = EC_HTTP_SUCCESS;
-    UINT startTicks = getCurTicks();
+    UINT64 startTicks = getCurTicks();
     INT64 remainSize = bytes;
     Buffer buffer(BLOCK_SIZE);
 
@@ -1234,7 +1234,7 @@ int HttpClient::readStream(Stream& stream, int bytes, int timeout)
         remainSize -= recvSize;
         stream.writeBuffer(buffer.data(), recvSize);
 
-        if (getTickDiff(startTicks, getCurTicks()) > (UINT)timeout)
+        if (getTickDiff(startTicks, getCurTicks()) > (UINT64)timeout)
         {
             result = EC_HTTP_RECV_TIMEOUT;
             break;

@@ -988,7 +988,7 @@ int BaseTcpConnection::doSyncSendBuffer(void *buffer, int size, int timeoutMSecs
     struct timeval tv;
     SOCKET socketHandle = socket_.getHandle();
     int n, r, remainSize, index;
-    UINT startTime, elapsedMSecs;
+    UINT64 startTime, elapsedMSecs;
 
     if (size <= 0 || !socket_.isActive())
         return result;
@@ -1039,7 +1039,7 @@ int BaseTcpConnection::doSyncSendBuffer(void *buffer, int size, int timeoutMSecs
         if (timeoutMSecs >= 0 && remainSize > 0)
         {
             elapsedMSecs = getTickDiff(startTime, getCurTicks());
-            if (elapsedMSecs >= (UINT)timeoutMSecs)
+            if (elapsedMSecs >= (UINT64)timeoutMSecs)
                 break;
         }
     }
@@ -1082,7 +1082,7 @@ int BaseTcpConnection::doSyncRecvBuffer(void *buffer, int size, int timeoutMSecs
     struct timeval tv;
     SOCKET socketHandle = socket_.getHandle();
     int n, r, remainSize, index;
-    UINT startTime, elapsedMSecs;
+    UINT64 startTime, elapsedMSecs;
 
     if (size <= 0 || !socket_.isActive())
         return result;
@@ -1133,7 +1133,7 @@ int BaseTcpConnection::doSyncRecvBuffer(void *buffer, int size, int timeoutMSecs
         if (timeoutMSecs >= 0 && remainSize > 0)
         {
             elapsedMSecs = getTickDiff(startTime, getCurTicks());
-            if (elapsedMSecs >= (UINT)timeoutMSecs)
+            if (elapsedMSecs >= (UINT64)timeoutMSecs)
                 break;
         }
     }

@@ -161,8 +161,8 @@ int getLastSysError();
 THREAD_ID getCurThreadId();
 string sysErrorMessage(int errorCode);
 void sleepSec(double seconds, bool allowInterrupt = true);
-UINT getCurTicks();
-UINT getTickDiff(UINT oldTicks, UINT newTicks);
+UINT64 getCurTicks();
+UINT64 getTickDiff(UINT64 oldTicks, UINT64 newTicks);
 
 //-----------------------------------------------------------------------------
 //-- ÆäËüº¯Êý:
