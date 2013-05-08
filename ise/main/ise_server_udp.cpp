@@ -70,7 +70,7 @@ bool ThreadTimeOutChecker::check()
 //-----------------------------------------------------------------------------
 bool ThreadTimeOutChecker::getStarted()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     return started_;
 }
@@ -98,7 +98,7 @@ void UdpPacket::setPacketBuffer(void *packetBuffer, int packetSize)
 //-----------------------------------------------------------------------------
 void ThreadTimeOutChecker::start()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     startTime_ = time(NULL);
     started_ = true;
@@ -109,7 +109,7 @@ void ThreadTimeOutChecker::start()
 //-----------------------------------------------------------------------------
 void ThreadTimeOutChecker::stop()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     started_ = false;
 }
@@ -122,7 +122,8 @@ void ThreadTimeOutChecker::stop()
 // 参数:
 //   ownGroup - 指定所属组别
 //-----------------------------------------------------------------------------
-UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup)
+UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup) :
+    condition_(mutex_)
 {
     int groupIndex;
 
@@ -139,10 +140,9 @@ UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup)
 void UdpRequestQueue::addPacket(UdpPacket *packet)
 {
     if (capacity_ <= 0) return;
-    bool removed = false;
 
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         if (packetCount_ >= capacity_)
         {
@@ -151,14 +151,13 @@ void UdpRequestQueue::addPacket(UdpPacket *packet)
             delete p;
             packetList_.pop_front();
             packetCount_--;
-            removed = true;
         }
 
         packetList_.push_back(packet);
         packetCount_++;
     }
 
-    if (!removed) semaphore_.increase();
+    condition_.notify();
 }
 
 //-----------------------------------------------------------------------------
@@ -167,31 +166,30 @@ void UdpRequestQueue::addPacket(UdpPacket *packet)
 //-----------------------------------------------------------------------------
 UdpPacket* UdpRequestQueue::extractPacket()
 {
-    semaphore_.wait();
+    AutoLocker locker(mutex_);
+    UdpPacket *p, *result = NULL;
 
+    while (packetCount_ == 0)
+        condition_.wait();
+
+    while (packetCount_ > 0)
     {
-        AutoLocker locker(lock_);
-        UdpPacket *p, *result = NULL;
+        p = packetList_.front();
+        packetList_.pop_front();
+        packetCount_--;
 
-        while (packetCount_ > 0)
+        if (time(NULL) - (UINT)p->recvTimeStamp_ <= (UINT)effWaitTime_)
         {
-            p = packetList_.front();
-            packetList_.pop_front();
-            packetCount_--;
-
-            if (time(NULL) - (UINT)p->recvTimeStamp_ <= (UINT)effWaitTime_)
-            {
-                result = p;
-                break;
-            }
-            else
-            {
-                delete p;
-            }
+            result = p;
+            break;
         }
-
-        return result;
+        else
+        {
+            delete p;
+        }
     }
+
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -199,7 +197,7 @@ UdpPacket* UdpRequestQueue::extractPacket()
 //-----------------------------------------------------------------------------
 void UdpRequestQueue::clear()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     UdpPacket *p;
 
     for (UINT i = 0; i < packetList_.size(); i++)
@@ -210,16 +208,14 @@ void UdpRequestQueue::clear()
 
     packetList_.clear();
     packetCount_ = 0;
-    semaphore_.reset();
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 增加信号量的值，使等待数据的线程中断等待
+// 描述: 使等待数据的线程中断等待
 //-----------------------------------------------------------------------------
-void UdpRequestQueue::breakWaiting(int semCount)
+void UdpRequestQueue::wakeupWaiting()
 {
-    for (int i = 0; i < semCount; i++)
-        semaphore_.increase();
+    condition_.notifyAll();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -373,10 +369,10 @@ void UdpWorkerThreadPool::terminateAllThreads()
 {
     threadList_.terminateAllThreads();
 
-    AutoLocker locker(threadList_.getLock());
+    AutoLocker locker(threadList_.getMutex());
 
     // 使线程从等待中解脱，尽快退出
-    getRequestGroup().getRequestQueue().breakWaiting(threadList_.getCount());
+    getRequestGroup().getRequestQueue().wakeupWaiting();
 }
 
 //-----------------------------------------------------------------------------
@@ -411,7 +407,7 @@ void UdpWorkerThreadPool::createThreads(int count)
 //-----------------------------------------------------------------------------
 void UdpWorkerThreadPool::terminateThreads(int count)
 {
-    AutoLocker locker(threadList_.getLock());
+    AutoLocker locker(threadList_.getMutex());
 
     int termCount = 0;
     if (count > threadList_.getCount())
@@ -435,7 +431,7 @@ void UdpWorkerThreadPool::terminateThreads(int count)
 //-----------------------------------------------------------------------------
 void UdpWorkerThreadPool::checkThreadTimeout()
 {
-    AutoLocker locker(threadList_.getLock());
+    AutoLocker locker(threadList_.getMutex());
 
     for (int i = 0; i < threadList_.getCount(); i++)
     {
@@ -450,7 +446,7 @@ void UdpWorkerThreadPool::checkThreadTimeout()
 //-----------------------------------------------------------------------------
 void UdpWorkerThreadPool::killZombieThreads()
 {
-    AutoLocker locker(threadList_.getLock());
+    AutoLocker locker(threadList_.getMutex());
 
     for (int i = threadList_.getCount() - 1; i >= 0; i--)
     {

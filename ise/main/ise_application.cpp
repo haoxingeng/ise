@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     }
     catch (Exception& e)
     {
-        cout << e.makeLogStr() << endl << endl;
+        std::cout << e.makeLogStr() << std::endl << std::endl;
         logger().writeException(e);
     }
 
@@ -197,11 +197,13 @@ IseOptions::IseOptions()
     }
     setUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
     setUdpWorkerThreadTimeOut(DEF_UDP_WORKER_THD_TIMEOUT);
-    SetUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
+    setUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
 
-    setTcpServerCount(DEF_TCP_REQ_GROUP_COUNT);
-    for (int i = 0; i < DEF_TCP_REQ_GROUP_COUNT; i++)
+    setTcpServerCount(DEF_TCP_SERVER_COUNT);
+    for (int i = 0; i < DEF_TCP_SERVER_COUNT; i++)
         setTcpServerPort(i, DEF_TCP_SERVER_PORT);
+    for (int i = 0; i < DEF_TCP_SERVER_COUNT; i++)
+        setTcpConnEventLoopIndex(i, DEF_TCP_CONN_EVENT_LOOP_INDEX);
     setTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
     setTcpMaxRecvBufferSize(DEF_TCP_MAX_RECV_BUFFER_SIZE);
 }
@@ -320,7 +322,7 @@ void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
 //-----------------------------------------------------------------------------
 // 描述: 设置请求队列中数据包数量警戒线
 //-----------------------------------------------------------------------------
-void IseOptions::SetUdpRequestQueueAlertLine(int count)
+void IseOptions::setUdpRequestQueueAlertLine(int count)
 {
     count = ise::max(count, 1);
     udpRequestQueueAlertLine_ = count;
@@ -347,7 +349,20 @@ void IseOptions::setTcpServerPort(int serverIndex, int port)
 {
     if (serverIndex < 0 || serverIndex >= tcpServerCount_) return;
 
-    tcpServerOpts_[serverIndex].tcpServerPort = port;
+    tcpServerOpts_[serverIndex].serverPort = port;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 设置TCP服务器产生的连接所属 EventLoop
+// 参数:
+//   serverIndex    - TCP服务器序号 (0-based)
+//   eventLoopIndex - EventLoop 的序号 (0-based)，为 -1 表示自动选择
+//-----------------------------------------------------------------------------
+void IseOptions::setTcpConnEventLoopIndex(int serverIndex, int eventLoopIndex)
+{
+    if (serverIndex < 0 || serverIndex >= tcpServerCount_) return;
+
+    tcpServerOpts_[serverIndex].eventLoopIndex = eventLoopIndex;
 }
 
 //-----------------------------------------------------------------------------
@@ -360,7 +375,7 @@ void IseOptions::setTcpEventLoopCount(int count)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置TCP接收缓存的最大字节数
+// 描述: 设置TCP接收缓存在无接收任务时的最大字节数
 //-----------------------------------------------------------------------------
 void IseOptions::setTcpMaxRecvBufferSize(int bytes)
 {
@@ -404,7 +419,19 @@ int IseOptions::getTcpServerPort(int serverIndex)
 {
     if (serverIndex < 0 || serverIndex >= tcpServerCount_) return -1;
 
-    return tcpServerOpts_[serverIndex].tcpServerPort;
+    return tcpServerOpts_[serverIndex].serverPort;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 取得TCP服务器产生的连接所属 EventLoop 的序号 (0-based)
+// 参数:
+//   serverIndex - TCP服务器的序号 (0-based)
+//-----------------------------------------------------------------------------
+int IseOptions::getTcpConnEventLoopIndex(int serverIndex)
+{
+    if (serverIndex < 0 || serverIndex >= tcpServerCount_) return -1;
+
+    return tcpServerOpts_[serverIndex].eventLoopIndex;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -651,7 +678,7 @@ void IseApplication::run()
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径
 //-----------------------------------------------------------------------------
-string IseApplication::getExePath()
+std::string IseApplication::getExePath()
 {
     return extractFilePath(exeName_);
 }
@@ -659,7 +686,7 @@ string IseApplication::getExePath()
 //-----------------------------------------------------------------------------
 // 描述: 取得命令行参数字符串 (index: 0-based)
 //-----------------------------------------------------------------------------
-string IseApplication::getArgString(int index)
+std::string IseApplication::getArgString(int index)
 {
     if (index >= 0 && index < (int)argList_.getCount())
         return argList_[index];
@@ -685,16 +712,16 @@ bool IseApplication::processStandardArgs()
 {
     if (getArgCount() == 2)
     {
-        string arg = getArgString(1);
+        std::string arg = getArgString(1);
         if (arg == "--version")
         {
-            string version = iseBusiness_->getAppVersion();
+            std::string version = iseBusiness_->getAppVersion();
             printf("%s\n", version.c_str());
             return true;
         }
         if (arg == "--help")
         {
-            string help = iseBusiness_->getAppHelp();
+            std::string help = iseBusiness_->getAppHelp();
             printf("%s\n", help.c_str());
             return true;
         }
@@ -904,7 +931,7 @@ void IseApplication::initNewOperHandler()
 {
     const int RESERVED_MEM_SIZE = 1024*1024*2;     // 2M
 
-    set_new_handler(outOfMemoryHandler);
+    std::set_new_handler(outOfMemoryHandler);
 
     // 用于内存不足的情况下程序退出
     reservedMemoryForExit = new char[RESERVED_MEM_SIZE];

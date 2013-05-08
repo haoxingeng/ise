@@ -46,8 +46,6 @@
 #include "ise/main/ise_err_msgs.h"
 #include "ise/main/ise_classes.h"
 
-using namespace std;
-
 namespace ise
 {
 
@@ -334,11 +332,11 @@ public:
     Thread* getItem(int index) const { return items_[index]; }
     Thread* operator[] (int index) const { return getItem(index); }
 
-    CriticalSection& getLock() const { return lock_; }
+    Mutex& getMutex() const { return mutex_; }
 
 protected:
     ObjectList<Thread> items_;
-    mutable CriticalSection lock_;
+    mutable Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -123,7 +123,7 @@ void AssistorThreadPool::waitForAllThreads()
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::interruptThreadSleep(int assistorIndex)
 {
-    AutoLocker locker(threadList_.getLock());
+    AutoLocker locker(threadList_.getMutex());
 
     for (int i = 0; i < threadList_.getCount(); i++)
     {

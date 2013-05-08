@@ -86,7 +86,7 @@ private:
     time_t startTime_;        // 开始计时时的时间戳
     bool started_;            // 是否已开始计时
     UINT timeoutSecs_;        // 超过多少秒认为超时 (为0表示不进行超时检测)
-    CriticalSection lock_;
+    Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -128,20 +128,20 @@ public:
     void addPacket(UdpPacket *packet);
     UdpPacket* extractPacket();
     void clear();
-    void breakWaiting(int semCount);
+    void wakeupWaiting();
 
     int getCount() { return packetCount_; }
 
 private:
-    typedef deque<UdpPacket*> PacketList;
+    typedef std::deque<UdpPacket*> PacketList;
 
     UdpRequestGroup *ownGroup_;    // 所属组别
     PacketList packetList_;        // 数据包列表
     int packetCount_;              // 队列中数据包的个数(为了快速访问)
     int capacity_;                 // 队列的最大容量
     int effWaitTime_;              // 数据包有效等待时间(秒)
-    CriticalSection lock_;
-    Semaphore semaphore_;
+    Condition::Mutex mutex_;
+    Condition condition_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -274,7 +274,7 @@ private:
 
 private:
     BaseUdpServer udpServer_;
-    vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
+    std::vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
     int requestGroupCount_;                        // 请求组别总数
 };
 

@@ -12,6 +12,7 @@ Debug Unicode*/
 Release MBCS*/
 Release Unicode*/
 Output/
+temp/
 *_i.c
 *_p.c
 *.ilk

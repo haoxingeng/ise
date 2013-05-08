@@ -29,7 +29,7 @@ bool AppBusiness::parseArguments(int argc, char *argv[])
 {
     if (argc <= 1)
     {
-        cout << getAppHelp() << endl;
+        std::cout << getAppHelp() << std::endl;
         return false;
     }
     else

@@ -359,10 +359,9 @@ void IseSvrModBusiness::updateIseOptions()
         for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
         {
             UdpGroupOptions grpOpt;
-            memset(&grpOpt, 0, sizeof(grpOpt));
             serverModule.getUdpGroupOptions(groupIndex, grpOpt);
-            options.setUdpRequestQueueCapacity(globalGroupIndex, grpOpt.queueCapacity);
-            options.setUdpWorkerThreadCount(globalGroupIndex, grpOpt.minThreads, grpOpt.maxThreads);
+            options.setUdpRequestQueueCapacity(globalGroupIndex, grpOpt.requestQueueCapacity);
+            options.setUdpWorkerThreadCount(globalGroupIndex, grpOpt.minWorkerThreads, grpOpt.maxWorkerThreads);
             globalGroupIndex++;
         }
     }
@@ -375,9 +374,9 @@ void IseSvrModBusiness::updateIseOptions()
         for (int serverIndex = 0; serverIndex < serverModule.getTcpServerCount(); serverIndex++)
         {
             TcpServerOptions svrOpt;
-            memset(&svrOpt, 0, sizeof(svrOpt));
             serverModule.getTcpServerOptions(serverIndex, svrOpt);
-            options.setTcpServerPort(globalServerIndex, svrOpt.port);
+            options.setTcpServerPort(globalServerIndex, svrOpt.serverPort);
+            options.setTcpConnEventLoopIndex(globalServerIndex, svrOpt.eventLoopIndex);
             globalServerIndex++;
         }
     }

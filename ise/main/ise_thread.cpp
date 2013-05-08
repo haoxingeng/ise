@@ -336,7 +336,7 @@ void WinThreadImpl::checkThreadError(bool success)
 {
     if (!success)
     {
-        string errMsg = sysErrorMessage(GetLastError());
+        std::string errMsg = sysErrorMessage(GetLastError());
         logger().writeStr(errMsg.c_str());
         iseThrowThreadException(errMsg.c_str());
     }
@@ -587,7 +587,7 @@ void LinuxThreadImpl::checkThreadError(int errorCode)
 {
     if (errorCode != 0)
     {
-        string errMsg = sysErrorMessage(errorCode);
+        std::string errMsg = sysErrorMessage(errorCode);
         logger().writeStr(errMsg.c_str());
         iseThrowThreadException(errMsg.c_str());
     }
@@ -630,7 +630,7 @@ ThreadList::~ThreadList()
 
 void ThreadList::add(Thread *thread)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     items_.add(thread, false);
 }
 
@@ -638,7 +638,7 @@ void ThreadList::add(Thread *thread)
 
 void ThreadList::remove(Thread *thread)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     items_.remove(thread);
 }
 
@@ -646,7 +646,7 @@ void ThreadList::remove(Thread *thread)
 
 bool ThreadList::exists(Thread *thread)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     return items_.exists(thread);
 }
 
@@ -654,7 +654,7 @@ bool ThreadList::exists(Thread *thread)
 
 void ThreadList::clear()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     items_.clear();
 }
 
@@ -663,7 +663,7 @@ void ThreadList::clear()
 //-----------------------------------------------------------------------------
 void ThreadList::terminateAllThreads()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     for (int i = 0; i < items_.getCount(); i++)
     {
@@ -700,7 +700,7 @@ void ThreadList::waitForAllThreads(int maxWaitForSecs, int *killedCountPtr)
     // 若等待超时，则强行杀死各线程
     if (items_.getCount() > 0)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         killedCount = items_.getCount();
         for (int i = 0; i < items_.getCount(); i++)

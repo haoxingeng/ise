@@ -110,7 +110,7 @@ IoBuffer::~IoBuffer()
 //-----------------------------------------------------------------------------
 // 描述: 向缓存追加写入数据
 //-----------------------------------------------------------------------------
-void IoBuffer::append(const string& str)
+void IoBuffer::append(const std::string& str)
 {
     append(str.c_str(), (int)str.length());
 }
@@ -139,7 +139,7 @@ void IoBuffer::append(int bytes)
 {
     if (bytes > 0)
     {
-        string str;
+        std::string str;
         str.resize(bytes, 0);
         append(str);
     }
@@ -160,7 +160,7 @@ void IoBuffer::retrieve(int bytes)
 //-----------------------------------------------------------------------------
 // 描述: 从缓存读取全部可读数据并存入 str 中
 //-----------------------------------------------------------------------------
-void IoBuffer::retrieveAll(string& str)
+void IoBuffer::retrieveAll(std::string& str)
 {
     if (getReadableBytes() > 0)
         str.assign(peek(), getReadableBytes());
@@ -335,7 +335,7 @@ void TcpEventLoop::executeInLoop(const Functor& functor)
 void TcpEventLoop::delegateToLoop(const Functor& functor)
 {
     {
-        AutoLocker locker(delegatedFunctors_.lock);
+        AutoLocker locker(delegatedFunctors_.mutex);
         delegatedFunctors_.items.push_back(functor);
     }
 
@@ -347,7 +347,7 @@ void TcpEventLoop::delegateToLoop(const Functor& functor)
 //-----------------------------------------------------------------------------
 void TcpEventLoop::addFinalizer(const Functor& finalizer)
 {
-    AutoLocker locker(finalizers_.lock);
+    AutoLocker locker(finalizers_.mutex);
     finalizers_.items.push_back(finalizer);
 }
 
@@ -424,7 +424,7 @@ void TcpEventLoop::executeDelegatedFunctors()
 {
     Functors functors;
     {
-        AutoLocker locker(delegatedFunctors_.lock);
+        AutoLocker locker(delegatedFunctors_.mutex);
         functors.swap(delegatedFunctors_.items);
     }
 
@@ -439,7 +439,7 @@ void TcpEventLoop::executeFinalizer()
 {
     Functors finalizers;
     {
-        AutoLocker locker(finalizers_.lock);
+        AutoLocker locker(finalizers_.mutex);
         finalizers.swap(finalizers_.items);
     }
 
@@ -594,7 +594,7 @@ void TcpConnection::send(const void *buffer, size_t size, const Context& context
         postSendTask(buffer, static_cast<int>(size), context, timeout);
     else
     {
-        string data((const char*)buffer, size);
+        std::string data((const char*)buffer, size);
         getEventLoop()->delegateToLoop(
             boost::bind(&TcpConnection::postSendTask, this, data, context, timeout));
     }
@@ -623,14 +623,14 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
 
 //-----------------------------------------------------------------------------
 
-const string& TcpConnection::getConnectionName() const
+const std::string& TcpConnection::getConnectionName() const
 {
     if (connectionName_.empty() && isConnected())
     {
-        static CriticalSection lock;
+        static Mutex mutex;
         static SeqNumberAlloc connIdAlloc_;
 
-        AutoLocker locker(lock);
+        AutoLocker locker(mutex);
 
         connectionName_ = formatString("%s-%s#%s",
             getSocket().getLocalAddr().getDisplayStr().c_str(),
@@ -743,7 +743,7 @@ void TcpConnection::checkTimeout(UINT curTicks)
 
 //-----------------------------------------------------------------------------
 
-void TcpConnection::postSendTask(const string& data, const Context& context, int timeout)
+void TcpConnection::postSendTask(const std::string& data, const Context& context, int timeout)
 {
     postSendTask(data.c_str(), (int)data.size(), context, timeout);
 }
@@ -860,7 +860,7 @@ TcpConnector& TcpConnector::instance()
 void TcpConnector::connect(const InetAddress& peerAddr,
     const CompleteCallback& completeCallback, const Context& context)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     TaskItem *item = new TaskItem();
     item->peerAddr = peerAddr;
@@ -876,7 +876,7 @@ void TcpConnector::connect(const InetAddress& peerAddr,
 
 void TcpConnector::clear()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     taskList_.clear();
 }
 
@@ -949,7 +949,7 @@ void TcpConnector::work(WorkerThread& thread)
 
 void TcpConnector::tryConnect()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     for (int i = 0; i < taskList_.getCount(); ++i)
     {
@@ -966,7 +966,7 @@ void TcpConnector::tryConnect()
 
 void TcpConnector::getPendingFdsFromTaskList(int& fromIndex, FdList& fds)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     fds.clear();
     for (int i = fromIndex; i < taskList_.getCount(); ++i)
@@ -1065,7 +1065,7 @@ void TcpConnector::invokeCompleteCallback()
     TaskList completeList(false, true);
 
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         for (int i = 0; i < taskList_.getCount(); ++i)
         {
@@ -1367,7 +1367,7 @@ IocpBufferAllocator::~IocpBufferAllocator()
 
 PVOID IocpBufferAllocator::allocBuffer()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     PVOID result;
 
     if (!items_.isEmpty())
@@ -1390,7 +1390,7 @@ PVOID IocpBufferAllocator::allocBuffer()
 
 void IocpBufferAllocator::returnBuffer(PVOID buffer)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     if (buffer != NULL && items_.indexOf(buffer) == -1)
     {
@@ -1403,7 +1403,7 @@ void IocpBufferAllocator::returnBuffer(PVOID buffer)
 
 void IocpBufferAllocator::clear()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     for (int i = 0; i < items_.getCount(); i++)
         delete[] (char*)items_[i];
@@ -1415,7 +1415,7 @@ void IocpBufferAllocator::clear()
 
 void IocpPendingCounter::inc(PVOID caller, IOCP_TASK_TYPE taskType)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     Items::iterator iter = items_.find(caller);
     if (iter == items_.end())
@@ -1434,7 +1434,7 @@ void IocpPendingCounter::inc(PVOID caller, IOCP_TASK_TYPE taskType)
 
 void IocpPendingCounter::dec(PVOID caller, IOCP_TASK_TYPE taskType)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     Items::iterator iter = items_.find(caller);
     if (iter != items_.end())
@@ -1453,7 +1453,7 @@ void IocpPendingCounter::dec(PVOID caller, IOCP_TASK_TYPE taskType)
 
 int IocpPendingCounter::get(PVOID caller)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     Items::iterator iter = items_.find(caller);
     if (iter == items_.end())
@@ -1466,7 +1466,7 @@ int IocpPendingCounter::get(PVOID caller)
 
 int IocpPendingCounter::get(IOCP_TASK_TYPE taskType)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     int result = 0;
     if (taskType == ITT_SEND)
@@ -2338,7 +2338,7 @@ void MainTcpServer::close()
 //-----------------------------------------------------------------------------
 bool MainTcpServer::registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex)
 {
-    static CriticalSection s_lock;
+    static Mutex s_lock;
     TcpEventLoop *eventLoop = NULL;
 
     if (eventLoopIndex >= 0 && eventLoopIndex < eventLoopList_.getCount())
@@ -2429,7 +2429,10 @@ void MainTcpServer::doClose()
 //-----------------------------------------------------------------------------
 void MainTcpServer::onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection)
 {
-    registerToEventLoop(connection, -1);
+    int serverIndex = (static_cast<TcpConnection*>(connection))->getServerIndex();
+    int eventLoopIndex = iseApp().getIseOptions().getTcpConnEventLoopIndex(serverIndex);
+
+    registerToEventLoop(connection, eventLoopIndex);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

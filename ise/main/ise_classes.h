@@ -60,8 +60,6 @@
 #include "ise/main/ise_err_msgs.h"
 #include "ise/main/ise_exceptions.h"
 
-using namespace std;
-
 namespace ise
 {
 
@@ -72,9 +70,12 @@ class Buffer;
 class DateTime;
 class AutoInvoker;
 class AutoInvokable;
-class CriticalSection;
+class Mutex;
 class Semaphore;
+class Condition;
 class SignalMasker;
+class AtomicInt;
+class AtomicInt64;
 class SeqNumberAlloc;
 class Stream;
 class MemoryStream;
@@ -88,6 +89,7 @@ class Packet;
 template<typename ObjectType> class CustomObjectList;
 template<typename ObjectType> class ObjectList;
 template<typename T> class CallbackList;
+template<typename T> class BlockingQueue;
 class ObjectContext;
 class Logger;
 
@@ -118,9 +120,9 @@ public:
     int getPosition() const { return position_; }
 
     bool loadFromStream(Stream& stream);
-    bool loadFromFile(const string& fileName);
+    bool loadFromFile(const std::string& fileName);
     bool saveToStream(Stream& stream);
-    bool saveToFile(const string& fileName);
+    bool saveToFile(const std::string& fileName);
 private:
     inline void init() { buffer_ = NULL; size_ = 0; position_ = 0; }
     void assign(const Buffer& src);
@@ -140,7 +142,7 @@ public:
     DateTime() { time_ = 0; }
     DateTime(const DateTime& src) { time_ = src.time_; }
     explicit DateTime(time_t src) { time_ = src; }
-    explicit DateTime(const string& src) { *this = src; }
+    explicit DateTime(const std::string& src) { *this = src; }
 
     static DateTime currentDateTime();
 
@@ -148,7 +150,7 @@ public:
         { time_ = rhs.time_; return *this; }
     DateTime& operator = (const time_t rhs)
         { time_ = rhs; return *this; }
-    DateTime& operator = (const string& dateTimeStr);
+    DateTime& operator = (const std::string& dateTimeStr);
 
     DateTime operator + (const DateTime& rhs) const { return DateTime(time_ + rhs.time_); }
     DateTime operator + (time_t rhs) const { return DateTime(time_ + rhs); }
@@ -170,16 +172,16 @@ public:
         int *hour, int *minute, int *second,
         int *weekDay = NULL, int *yearDay = NULL) const;
 
-    string dateString(const string& dateSep = "-") const;
-    string dateTimeString(const string& dateSep = "-",
-        const string& dateTimeSep = " ", const string& timeSep = ":") const;
+    std::string dateString(const std::string& dateSep = "-") const;
+    std::string dateTimeString(const std::string& dateSep = "-",
+        const std::string& dateTimeSep = " ", const std::string& timeSep = ":") const;
 
 private:
     time_t time_;     // (从1970-01-01 00:00:00 算起的秒数，UTC时间)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class AutoFinalizer - 基于作用域的自动析构器
+// class AutoFinalizer - 基于 RAII 的自动析构器
 
 class AutoFinalizer : boost::noncopyable
 {
@@ -236,52 +238,58 @@ private:
 // 2. 使用方法: 在需要互斥的范围中以局部变量方式定义此类对象即可；
 //
 // 使用范例:
-//   假设已定义: CriticalSection lock_;
+//   假设已定义: Mutex mutex_;
 //   自动加锁和解锁:
 //   {
-//       AutoLocker locker(lock_);
+//       AutoLocker locker(mutex_);
 //       //...
 //   }
 
 typedef AutoInvoker AutoLocker;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CriticalSection - 线程临界区互斥类
-//
-// 说明:
-// 1. 此类用于多线程环境下临界区互斥，基本操作有 lock、unlock 和 tryLock；
-// 2. 线程内允许嵌套调用 lock，嵌套调用后必须调用相同次数的 unlock 才可解锁；
+// class BaseMutex - 互斥器基类
 
-class CriticalSection :
+class BaseMutex:
     public AutoInvokable,
     boost::noncopyable
 {
 public:
-    CriticalSection();
-    virtual ~CriticalSection();
-
-    // 加锁
-    void lock();
-    // 解锁
-    void unlock();
-    // 尝试加锁 (若已经处于加锁状态则立即返回 false)
-    bool tryLock();
-
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
 protected:
     virtual void invokeInitialize() { lock(); }
     virtual void invokeFinalize() { unlock(); }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Mutex - 线程互斥类
+//
+// 说明:
+// 1. 此类用于多线程环境下临界区互斥，基本操作有 lock、unlock；
+// 2. 线程内允许嵌套调用 lock，嵌套调用后必须调用相同次数的 unlock 才可解锁；
+
+class Mutex : public BaseMutex
+{
+public:
+    Mutex();
+    virtual ~Mutex();
+
+    virtual void lock();
+    virtual void unlock();
 
 private:
 #ifdef ISE_WINDOWS
-    CRITICAL_SECTION lock_;
+    CRITICAL_SECTION critiSect_;
 #endif
 #ifdef ISE_LINUX
-    pthread_mutex_t lock_;
+    pthread_mutex_t mutex_;
+    friend class Condition;
 #endif
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class Semaphore - 线程旗标类
+// class Semaphore - 信号量类
 
 class Semaphore : boost::noncopyable
 {
@@ -300,12 +308,101 @@ private:
 private:
 #ifdef ISE_WINDOWS
     HANDLE sem_;
+    friend class Condition;
 #endif
 #ifdef ISE_LINUX
     sem_t sem_;
 #endif
 
     UINT initValue_;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Condition - 条件变量类
+//
+// 说明:
+// * 条件变量的使用总是和一个互斥锁 (Condition::Mutex) 结合在一起。
+// * 由于 ise::Mutex 类的 Windows 实现采用了非内核对象的 CRITICAL_SECTION，故不能
+//   与 Condition 配合使用。为了统一，无论 Linux 平台还是 Windows 平台，都一律使用
+//   Condition::Mutex 与 Condition 搭配。
+// * 调用 wait() 时，会原子地 unlock mutex 并进入等待，执行完毕时会自动重新 lock mutex.
+// * 应该采用循环方式调用 wait()，以防虚假唤醒 (spurious wakeup)。
+// * 典型使用方式是:
+//
+//   class Example
+//   {
+//   public:
+//       Example() : condition_(mutex_) {}
+//
+//       void addToQueue()
+//       {
+//           {
+//               AutoLocker locker(mutex_);
+//               queue_.push_back(...);
+//           }
+//           condition_.notify();
+//       }
+//
+//       void extractFromQueue()
+//       {
+//           AutoLocker locker(mutex_);
+//           while (queue_.empty())
+//               condition_.wait();
+//           assert(!queue_.empty());
+//
+//           int top = queue_.front();
+//           queue_.pop_front();
+//           ...
+//       }
+//
+//   private:
+//       Condition::Mutex mutex_;
+//       Condition condition_;
+//   };
+
+class Condition : boost::noncopyable
+{
+public:
+    class Mutex : public BaseMutex
+    {
+    public:
+        Mutex();
+        virtual ~Mutex();
+
+        virtual void lock();
+        virtual void unlock();
+
+    private:
+#ifdef ISE_WINDOWS
+        HANDLE mutex_;
+#endif
+#ifdef ISE_LINUX
+        ise::Mutex mutex_;
+#endif
+        friend class Condition;
+    };
+
+public:
+    Condition(Condition::Mutex& mutex);
+    ~Condition();
+
+    void wait();
+    void notify();
+    void notifyAll();
+
+    Condition::Mutex& getMutex() { return mutex_; }
+
+private:
+    Condition::Mutex& mutex_;
+
+#ifdef ISE_WINDOWS
+    Semaphore sem_;
+    boost::scoped_ptr<AtomicInt> waiters_;
+#endif
+
+#ifdef ISE_LINUX
+    pthread_cond_t cond_;
+#endif
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,38 +467,38 @@ public:
 
     INT64 get()
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         return value_;
     }
     INT64 set(INT64 newValue)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         INT64 temp = value_;
         value_ = newValue;
         return temp;
     }
     INT64 getAndAdd(INT64 x)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         INT64 temp = value_;
         value_ += x;
         return temp;
     }
     INT64 addAndGet(INT64 x)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         value_ += x;
         return value_;
     }
     INT64 increment()
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         ++value_;
         return value_;
     }
     INT64 decrement()
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         --value_;
         return value_;
     }
@@ -412,7 +509,7 @@ public:
 
 private:
     volatile INT64 value_;
-    CriticalSection lock_;
+    Mutex mutex_;
 };
 
 #endif
@@ -437,8 +534,8 @@ private:
     volatile T value_;
 };
 
-typedef AtomicInteger<long> AtomicInt;
-typedef AtomicInteger<INT64> AtomicInt64;
+class AtomicInt : public AtomicInteger<long> {};
+class AtomicInt64 : public AtomicInteger<INT64> {};
 
 #endif
 
@@ -458,7 +555,7 @@ public:
     UINT64 allocId();
 
 private:
-    CriticalSection lock_;
+    Mutex mutex_;
     UINT64 currentId_;
 };
 
@@ -509,9 +606,9 @@ public:
     virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin);
     virtual void setSize(INT64 size);
     bool loadFromStream(Stream& stream);
-    bool loadFromFile(const string& fileName);
+    bool loadFromFile(const std::string& fileName);
     bool saveToStream(Stream& stream);
-    bool saveToFile(const string& fileName);
+    bool saveToFile(const std::string& fileName);
     void clear();
     char* getMemory() { return memory_; }
 
@@ -574,10 +671,10 @@ class FileStream :
 {
 public:
     FileStream();
-    FileStream(const string& fileName, UINT openMode, UINT rights = DEFAULT_FILE_ACCESS_RIGHTS);
+    FileStream(const std::string& fileName, UINT openMode, UINT rights = DEFAULT_FILE_ACCESS_RIGHTS);
     virtual ~FileStream();
 
-    bool open(const string& fileName, UINT openMode,
+    bool open(const std::string& fileName, UINT openMode,
         UINT rights = DEFAULT_FILE_ACCESS_RIGHTS, FileException* exception = NULL);
     void close();
 
@@ -586,21 +683,21 @@ public:
     virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin);
     virtual void setSize(INT64 size);
 
-    string getFileName() const { return fileName_; }
+    std::string getFileName() const { return fileName_; }
     HANDLE getHandle() const { return handle_; }
     bool isOpen() const;
 
 private:
     void init();
-    HANDLE fileCreate(const string& fileName, UINT rights);
-    HANDLE fileOpen(const string& fileName, UINT openMode);
+    HANDLE fileCreate(const std::string& fileName, UINT rights);
+    HANDLE fileOpen(const std::string& fileName, UINT openMode);
     void fileClose(HANDLE handle);
     int fileRead(HANDLE handle, void *buffer, int count);
     int fileWrite(HANDLE handle, const void *buffer, int count);
     INT64 fileSeek(HANDLE handle, INT64 offset, SEEK_ORIGIN seekOrigin);
 
 private:
-    string fileName_;
+    std::string fileName_;
     HANDLE handle_;
 };
 
@@ -673,11 +770,11 @@ public:
 
     struct PropertyItem
     {
-        string name, value;
+        std::string name, value;
     public:
         PropertyItem(const PropertyItem& src) :
             name(src.name), value(src.value) {}
-        PropertyItem(const string& _name, const string& _value) :
+        PropertyItem(const std::string& _name, const std::string& _value) :
             name(_name), value(_value) {}
     };
 
@@ -685,28 +782,28 @@ public:
     PropertyList();
     virtual ~PropertyList();
 
-    void add(const string& name, const string& value);
-    bool remove(const string& name);
+    void add(const std::string& name, const std::string& value);
+    bool remove(const std::string& name);
     void clear();
-    int indexOf(const string& name) const;
-    bool nameExists(const string& name) const;
-    bool getValue(const string& name, string& value) const;
+    int indexOf(const std::string& name) const;
+    bool nameExists(const std::string& name) const;
+    bool getValue(const std::string& name, std::string& value) const;
     int getCount() const { return items_.getCount(); }
     bool isEmpty() const { return (getCount() <= 0); }
     const PropertyItem& getItems(int index) const;
-    string getPropString() const;
-    void setPropString(const string& propString);
+    std::string getPropString() const;
+    void setPropString(const std::string& propString);
 
     PropertyList& operator = (const PropertyList& rhs);
-    string& operator[] (const string& name);
+    std::string& operator[] (const std::string& name);
 
 private:
-    PropertyItem* find(const string& name);
+    PropertyItem* find(const std::string& name);
     static bool isReservedChar(char ch);
-    static bool hasReservedChar(const string& str);
+    static bool hasReservedChar(const std::string& str);
     static char* scanStr(char *str, char ch);
-    static string makeQuotedStr(const string& str);
-    static string extractQuotedStr(char*& strPtr);
+    static std::string makeQuotedStr(const std::string& str);
+    static std::string extractQuotedStr(char*& strPtr);
 
 private:
     PointerList items_;                        // (PropertyItem* [])
@@ -769,34 +866,34 @@ public:
     bool isEmpty() const { return (getCount() <= 0); }
     char getDelimiter() const;
     void setDelimiter(char value);
-    string getLineBreak() const;
+    std::string getLineBreak() const;
     void setLineBreak(const char* value);
     char getQuoteChar() const;
     void setQuoteChar(char value);
     char getNameValueSeparator() const;
     void setNameValueSeparator(char value);
-    string combineNameValue(const char* name, const char* value) const;
-    string getName(int index) const;
-    string getValue(const char* name) const;
-    string getValue(int index) const;
+    std::string combineNameValue(const char* name, const char* value) const;
+    std::string getName(int index) const;
+    std::string getValue(const char* name) const;
+    std::string getValue(int index) const;
     void setValue(const char* name, const char* value);
     void setValue(int index, const char* value);
     virtual POINTER getData(int index) const { return NULL; }
     virtual void setData(int index, POINTER data) {}
-    virtual string getText() const;
+    virtual std::string getText() const;
     virtual void setText(const char* value);
-    string getCommaText() const;
+    std::string getCommaText() const;
     void setCommaText(const char* value);
-    string getDelimitedText() const;
+    std::string getDelimitedText() const;
     void setDelimitedText(const char* value);
-    virtual const string& getString(int index) const = 0;
+    virtual const std::string& getString(int index) const = 0;
     virtual void setString(int index, const char* value);
 
     void beginUpdate();
     void endUpdate();
 
     Strings& operator = (const Strings& rhs);
-    const string& operator[] (int index) const { return getString(index); }
+    const std::string& operator[] (int index) const { return getString(index); }
 
 protected:
     virtual void setUpdateState(bool isUpdating) {}
@@ -806,7 +903,7 @@ protected:
     void init();
     void error(const char* msg, int data) const;
     int getUpdateCount() const { return updateCount_; }
-    string extractName(const char* str) const;
+    std::string extractName(const char* str) const;
 
 private:
     void assign(const Strings& src);
@@ -814,7 +911,7 @@ private:
 protected:
     UINT defined_;
     char delimiter_;
-    string lineBreak_;
+    std::string lineBreak_;
     char quoteChar_;
     char nameValueSeparator_;
     int updateCount_;
@@ -860,7 +957,7 @@ public:
     virtual int getCount() const { return count_; }
     virtual POINTER getData(int index) const;
     virtual void setData(int index, POINTER data);
-    virtual const string& getString(int index) const;
+    virtual const std::string& getString(int index) const;
     virtual void setString(int index, const char* value);
 
     virtual bool find(const char* str, int& index) const;
@@ -885,14 +982,14 @@ protected: // virtual
     virtual void onChanging() {}
     /// Occurs immediately after the list of strings changes.
     virtual void onChanged() {}
-    /// Internal method used to insert a string to the list.
+    /// Internal method used to insert a std::string to the list.
     virtual void insertItem(int index, const char* str, POINTER data);
 
 private:
     void init();
     void assign(const StrList& src);
     void internalClear();
-    string& stringObjectNeeded(int index) const;
+    std::string& stringObjectNeeded(int index) const;
     void exchangeItems(int index1, int index2);
     void grow();
     void quickSort(int l, int r, StringListCompareProc compareProc);
@@ -900,7 +997,7 @@ private:
 private:
     struct StringItem
     {
-        string *str;
+        std::string *str;
         POINTER data;
     };
 
@@ -935,47 +1032,47 @@ public:
     };
 
 public:
-    Url(const string& url = "");
+    Url(const std::string& url = "");
     Url(const Url& src);
     virtual ~Url() {}
 
     void clear();
     Url& operator = (const Url& rhs);
 
-    string getUrl() const;
-    string getUrl(UINT parts);
-    void setUrl(const string& value);
+    std::string getUrl() const;
+    std::string getUrl(UINT parts);
+    void setUrl(const std::string& value);
 
-    const string& getProtocol() const { return protocol_; }
-    const string& getHost() const { return host_; }
-    const string& getPort() const { return port_; }
-    const string& getPath() const { return path_; }
-    const string& getFileName() const { return fileName_; }
-    const string& getBookmark() const { return bookmark_; }
-    const string& getUserName() const { return userName_; }
-    const string& getPassword() const { return password_; }
-    const string& getParams() const { return params_; }
+    const std::string& getProtocol() const { return protocol_; }
+    const std::string& getHost() const { return host_; }
+    const std::string& getPort() const { return port_; }
+    const std::string& getPath() const { return path_; }
+    const std::string& getFileName() const { return fileName_; }
+    const std::string& getBookmark() const { return bookmark_; }
+    const std::string& getUserName() const { return userName_; }
+    const std::string& getPassword() const { return password_; }
+    const std::string& getParams() const { return params_; }
 
-    void setProtocol(const string& value) { protocol_ = value; }
-    void setHost(const string& value) { host_ = value; }
-    void setPort(const string& value) { port_ = value; }
-    void setPath(const string& value) { path_ = value; }
-    void setFileName(const string& value) { fileName_ = value; }
-    void setBookmark(const string& value) { bookmark_ = value; }
-    void setUserName(const string& value) { userName_ = value; }
-    void setPassword(const string& value) { password_ = value; }
-    void setParams(const string& value) { params_ = value; }
+    void setProtocol(const std::string& value) { protocol_ = value; }
+    void setHost(const std::string& value) { host_ = value; }
+    void setPort(const std::string& value) { port_ = value; }
+    void setPath(const std::string& value) { path_ = value; }
+    void setFileName(const std::string& value) { fileName_ = value; }
+    void setBookmark(const std::string& value) { bookmark_ = value; }
+    void setUserName(const std::string& value) { userName_ = value; }
+    void setPassword(const std::string& value) { password_ = value; }
+    void setParams(const std::string& value) { params_ = value; }
 
 private:
-    string protocol_;
-    string host_;
-    string port_;
-    string path_;
-    string fileName_;
-    string bookmark_;
-    string userName_;
-    string password_;
-    string params_;
+    std::string protocol_;
+    std::string host_;
+    std::string port_;
+    std::string path_;
+    std::string fileName_;
+    std::string bookmark_;
+    std::string userName_;
+    std::string password_;
+    std::string params_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1061,26 +1158,26 @@ template<typename ObjectType>
 class CustomObjectList
 {
 public:
-    class Lock : public AutoInvokable
+    class InternalMutex : public BaseMutex
     {
-    private:
-        CriticalSection *lock_;
-    protected:
-        virtual void invokeInitialize() { if (lock_) lock_->lock(); }
-        virtual void invokeFinalize() { if (lock_) lock_->unlock(); }
     public:
-        Lock(bool active) : lock_(NULL) { if (active) lock_ = new CriticalSection(); }
-        virtual ~Lock() { delete lock_; }
+        InternalMutex(bool active) : mutex_(NULL) { if (active) mutex_ = new Mutex(); }
+        virtual ~InternalMutex() { delete mutex_; }
+    public:
+        virtual void lock() { if (mutex_) mutex_->lock(); }
+        virtual void unlock() { if (mutex_) mutex_->unlock(); }
+    private:
+        Mutex *mutex_;
     };
 
     typedef ObjectType* ObjectPtr;
 
 public:
     CustomObjectList() :
-        lock_(false), isOwnsObjects_(true) {}
+        mutex_(false), isOwnsObjects_(true) {}
 
     CustomObjectList(bool isThreadSafe, bool isOwnsObjects) :
-        lock_(isThreadSafe), isOwnsObjects_(isOwnsObjects) {}
+        mutex_(isThreadSafe), isOwnsObjects_(isOwnsObjects) {}
 
     virtual ~CustomObjectList() { clear(); }
 
@@ -1099,7 +1196,7 @@ protected:
     int add(ObjectPtr item, bool allowDuplicate = true)
     {
         ISE_ASSERT(item);
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         if (allowDuplicate || items_.indexOf(item) == -1)
             return items_.add(item);
@@ -1109,7 +1206,7 @@ protected:
 
     int remove(ObjectPtr item)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         int result = items_.indexOf(item);
         if (result >= 0)
@@ -1122,7 +1219,7 @@ protected:
 
     ObjectPtr extract(ObjectPtr item)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         ObjectPtr result = NULL;
         int i = items_.remove(item);
@@ -1133,7 +1230,7 @@ protected:
 
     ObjectPtr extract(int index)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         ObjectPtr result = NULL;
         if (index >= 0 && index < items_.getCount())
@@ -1146,7 +1243,7 @@ protected:
 
     void del(int index)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         if (index >= 0 && index < items_.getCount())
         {
@@ -1158,37 +1255,37 @@ protected:
     void insert(int index, ObjectPtr item)
     {
         ISE_ASSERT(item);
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         items_.insert(index, item);
     }
 
     int indexOf(ObjectPtr item) const
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         return items_.indexOf(item);
     }
 
     bool exists(ObjectPtr item) const
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         return items_.indexOf(item) >= 0;
     }
 
     ObjectPtr first() const
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         return static_cast<ObjectPtr>(items_.first());
     }
 
     ObjectPtr last() const
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         return static_cast<ObjectPtr>(items_.last());
     }
 
     void clear()
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         for (int i = items_.getCount() - 1; i >= 0; i--)
             notifyDelete(i);
@@ -1197,7 +1294,7 @@ protected:
 
     void freeObjects()
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
 
         for (int i = items_.getCount() - 1; i >= 0; i--)
         {
@@ -1216,7 +1313,7 @@ protected:
 
 protected:
     PointerList items_;       // 对象列表
-    mutable Lock lock_;
+    mutable InternalMutex mutex_;
     bool isOwnsObjects_;      // 元素被删除时，是否自动释放元素对象
 };
 
@@ -1261,7 +1358,7 @@ class CallbackList
 public:
     void registerCallback(const T& callback)
     {
-        AutoLocker locker(lock_);
+        AutoLocker locker(mutex_);
         if (callback)
             items_.push_back(callback);
     }
@@ -1271,7 +1368,47 @@ public:
 
 private:
     std::vector<T> items_;
-    CriticalSection lock_;
+    Mutex mutex_;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class BlockingQueue - 阻塞队列类
+
+template<typename T>
+class BlockingQueue : boost::noncopyable
+{
+public:
+    BlockingQueue() : condition_(mutex_) {}
+
+    void put(const T& item)
+    {
+        AutoLocker locker(mutex_);
+        queue_.push_back(item);
+        condition_.notify();
+    }
+
+    T take()
+    {
+        AutoLocker locker(mutex_);
+        while (queue_.empty())
+            condition_.wait();
+        ISE_ASSERT(!queue_.empty());
+
+        T item(queue_.front());
+        queue_.pop_front();
+        return item;
+    }
+
+    size_t getCount() const
+    {
+        AutoLocker locker(mutex_);
+        return queue_.size();
+    }
+
+private:
+    Condition::Mutex mutex_;
+    Condition condition_;
+    std::deque<T> queue_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1296,10 +1433,10 @@ public:
     ~Logger() {}
     static Logger& instance();
 
-    void setFileName(const string& fileName, bool isNewFileDaily = false);
+    void setFileName(const std::string& fileName, bool isNewFileDaily = false);
 
     void writeStr(const char *str);
-    void writeStr(const string& str) { writeStr(str.c_str()); }
+    void writeStr(const std::string& str) { writeStr(str.c_str()); }
     void writeFmt(const char *format, ...);
     void writeException(const Exception& e);
 
@@ -1307,14 +1444,14 @@ private:
     Logger();
 
 private:
-    string getLogFileName();
-    bool openFile(FileStream& fileStream, const string& fileName);
-    void writeToFile(const string& str);
+    std::string getLogFileName();
+    bool openFile(FileStream& fileStream, const std::string& fileName);
+    void writeToFile(const std::string& str);
 
 private:
-    string fileName_;            // 日志文件名
+    std::string fileName_;            // 日志文件名
     bool isNewFileDaily_;        // 是否每天用一个单独的文件存储日志
-    CriticalSection lock_;
+    Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

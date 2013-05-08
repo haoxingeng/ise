@@ -16,7 +16,7 @@ public:
     virtual ~ServerModule_Daytime() {}
 
     virtual int getTcpServerCount() { return 1; }
-    virtual void getTcpServerOptions(int serverIndex, TcpServerOptions& options) { options.port = 10002; }
+    virtual void getTcpServerOptions(int serverIndex, TcpServerOptions& options) { options.serverPort = 10002; }
 
     virtual void onTcpConnected(const TcpConnectionPtr& connection);
     virtual void onTcpDisconnected(const TcpConnectionPtr& connection);

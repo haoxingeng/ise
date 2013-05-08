@@ -45,21 +45,10 @@ class IseSvrModBusiness;
 // 类型定义
 
 // 动作代码数组
-typedef vector<UINT> ActionCodeArray;
+typedef std::vector<UINT> ActionCodeArray;
 
-// UDP组别的配置
-struct UdpGroupOptions
-{
-    int queueCapacity;
-    int minThreads;
-    int maxThreads;
-};
-
-// TCP服务器的配置
-struct TcpServerOptions
-{
-    int port;
-};
+typedef IseOptions::UdpRequestGroupOption UdpGroupOptions;
+typedef IseOptions::TcpServerOption TcpServerOptions;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class IseServerModule - 服务器模块基类
@@ -180,9 +169,9 @@ private:
     void updateIseOptions();
 
 protected:
-    typedef map<UINT, int> ActionCodeMap;            // <动作代码, UDP组别号>
-    typedef map<UINT, int> UdpGroupIndexMap;         // <全局UDP组别号, 服务模块号>
-    typedef map<UINT, int> TcpServerIndexMap;        // <全局TCP服务器序号, 服务模块号>
+    typedef std::map<UINT, int> ActionCodeMap;            // <动作代码, UDP组别号>
+    typedef std::map<UINT, int> UdpGroupIndexMap;         // <全局UDP组别号, 服务模块号>
+    typedef std::map<UINT, int> TcpServerIndexMap;        // <全局TCP服务器序号, 服务模块号>
 
     IseServerModuleMgr serverModuleMgr_;             // 服务模块管理器
     ActionCodeMap actionCodeMap_;                    // <动作代码, UDP组别号> 映射表

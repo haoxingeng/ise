@@ -190,7 +190,7 @@ bool Buffer::loadFromStream(Stream& stream)
 //-----------------------------------------------------------------------------
 // 描述: 将文件读入到缓存中
 //-----------------------------------------------------------------------------
-bool Buffer::loadFromFile(const string& fileName)
+bool Buffer::loadFromFile(const std::string& fileName)
 {
     FileStream fs;
     bool result = fs.open(fileName, FM_OPEN_READ | FM_SHARE_DENY_WRITE);
@@ -219,7 +219,7 @@ bool Buffer::saveToStream(Stream& stream)
 //-----------------------------------------------------------------------------
 // 描述: 将缓存保存到文件中
 //-----------------------------------------------------------------------------
-bool Buffer::saveToFile(const string& fileName)
+bool Buffer::saveToFile(const std::string& fileName)
 {
     FileStream fs;
     bool result = fs.open(fileName, FM_CREATE);
@@ -261,7 +261,7 @@ DateTime DateTime::currentDateTime()
 // 描述: 将字符串转换成 DateTime
 // 注意: dateTimeStr 的格式必须为 YYYY-MM-DD HH:MM:SS
 //-----------------------------------------------------------------------------
-DateTime& DateTime::operator = (const string& dateTimeStr)
+DateTime& DateTime::operator = (const std::string& dateTimeStr)
 {
     int year, month, day, hour, minute, second;
 
@@ -345,9 +345,9 @@ void DateTime::decodeDateTime(int *year, int *month, int *day,
 // 格式:
 //   YYYY-MM-DD
 //-----------------------------------------------------------------------------
-string DateTime::dateString(const string& dateSep) const
+std::string DateTime::dateString(const std::string& dateSep) const
 {
-    string result;
+    std::string result;
     int year, month, day;
 
     decodeDateTime(&year, &month, &day, NULL, NULL, NULL, NULL);
@@ -366,10 +366,10 @@ string DateTime::dateString(const string& dateSep) const
 // 格式:
 //   YYYY-MM-DD HH:MM:SS
 //-----------------------------------------------------------------------------
-string DateTime::dateTimeString(const string& dateSep,
-    const string& dateTimeSep, const string& timeSep) const
+std::string DateTime::dateTimeString(const std::string& dateSep,
+    const std::string& dateTimeSep, const std::string& timeSep) const
 {
-    string result;
+    std::string result;
     int year, month, day, hour, minute, second;
 
     decodeDateTime(&year, &month, &day, &hour, &minute, &second, NULL);
@@ -382,12 +382,12 @@ string DateTime::dateTimeString(const string& dateSep,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class CriticalSection
+// class Mutex
 
-CriticalSection::CriticalSection()
+Mutex::Mutex()
 {
 #ifdef ISE_WINDOWS
-    InitializeCriticalSection(&lock_);
+    InitializeCriticalSection(&critiSect_);
 #endif
 #ifdef ISE_LINUX
     pthread_mutexattr_t attr;
@@ -403,64 +403,48 @@ CriticalSection::CriticalSection()
     //   适应锁。
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
-    pthread_mutex_init(&lock_, &attr);
+    pthread_mutex_init(&mutex_, &attr);
     pthread_mutexattr_destroy(&attr);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 
-CriticalSection::~CriticalSection()
+Mutex::~Mutex()
 {
 #ifdef ISE_WINDOWS
-    DeleteCriticalSection(&lock_);
+    DeleteCriticalSection(&critiSect_);
 #endif
 #ifdef ISE_LINUX
     // 如果在未解锁的情况下 destroy，此函数会返回错误 EBUSY。
     // 在 linux 下，即使此函数返回错误，也不会有资源泄漏。
-    pthread_mutex_destroy(&lock_);
+    pthread_mutex_destroy(&mutex_);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 加锁
 //-----------------------------------------------------------------------------
-void CriticalSection::lock()
+void Mutex::lock()
 {
 #ifdef ISE_WINDOWS
-    EnterCriticalSection(&lock_);
+    EnterCriticalSection(&critiSect_);
 #endif
 #ifdef ISE_LINUX
-    pthread_mutex_lock(&lock_);
+    pthread_mutex_lock(&mutex_);
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 解锁
 //-----------------------------------------------------------------------------
-void CriticalSection::unlock()
+void Mutex::unlock()
 {
 #ifdef ISE_WINDOWS
-    LeaveCriticalSection(&lock_);
+    LeaveCriticalSection(&critiSect_);
 #endif
 #ifdef ISE_LINUX
-    pthread_mutex_unlock(&lock_);
-#endif
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 尝试加锁 (若已经处于加锁状态则立即返回)
-// 返回:
-//   true   - 加锁成功
-//   false  - 失败，此锁已经处于加锁状态
-//-----------------------------------------------------------------------------
-bool CriticalSection::tryLock()
-{
-#ifdef ISE_WINDOWS
-    return TryEnterCriticalSection(&lock_) != 0;
-#endif
-#ifdef ISE_LINUX
-    return pthread_mutex_trylock(&lock_) != EBUSY;
+    pthread_mutex_unlock(&mutex_);
 #endif
 }
 
@@ -546,6 +530,118 @@ void Semaphore::doDestroySem()
     sem_destroy(&sem_);
 #endif
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// class Condition::Mutex
+
+Condition::Mutex::Mutex()
+{
+#ifdef ISE_WINDOWS
+    mutex_ = ::CreateMutexA(NULL, FALSE, NULL);  
+    if (mutex_ == NULL)
+        iseThrowException(SEM_FAIL_TO_CREATE_MUTEX);
+#endif
+}
+
+Condition::Mutex::~Mutex()
+{
+#ifdef ISE_WINDOWS
+    ::CloseHandle(mutex_);
+#endif
+}
+
+void Condition::Mutex::lock()
+{
+#ifdef ISE_WINDOWS
+    ::WaitForSingleObject(mutex_, INFINITE);
+#endif
+#ifdef ISE_LINUX
+    mutex_.lock();
+#endif
+}
+
+void Condition::Mutex::unlock()
+{
+#ifdef ISE_WINDOWS
+    ::ReleaseMutex(mutex_);
+#endif
+#ifdef ISE_LINUX
+    mutex_.unlock();
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class Condition
+
+#ifdef ISE_WINDOWS
+
+Condition::Condition(Condition::Mutex& mutex) :
+    mutex_(mutex),
+    waiters_(new AtomicInt())
+{
+    // nothing
+}
+
+Condition::~Condition()
+{
+    // nothing
+}
+
+void Condition::wait()
+{
+    waiters_->increment();
+    ::SignalObjectAndWait(mutex_.mutex_, sem_.sem_, INFINITE, FALSE);
+    mutex_.lock();
+    waiters_->decrement();
+}
+
+void Condition::notify()
+{
+    if (waiters_->get() > 0)
+        sem_.increase();
+}
+
+void Condition::notifyAll()
+{
+    int count = (int)waiters_->get();
+    for (int i = 0; i < count; ++i)
+        sem_.increase();
+}
+
+#endif
+
+//-----------------------------------------------------------------------------
+
+#ifdef ISE_LINUX
+
+Condition::Condition(Condition::Mutex& mutex) :
+    mutex_(mutex)
+{
+    if (pthread_cond_init(&cond_, NULL) != 0)
+        iseThrowException(SEM_COND_INIT_ERROR);
+}
+
+Condition::~Condition()
+{
+    pthread_cond_destroy(&cond_);
+}
+
+void Condition::wait()
+{
+    pthread_cond_wait(&cond_, &mutex_.mutex_.mutex_);
+}
+
+void Condition::notify()
+{
+    pthread_cond_signal(&cond_);
+}
+
+void Condition::notifyAll()
+{
+    pthread_cond_broadcast(&cond_);
+}
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // class SignalMasker
@@ -648,7 +744,7 @@ SeqNumberAlloc::SeqNumberAlloc(UINT64 startId)
 //-----------------------------------------------------------------------------
 UINT64 SeqNumberAlloc::allocId()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     return currentId_++;
 }
 
@@ -815,7 +911,7 @@ bool MemoryStream::loadFromStream(Stream& stream)
 //-----------------------------------------------------------------------------
 // 描述: 将文件读入到内存流中
 //-----------------------------------------------------------------------------
-bool MemoryStream::loadFromFile(const string& fileName)
+bool MemoryStream::loadFromFile(const std::string& fileName)
 {
     FileStream fs;
     bool result = fs.open(fileName, FM_OPEN_READ | FM_SHARE_DENY_WRITE);
@@ -844,7 +940,7 @@ bool MemoryStream::saveToStream(Stream& stream)
 //-----------------------------------------------------------------------------
 // 描述: 将内存流保存到文件中
 //-----------------------------------------------------------------------------
-bool MemoryStream::saveToFile(const string& fileName)
+bool MemoryStream::saveToFile(const std::string& fileName)
 {
     FileStream fs;
     bool result = fs.open(fileName, FM_CREATE);
@@ -950,7 +1046,7 @@ FileStream::FileStream()
 //   openMode   - 文件流打开方式
 //   rights     - 文件存取权限
 //-----------------------------------------------------------------------------
-FileStream::FileStream(const string& fileName, UINT openMode, UINT rights)
+FileStream::FileStream(const std::string& fileName, UINT openMode, UINT rights)
 {
     init();
 
@@ -975,7 +1071,7 @@ FileStream::~FileStream()
 //   rights     - 文件存取权限
 //   exception  - 如果发生异常，则传回该异常
 //-----------------------------------------------------------------------------
-bool FileStream::open(const string& fileName, UINT openMode, UINT rights,
+bool FileStream::open(const std::string& fileName, UINT openMode, UINT rights,
     FileException* exception)
 {
     close();
@@ -1089,7 +1185,7 @@ void FileStream::init()
 //-----------------------------------------------------------------------------
 // 描述: 创建文件
 //-----------------------------------------------------------------------------
-HANDLE FileStream::fileCreate(const string& fileName, UINT rights)
+HANDLE FileStream::fileCreate(const std::string& fileName, UINT rights)
 {
 #ifdef ISE_WINDOWS
     return ::CreateFileA(fileName.c_str(), GENERIC_READ | GENERIC_WRITE,
@@ -1104,7 +1200,7 @@ HANDLE FileStream::fileCreate(const string& fileName, UINT rights)
 //-----------------------------------------------------------------------------
 // 描述: 打开文件
 //-----------------------------------------------------------------------------
-HANDLE FileStream::fileOpen(const string& fileName, UINT openMode)
+HANDLE FileStream::fileOpen(const std::string& fileName, UINT openMode)
 {
 #ifdef ISE_WINDOWS
     UINT accessModes[3] = {
@@ -1544,9 +1640,9 @@ PropertyList::~PropertyList()
 //-----------------------------------------------------------------------------
 // 描述: 向列表中添加元素
 //-----------------------------------------------------------------------------
-void PropertyList::add(const string& name, const string& value)
+void PropertyList::add(const std::string& name, const std::string& value)
 {
-    if (name.find(NAME_VALUE_SEP, 0) != string::npos)
+    if (name.find(NAME_VALUE_SEP, 0) != std::string::npos)
         iseThrowException(SEM_PROPLIST_NAME_ERROR);
 
     PropertyItem *item = find(name);
@@ -1565,7 +1661,7 @@ void PropertyList::add(const string& name, const string& value)
 //   true  - 成功
 //   false - 失败(未找到)
 //-----------------------------------------------------------------------------
-bool PropertyList::remove(const string& name)
+bool PropertyList::remove(const std::string& name)
 {
     int i = indexOf(name);
     bool result = (i >= 0);
@@ -1592,7 +1688,7 @@ void PropertyList::clear()
 //-----------------------------------------------------------------------------
 // 描述: 返回某项属性在列表中的位置(0-based)
 //-----------------------------------------------------------------------------
-int PropertyList::indexOf(const string& name) const
+int PropertyList::indexOf(const std::string& name) const
 {
     int result = -1;
 
@@ -1609,7 +1705,7 @@ int PropertyList::indexOf(const string& name) const
 //-----------------------------------------------------------------------------
 // 描述: 判断某项属性是否存在
 //-----------------------------------------------------------------------------
-bool PropertyList::nameExists(const string& name) const
+bool PropertyList::nameExists(const std::string& name) const
 {
     return (indexOf(name) >= 0);
 }
@@ -1618,7 +1714,7 @@ bool PropertyList::nameExists(const string& name) const
 // 描述: 根据 Name 从列表中取出 Value
 // 返回: 若列表中不存在该项属性，则返回 False。
 //-----------------------------------------------------------------------------
-bool PropertyList::getValue(const string& name, string& value) const
+bool PropertyList::getValue(const std::string& name, std::string& value) const
 {
     int i = indexOf(name);
     bool result = (i >= 0);
@@ -1652,10 +1748,10 @@ const PropertyList::PropertyItem& PropertyList::getItems(int index) const
 //   [<abc,123>, <def,=>]     ->  abc=123,def==
 //   [<abc,123>, <=,456>]     ->  抛出异常(Name中不允许存在等号"=")
 //-----------------------------------------------------------------------------
-string PropertyList::getPropString() const
+std::string PropertyList::getPropString() const
 {
-    string result;
-    string itemStr;
+    std::string result;
+    std::string itemStr;
 
     for (int index = 0; index < getCount(); index++)
     {
@@ -1675,10 +1771,10 @@ string PropertyList::getPropString() const
 //-----------------------------------------------------------------------------
 // 描述: 将 PropString 转换成属性列表
 //-----------------------------------------------------------------------------
-void PropertyList::setPropString(const string& propString)
+void PropertyList::setPropString(const std::string& propString)
 {
     char *strPtr = const_cast<char*>(propString.c_str());
-    string itemStr;
+    std::string itemStr;
 
     clear();
     while (*strPtr)
@@ -1693,8 +1789,8 @@ void PropertyList::setPropString(const string& propString)
             if (*strPtr == PROP_ITEM_SEP) strPtr++;
         }
 
-        string::size_type i = itemStr.find(NAME_VALUE_SEP, 0);
-        if (i != string::npos)
+        std::string::size_type i = itemStr.find(NAME_VALUE_SEP, 0);
+        if (i != std::string::npos)
             add(itemStr.substr(0, i), itemStr.substr(i + 1));
     }
 }
@@ -1717,7 +1813,7 @@ PropertyList& PropertyList::operator = (const PropertyList& rhs)
 // 描述: 存取列表中任意元素
 // 注意: 调用此函数时，若 name 不存在，则立即添加到列表中！
 //-----------------------------------------------------------------------------
-string& PropertyList::operator[] (const string& name)
+std::string& PropertyList::operator[] (const std::string& name)
 {
     int i = indexOf(name);
     if (i < 0)
@@ -1732,7 +1828,7 @@ string& PropertyList::operator[] (const string& name)
 //-----------------------------------------------------------------------------
 // 描述: 查找某个属性项目，没找到则返回 NULL
 //-----------------------------------------------------------------------------
-PropertyList::PropertyItem* PropertyList::find(const string& name)
+PropertyList::PropertyItem* PropertyList::find(const std::string& name)
 {
     int i = indexOf(name);
     PropertyItem *result = (i >= 0? (PropertyItem*)items_[i] : NULL);
@@ -1751,7 +1847,7 @@ bool PropertyList::isReservedChar(char ch)
 
 //-----------------------------------------------------------------------------
 
-bool PropertyList::hasReservedChar(const string& str)
+bool PropertyList::hasReservedChar(const std::string& str)
 {
     for (UINT i = 0; i < str.length(); i++)
         if (isReservedChar(str[i])) return true;
@@ -1774,15 +1870,15 @@ char* PropertyList::scanStr(char *str, char ch)
 //   abc"efg   ->  "abc""efg"
 //   abc""fg   ->  "abc""""fg"
 //-----------------------------------------------------------------------------
-string PropertyList::makeQuotedStr(const string& str)
+std::string PropertyList::makeQuotedStr(const std::string& str)
 {
     const char QUOT_CHAR = (char)PROP_ITEM_QUOT;
-    string result;
+    std::string result;
 
     for (UINT i = 0; i < str.length(); i++)
     {
         if (str[i] == QUOT_CHAR)
-            result += string(2, QUOT_CHAR);
+            result += std::string(2, QUOT_CHAR);
         else
             result += str[i];
     }
@@ -1802,10 +1898,10 @@ string PropertyList::makeQuotedStr(const string& str)
 //   "ab""cd"     ->  ab"cd       函数返回时 strPtr 指向 '\0'
 //   "ab""""cd"   ->  ab""cd      函数返回时 strPtr 指向 '\0'
 //-----------------------------------------------------------------------------
-string PropertyList::extractQuotedStr(char*& strPtr)
+std::string PropertyList::extractQuotedStr(char*& strPtr)
 {
     const char QUOT_CHAR = (char)PROP_ITEM_QUOT;
-    string result;
+    std::string result;
     int dropCount;
     char *p;
 
@@ -1914,7 +2010,7 @@ void Strings::exchange(int index1, int index2)
     AutoUpdater autoUpdater(*this);
 
     POINTER tempData;
-    string tempStr;
+    std::string tempStr;
 
     tempStr = getString(index1);
     tempData = getData(index1);
@@ -1933,7 +2029,7 @@ void Strings::move(int curIndex, int newIndex)
         AutoUpdater autoUpdater(*this);
 
         POINTER tempData;
-        string tempStr;
+        std::string tempStr;
 
         tempStr = getString(curIndex);
         tempData = getData(curIndex);
@@ -2039,7 +2135,7 @@ bool Strings::saveToStream(Stream& stream) const
 {
     try
     {
-        string text = getText();
+        std::string text = getText();
         int len = (int)text.length();
         stream.writeBuffer((char*)text.c_str(), len * sizeof(char));
         return true;
@@ -2083,7 +2179,7 @@ void Strings::setDelimiter(char value)
 
 //-----------------------------------------------------------------------------
 
-string Strings::getLineBreak() const
+std::string Strings::getLineBreak() const
 {
     if ((defined_ & SD_LINE_BREAK) == 0)
         const_cast<Strings&>(*this).setLineBreak(DEFAULT_LINE_BREAK);
@@ -2094,7 +2190,7 @@ string Strings::getLineBreak() const
 
 void Strings::setLineBreak(const char* value)
 {
-    if (lineBreak_ != string(value) || (defined_ & SD_LINE_BREAK) == 0)
+    if (lineBreak_ != std::string(value) || (defined_ & SD_LINE_BREAK) == 0)
     {
         defined_ |= SD_LINE_BREAK;
         lineBreak_ = value;
@@ -2143,12 +2239,12 @@ void Strings::setNameValueSeparator(char value)
 
 //-----------------------------------------------------------------------------
 
-string Strings::combineNameValue(const char* name, const char* value) const
+std::string Strings::combineNameValue(const char* name, const char* value) const
 {
-    string nameStr(name);
+    std::string nameStr(name);
     char nameValueSep = getNameValueSeparator();
 
-    if (nameStr.find(nameValueSep) != string::npos)
+    if (nameStr.find(nameValueSep) != std::string::npos)
         error(SEM_STRINGS_NAME_ERROR, 0);
 
     return nameStr + nameValueSep + value;
@@ -2156,16 +2252,16 @@ string Strings::combineNameValue(const char* name, const char* value) const
 
 //-----------------------------------------------------------------------------
 
-string Strings::getName(int index) const
+std::string Strings::getName(int index) const
 {
     return extractName(getString(index).c_str());
 }
 
 //-----------------------------------------------------------------------------
 
-string Strings::getValue(const char* name) const
+std::string Strings::getValue(const char* name) const
 {
-    string nameStr(name);
+    std::string nameStr(name);
     int i = indexOfName(nameStr.c_str());
     if (i >= 0)
         return getString(i).substr(nameStr.length() + 1);
@@ -2175,16 +2271,16 @@ string Strings::getValue(const char* name) const
 
 //-----------------------------------------------------------------------------
 
-string Strings::getValue(int index) const
+std::string Strings::getValue(int index) const
 {
     if (index >= 0)
     {
-        string name = getName(index);
+        std::string name = getName(index);
         if (!name.empty())
             return getString(index).substr(name.length() + 1);
         else
         {
-            string strItem = getString(index);
+            std::string strItem = getString(index);
             if (!strItem.empty() && strItem[0] == getNameValueSeparator())
                 return strItem.substr(1);
             else
@@ -2199,8 +2295,8 @@ string Strings::getValue(int index) const
 
 void Strings::setValue(const char* name, const char* value)
 {
-    string nameStr(name);
-    string valueStr(value);
+    std::string nameStr(name);
+    std::string valueStr(value);
 
     int i = indexOfName(nameStr.c_str());
     if (valueStr.empty())
@@ -2219,7 +2315,7 @@ void Strings::setValue(const char* name, const char* value)
 
 void Strings::setValue(int index, const char* value)
 {
-    string valueStr(value);
+    std::string valueStr(value);
 
     if (valueStr.empty())
     {
@@ -2235,11 +2331,11 @@ void Strings::setValue(int index, const char* value)
 
 //-----------------------------------------------------------------------------
 
-string Strings::getText() const
+std::string Strings::getText() const
 {
-    string result;
+    std::string result;
     int count = getCount();
-    string lineBreak = getLineBreak();
+    std::string lineBreak = getLineBreak();
 
     for (int i = 0; i < count; i++)
     {
@@ -2256,22 +2352,22 @@ void Strings::setText(const char* value)
 {
     AutoUpdater autoUpdater(*this);
 
-    string valueStr(value);
-    string lineBreak = getLineBreak();
+    std::string valueStr(value);
+    std::string lineBreak = getLineBreak();
     int start = 0;
 
     clear();
     while (true)
     {
-        string::size_type pos = valueStr.find(lineBreak, start);
-        if (pos != string::npos)
+        std::string::size_type pos = valueStr.find(lineBreak, start);
+        if (pos != std::string::npos)
         {
             add(valueStr.substr(start, pos - start).c_str());
             start = (int)(pos + lineBreak.length());
         }
         else
         {
-            string str = valueStr.substr(start);
+            std::string str = valueStr.substr(start);
             if (!str.empty())
                 add(str.c_str());
             break;
@@ -2281,7 +2377,7 @@ void Strings::setText(const char* value)
 
 //-----------------------------------------------------------------------------
 
-string Strings::getCommaText() const
+std::string Strings::getCommaText() const
 {
     UINT bakDefined = defined_;
     char bakDelimiter = delimiter_;
@@ -2290,7 +2386,7 @@ string Strings::getCommaText() const
     const_cast<Strings&>(*this).setDelimiter(DEFAULT_DELIMITER);
     const_cast<Strings&>(*this).setQuoteChar(DEFAULT_QUOTE_CHAR);
 
-    string result = getDelimitedText();  // 不可以抛出异常
+    std::string result = getDelimitedText();  // 不可以抛出异常
 
     const_cast<Strings&>(*this).defined_ = bakDefined;
     const_cast<Strings&>(*this).delimiter_ = bakDelimiter;
@@ -2311,18 +2407,18 @@ void Strings::setCommaText(const char* value)
 
 //-----------------------------------------------------------------------------
 
-string Strings::getDelimitedText() const
+std::string Strings::getDelimitedText() const
 {
-    string result;
-    string line;
+    std::string result;
+    std::string line;
     int count = getCount();
     char quoteChar = getQuoteChar();
     char delimiter = getDelimiter();
 
     if (count == 1 && getString(0).empty())
-        return string(getQuoteChar(), 2);
+        return std::string(getQuoteChar(), 2);
 
-    string delimiters;
+    std::string delimiters;
     for (int i = 1; i <= 32; i++)
         delimiters += (char)i;
     delimiters += quoteChar;
@@ -2331,7 +2427,7 @@ string Strings::getDelimitedText() const
     for (int i = 0; i < count; i++)
     {
         line = getString(i);
-        if (line.find_first_of(delimiters) != string::npos)
+        if (line.find_first_of(delimiters) != std::string::npos)
             line = getQuotedStr((char*)line.c_str(), quoteChar);
 
         if (i > 0) result += delimiter;
@@ -2350,7 +2446,7 @@ void Strings::setDelimitedText(const char* value)
     char quoteChar = getQuoteChar();
     char delimiter = getDelimiter();
     const char* curPtr = value;
-    string line;
+    std::string line;
 
     clear();
     while (*curPtr >= 1 && *curPtr <= 32)
@@ -2453,12 +2549,12 @@ void Strings::error(const char* msg, int data) const
 
 //-----------------------------------------------------------------------------
 
-string Strings::extractName(const char* str) const
+std::string Strings::extractName(const char* str) const
 {
-    string result(str);
+    std::string result(str);
 
-    string::size_type i = result.find(getNameValueSeparator());
-    if (i != string::npos)
+    std::string::size_type i = result.find(getNameValueSeparator());
+    if (i != std::string::npos)
         result = result.substr(0, i);
     else
         result.clear();
@@ -2653,7 +2749,7 @@ void StrList::setCapacity(int value)
     {
         for (int i = capacity_; i < value; i++)
         {
-            list_[i].str = NULL;   // new string object when needed
+            list_[i].str = NULL;   // new std::string object when needed
             list_[i].data = NULL;
         }
     }
@@ -2687,7 +2783,7 @@ void StrList::setData(int index, POINTER data)
 
 //-----------------------------------------------------------------------------
 
-const string& StrList::getString(int index) const
+const std::string& StrList::getString(int index) const
 {
     if (index < 0 || index >= count_)
         error(SEM_LIST_INDEX_ERROR, index);
@@ -2865,10 +2961,10 @@ void StrList::internalClear()
 
 //-----------------------------------------------------------------------------
 
-string& StrList::stringObjectNeeded(int index) const
+std::string& StrList::stringObjectNeeded(int index) const
 {
     if (list_[index].str == NULL)
-        list_[index].str = new string();
+        list_[index].str = new std::string();
     return *(list_[index].str);
 }
 
@@ -2937,7 +3033,7 @@ void StrList::quickSort(int l, int r, StringListCompareProc compareProc)
 ///////////////////////////////////////////////////////////////////////////////
 // class Url
 
-Url::Url(const string& url)
+Url::Url(const std::string& url)
 {
     setUrl(url);
 }
@@ -2983,10 +3079,10 @@ Url& Url::operator = (const Url& rhs)
 
 //-----------------------------------------------------------------------------
 
-string Url::getUrl() const
+std::string Url::getUrl() const
 {
     const char SEP_CHAR = '/';
-    string result;
+    std::string result;
 
     if (!protocol_.empty())
         result = protocol_ + "://";
@@ -3021,7 +3117,7 @@ string Url::getUrl() const
     }
 
     // path and filename
-    string str = path_;
+    std::string str = path_;
     if (!str.empty() && str[str.length()-1] != SEP_CHAR)
         str += SEP_CHAR;
     str += fileName_;
@@ -3045,7 +3141,7 @@ string Url::getUrl() const
 
 //-----------------------------------------------------------------------------
 
-string Url::getUrl(UINT parts)
+std::string Url::getUrl(UINT parts)
 {
     Url url(*this);
 
@@ -3064,16 +3160,16 @@ string Url::getUrl(UINT parts)
 
 //-----------------------------------------------------------------------------
 
-void Url::setUrl(const string& value)
+void Url::setUrl(const std::string& value)
 {
     clear();
 
-    string url(value);
+    std::string url(value);
     if (url.empty()) return;
 
     // get the bookmark
-    string::size_type pos = url.rfind('#');
-    if (pos != string::npos)
+    std::string::size_type pos = url.rfind('#');
+    if (pos != std::string::npos)
     {
         bookmark_ = url.substr(pos + 1);
         url.erase(pos);
@@ -3081,15 +3177,15 @@ void Url::setUrl(const string& value)
 
     // get the parameters
     pos = url.find('?');
-    if (pos != string::npos)
+    if (pos != std::string::npos)
     {
         params_ = url.substr(pos + 1);
         url = url.substr(0, pos);
     }
 
-    string buffer;
+    std::string buffer;
     pos = url.find("://");
-    if (pos != string::npos)
+    if (pos != std::string::npos)
     {
         protocol_ = url.substr(0, pos);
         url.erase(0, pos + 3);
@@ -3097,7 +3193,7 @@ void Url::setUrl(const string& value)
         buffer = fetchStr(url, '/', true);
         // get username and password
         pos = buffer.find('@');
-        if (pos != string::npos)
+        if (pos != std::string::npos)
         {
             password_ = buffer.substr(0, pos);
             buffer.erase(0, pos + 1);
@@ -3106,9 +3202,9 @@ void Url::setUrl(const string& value)
                 password_.clear();
         }
         // get the host and the port number
-        string::size_type p1, p2;
-        if ((p1 = buffer.find('[')) != string::npos &&
-            (p2 = buffer.find(']')) != string::npos &&
+        std::string::size_type p1, p2;
+        if ((p1 = buffer.find('[')) != std::string::npos &&
+            (p2 = buffer.find(']')) != std::string::npos &&
             p2 > p1)
         {
             // this is for IPv6 Hosts
@@ -3121,7 +3217,7 @@ void Url::setUrl(const string& value)
         port_ = buffer;
         // get the path
         pos = url.rfind('/');
-        if (pos != string::npos)
+        if (pos != std::string::npos)
         {
             path_ = "/" + url.substr(0, pos + 1);
             url.erase(0, pos + 1);
@@ -3133,7 +3229,7 @@ void Url::setUrl(const string& value)
     {
         // get the path
         pos = url.rfind('/');
-        if (pos != string::npos)
+        if (pos != std::string::npos)
         {
             path_ = url.substr(0, pos + 1);
             url.erase(0, pos + 1);
@@ -3429,7 +3525,7 @@ Logger& Logger::instance()
 //   fileName   - 日志文件名 (含路径)
 //   isNewFileDaily - 如果为true，将会自动在文件名后(后缀名前)加上当天的日期
 //-----------------------------------------------------------------------------
-void Logger::setFileName(const string& fileName, bool isNewFileDaily)
+void Logger::setFileName(const std::string& fileName, bool isNewFileDaily)
 {
     fileName_ = fileName;
     isNewFileDaily_ = isNewFileDaily;
@@ -3440,7 +3536,7 @@ void Logger::setFileName(const string& fileName, bool isNewFileDaily)
 //-----------------------------------------------------------------------------
 void Logger::writeStr(const char *str)
 {
-    string text;
+    std::string text;
     UINT processId, threadId;
 
 #ifdef ISE_WINDOWS
@@ -3464,7 +3560,7 @@ void Logger::writeStr(const char *str)
 //-----------------------------------------------------------------------------
 void Logger::writeFmt(const char *format, ...)
 {
-    string text;
+    std::string text;
 
     va_list argList;
     va_start(argList, format);
@@ -3484,16 +3580,16 @@ void Logger::writeException(const Exception& e)
 
 //-----------------------------------------------------------------------------
 
-string Logger::getLogFileName()
+std::string Logger::getLogFileName()
 {
-    string result = fileName_;
+    std::string result = fileName_;
 
     if (result.empty())
         result = getAppPath() + "log.txt";
 
     if (isNewFileDaily_)
     {
-        string fileExt = extractFileExt(result);
+        std::string fileExt = extractFileExt(result);
         result = result.substr(0, result.length() - fileExt.length()) + ".";
         result += DateTime::currentDateTime().dateString("");
         result += fileExt;
@@ -3504,7 +3600,7 @@ string Logger::getLogFileName()
 
 //-----------------------------------------------------------------------------
 
-bool Logger::openFile(FileStream& fileStream, const string& fileName)
+bool Logger::openFile(FileStream& fileStream, const std::string& fileName)
 {
     return
         fileStream.open(fileName, FM_OPEN_WRITE | FM_SHARE_DENY_NONE) ||
@@ -3514,15 +3610,15 @@ bool Logger::openFile(FileStream& fileStream, const string& fileName)
 //-----------------------------------------------------------------------------
 // 描述: 将字符串写入文件
 //-----------------------------------------------------------------------------
-void Logger::writeToFile(const string& str)
+void Logger::writeToFile(const std::string& str)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
-    string fileName = getLogFileName();
+    std::string fileName = getLogFileName();
     FileStream fs;
     if (!openFile(fs, fileName))
     {
-        string path = extractFilePath(fileName);
+        std::string path = extractFilePath(fileName);
         if (!path.empty())
         {
             forceDirectories(path);

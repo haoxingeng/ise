@@ -44,7 +44,9 @@ const char* const SEM_NO_PERM_READ_PROCSELFEXE    = "No permission to read /proc
 
 // ise_classes
 const char* const SEM_INVALID_DATETIME_STR        = "Invalid datetime string.";
-const char* const SEM_SEM_INIT_ERROR              = "Semaphore init error.";
+const char* const SEM_SEM_INIT_ERROR              = "Semaphore object init error.";
+const char* const SEM_COND_INIT_ERROR             = "Condition object init error.";
+const char* const SEM_FAIL_TO_CREATE_MUTEX        = "Fail to create mutex object.";
 const char* const SEM_CANNOT_CREATE_FILE          = "Cannot create file '%s'. %s.";
 const char* const SEM_CANNOT_OPEN_FILE            = "Cannot open file '%s'. %s.";
 const char* const SEM_SET_FILE_STREAM_SIZE_ERR    = "Error setting file stream size.";

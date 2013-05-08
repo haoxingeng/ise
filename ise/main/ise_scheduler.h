@@ -112,7 +112,7 @@ private:
 
     IseScheduleTaskList taskList_;
     SeqNumberAlloc taskIdAlloc_;
-    CriticalSection lock_;
+    Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

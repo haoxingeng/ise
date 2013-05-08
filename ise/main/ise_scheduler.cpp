@@ -160,7 +160,7 @@ void IseScheduleTaskMgr::execute(Thread& executorThread)
     {
         try
         {
-            AutoLocker locker(lock_);
+            AutoLocker locker(mutex_);
             for (int i = 0; i < taskList_.getCount(); i++)
                 taskList_[i]->process();
         }
@@ -177,7 +177,7 @@ void IseScheduleTaskMgr::execute(Thread& executorThread)
 UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
     const SchTaskTriggerCallback& onTrigger, const Context& context)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
 
     UINT result = static_cast<UINT>(taskIdAlloc_.allocId());
     IseScheduleTask *task = new IseScheduleTask(result, taskType,
@@ -192,7 +192,7 @@ UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeco
 //-----------------------------------------------------------------------------
 bool IseScheduleTaskMgr::removeTask(UINT taskId)
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     bool result = false;
 
     for (int i = 0; i < taskList_.getCount(); i++)
@@ -213,7 +213,7 @@ bool IseScheduleTaskMgr::removeTask(UINT taskId)
 //-----------------------------------------------------------------------------
 void IseScheduleTaskMgr::clear()
 {
-    AutoLocker locker(lock_);
+    AutoLocker locker(mutex_);
     taskList_.clear();
 }
 

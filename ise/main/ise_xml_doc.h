@@ -72,8 +72,8 @@ const char* const S_DEF_XML_DOC_VER = "1.0";
 ///////////////////////////////////////////////////////////////////////////////
 // 杂项函数
 
-string strToXml(const string& str);
-string xmlToStr(const string& str);
+std::string strToXml(const std::string& str);
+std::string xmlToStr(const std::string& str);
 
 ///////////////////////////////////////////////////////////////////////////////
 // class XmlNode
@@ -89,11 +89,11 @@ public:
 
     void addNode(XmlNode *node);
     XmlNode* addNode();
-    XmlNode* addNode(const string& name, const string& dataString);
+    XmlNode* addNode(const std::string& name, const std::string& dataString);
     void insertNode(int index, XmlNode *node);
 
-    XmlNode* findChildNode(const string& name);
-    int indexOf(const string& name);
+    XmlNode* findChildNode(const std::string& name);
+    int indexOf(const std::string& name);
     void clear();
 
     XmlNode* getRootNode() const;
@@ -101,12 +101,12 @@ public:
     int getChildCount() const;
     XmlNode* getChildNodes(int index) const;
     XmlNodeProps* getProps() const { return props_; }
-    string getName() const { return name_; }
-    string getDataString() const { return dataString_; }
+    std::string getName() const { return name_; }
+    std::string getDataString() const { return dataString_; }
 
     void setParentNode(XmlNode *node);
-    void setName(const string& value) { name_ = value; }
-    void setDataString(const string& value);
+    void setName(const std::string& value) { name_ = value; }
+    void setDataString(const std::string& value);
 
 private:
     void initObject();
@@ -116,8 +116,8 @@ private:
     XmlNode *parentNode_;       // 父节点
     PointerList *childNodes_;   // 子节点列表 (XmlNode*)[]
     XmlNodeProps *props_;       // 属性值列表
-    string name_;               // 节点名称
-    string dataString_;         // 节点数据(xmlToStr之后的数据)
+    std::string name_;               // 节点名称
+    std::string dataString_;         // 节点数据(xmlToStr之后的数据)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -125,8 +125,8 @@ private:
 
 struct XmlNodePropItem
 {
-    string name;
-    string value;
+    std::string name;
+    std::string value;
 };
 
 class XmlNodeProps
@@ -137,23 +137,23 @@ public:
     virtual ~XmlNodeProps();
 
     XmlNodeProps& operator = (const XmlNodeProps& rhs);
-    string& operator[](const string& name) { return valueOf(name); }
+    std::string& operator[](const std::string& name) { return valueOf(name); }
 
-    bool add(const string& name, const string& value);
-    void remove(const string& name);
+    bool add(const std::string& name, const std::string& value);
+    void remove(const std::string& name);
     void clear();
-    int indexOf(const string& name);
-    bool propExists(const string& name);
-    string& valueOf(const string& name);
+    int indexOf(const std::string& name);
+    bool propExists(const std::string& name);
+    std::string& valueOf(const std::string& name);
 
     int getCount() const { return items_.getCount(); }
     XmlNodePropItem getItems(int index) const;
-    string getPropString() const;
-    void setPropString(const string& propString);
+    std::string getPropString() const;
+    void setPropString(const std::string& propString);
 
 private:
     XmlNodePropItem* getItemPtr(int index) { return (XmlNodePropItem*)items_[index]; }
-    void parsePropString(const string& propStr);
+    void parsePropString(const std::string& propStr);
 
 private:
     PointerList items_;      // (XmlNodePropItem*)[]
@@ -173,26 +173,26 @@ public:
 
     bool saveToStream(Stream& stream);
     bool loadFromStream(Stream& stream);
-    bool saveToString(string& str);
-    bool loadFromString(const string& str);
-    bool saveToFile(const string& fileName);
-    bool loadFromFile(const string& fileName);
+    bool saveToString(std::string& str);
+    bool loadFromString(const std::string& str);
+    bool saveToFile(const std::string& fileName);
+    bool loadFromFile(const std::string& fileName);
     void clear();
 
     bool getAutoIndent() const { return autoIndent_; }
     int getIndentSpaces() const { return indentSpaces_; }
-    string getEncoding() const { return encoding_; }
+    std::string getEncoding() const { return encoding_; }
     XmlNode* getRootNode() { return &rootNode_; }
 
     void setAutoIndent(bool value) { autoIndent_ = value; }
     void setIndentSpaces(int value) { indentSpaces_ = value; }
-    void setEncoding(const string& value) { encoding_ = value; }
+    void setEncoding(const std::string& value) { encoding_ = value; }
 
 private:
     bool autoIndent_;     // 是否自动缩进
     int indentSpaces_;    // 缩进空格数
     XmlNode rootNode_;    // 根节点
-    string encoding_;     // XML编码
+    std::string encoding_;     // XML编码
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -204,11 +204,11 @@ public:
     XmlReader(XmlDocument *owner, Stream *stream);
     virtual ~XmlReader();
 
-    void readHeader(string& version, string& encoding);
+    void readHeader(std::string& version, std::string& encoding);
     void readRootNode(XmlNode *node);
 
 private:
-    XML_TAG_TYPES readXmlData(string& name, string& prop, string& data);
+    XML_TAG_TYPES readXmlData(std::string& name, std::string& prop, std::string& data);
     XML_TAG_TYPES readNode(XmlNode *node);
 
 private:
@@ -227,18 +227,18 @@ public:
     XmlWriter(XmlDocument *owner, Stream *stream);
     virtual ~XmlWriter();
 
-    void writeHeader(const string& version = S_DEF_XML_DOC_VER, const string& encoding = "");
+    void writeHeader(const std::string& version = S_DEF_XML_DOC_VER, const std::string& encoding = "");
     void writeRootNode(XmlNode *node);
 
 private:
     void flushBuffer();
-    void writeLn(const string& str);
+    void writeLn(const std::string& str);
     void writeNode(XmlNode *node, int indent);
 
 private:
     XmlDocument *owner_;
     Stream *stream_;
-    string buffer_;
+    std::string buffer_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -256,17 +256,17 @@ public:
     XmlDocParser();
     virtual ~XmlDocParser();
 
-    bool loadFromFile(const string& fileName);
+    bool loadFromFile(const std::string& fileName);
 
-    string getString(const string& namePath);
-    int getInteger(const string& namePath, int defaultVal = 0);
-    double getFloat(const string& namePath, double defaultVal = 0);
-    bool getBoolean(const string& namePath, bool defaultVal = 0);
+    std::string getString(const std::string& namePath);
+    int getInteger(const std::string& namePath, int defaultVal = 0);
+    double getFloat(const std::string& namePath, double defaultVal = 0);
+    bool getBoolean(const std::string& namePath, bool defaultVal = 0);
 
     XmlDocument& getXmlDoc() { return xmlDoc_; }
 
 private:
-    void splitNamePath(const string& namePath, StrList& result);
+    void splitNamePath(const std::string& namePath, StrList& result);
 private:
     XmlDocument xmlDoc_;
 };

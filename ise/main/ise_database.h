@@ -79,26 +79,26 @@ class DbConnParams
 public:
     DbConnParams();
     DbConnParams(const DbConnParams& src);
-    DbConnParams(const string& hostName, const string& userName,
-        const string& password, const string& dbName, const int port);
+    DbConnParams(const std::string& hostName, const std::string& userName,
+        const std::string& password, const std::string& dbName, const int port);
 
-    string getHostName() const { return hostName_; }
-    string getUserName() const { return userName_; }
-    string getPassword() const { return password_; }
-    string getDbName() const { return dbName_; }
+    std::string getHostName() const { return hostName_; }
+    std::string getUserName() const { return userName_; }
+    std::string getPassword() const { return password_; }
+    std::string getDbName() const { return dbName_; }
     int getPort() const { return port_; }
 
-    void setHostName(const string& value) { hostName_ = value; }
-    void setUserName(const string& value) { userName_ = value; }
-    void setPassword(const string& value) { password_ = value; }
-    void setDbName(const string& value) { dbName_ = value; }
+    void setHostName(const std::string& value) { hostName_ = value; }
+    void setUserName(const std::string& value) { userName_ = value; }
+    void setPassword(const std::string& value) { password_ = value; }
+    void setDbName(const std::string& value) { dbName_ = value; }
     void setPort(const int value) { port_ = value; }
 
 private:
-    string hostName_;           // 主机地址
-    string userName_;           // 用户名
-    string password_;           // 用户口令
-    string dbName_;             // 数据库名
+    std::string hostName_;           // 主机地址
+    std::string userName_;           // 用户名
+    std::string password_;           // 用户口令
+    std::string dbName_;             // 数据库名
     int port_;                  // 连接端口号
 };
 
@@ -115,16 +115,16 @@ public:
 
     int getMaxDbConnections() const { return maxDbConnections_; }
     StrList& initialSqlCmdList() { return initialSqlCmdList_; }
-    string getInitialCharSet() { return initialCharSet_; }
+    std::string getInitialCharSet() { return initialCharSet_; }
 
     void setMaxDbConnections(int value);
-    void setInitialSqlCmd(const string& value);
-    void setInitialCharSet(const string& value);
+    void setInitialSqlCmd(const std::string& value);
+    void setInitialCharSet(const std::string& value);
 
 private:
     int maxDbConnections_;                      // 连接池所允许的最大连接数
     StrList initialSqlCmdList_;                 // 数据库刚建立连接时要执行的命令
-    string initialCharSet_;                     // 数据库刚建立连接时要设置的字符集
+    std::string initialCharSet_;                     // 数据库刚建立连接时要设置的字符集
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -196,7 +196,7 @@ protected:
 protected:
     Database *database_;            // 所属 Database 引用
     PointerList dbConnectionList_;  // 当前连接列表 (DbConnection*[])，包含空闲连接和忙连接
-    CriticalSection lock_;          // 互斥锁
+    Mutex mutex_;          // 互斥锁
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -206,17 +206,17 @@ class DbFieldDef
 {
 public:
     DbFieldDef() {}
-    DbFieldDef(const string& name, int type);
+    DbFieldDef(const std::string& name, int type);
     DbFieldDef(const DbFieldDef& src);
     virtual ~DbFieldDef() {}
 
     void setData(char *name, int type) { name_ = name; type_ = type; }
 
-    string getName() const { return name_; }
+    std::string getName() const { return name_; }
     int getType() const { return type_; }
 
 protected:
-    string name_;               // 字段名称
+    std::string name_;               // 字段名称
     int type_;                  // 字段类型(含义由子类定义)
 };
 
@@ -234,7 +234,7 @@ public:
     // 释放并清空所有字段定义对象
     void clear();
     // 返回字段名对应的字段序号(0-based)
-    int indexOfName(const string& name);
+    int indexOfName(const std::string& name);
     // 返回全部字段名
     void getFieldNameList(StrList& list);
 
@@ -259,7 +259,7 @@ public:
     virtual INT64 asInt64(INT64 defaultVal = 0) const;
     virtual double asFloat(double defaultVal = 0) const;
     virtual bool asBoolean(bool defaultVal = false) const;
-    virtual string asString() const { return ""; };
+    virtual std::string asString() const { return ""; };
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -297,11 +297,11 @@ public:
 
     virtual void setInt(int value) {}
     virtual void setFloat(double value) {}
-    virtual void setString(const string& value) {}
+    virtual void setString(const std::string& value) {}
 
 protected:
     DbQuery *dbQuery_;   // DbQuery 对象引用
-    string name_;        // 参数名称
+    std::string name_;        // 参数名称
     int number_;         // 参数序号(1-based)
 };
 
@@ -314,15 +314,15 @@ public:
     DbParamList(DbQuery *dbQuery);
     virtual ~DbParamList();
 
-    virtual DbParam* paramByName(const string& name);
+    virtual DbParam* paramByName(const std::string& name);
     virtual DbParam* paramByNumber(int number);
 
     void clear();
 
 protected:
-    virtual DbParam* findParam(const string& name);
+    virtual DbParam* findParam(const std::string& name);
     virtual DbParam* findParam(int number);
-    virtual DbParam* createParam(const string& name, int number);
+    virtual DbParam* createParam(const std::string& name, int number);
 
 protected:
     DbQuery *dbQuery_;       // DbQuery 对象引用
@@ -367,7 +367,7 @@ public:
     DbFieldDef* getFieldDefs(int index);
     // 取得当前记录中某个字段的数据 (index: 0-based)
     DbField* getFields(int index);
-    DbField* getFields(const string& name);
+    DbField* getFields(const std::string& name);
 
 protected:
     // 初始化数据集 (若失败则抛出异常)
@@ -397,10 +397,10 @@ public:
     virtual ~DbQuery();
 
     // 设置SQL语句
-    void setSql(const string& sql);
+    void setSql(const std::string& sql);
 
     // 根据名称取得参数对象
-    virtual DbParam* paramByName(const string& name);
+    virtual DbParam* paramByName(const std::string& name);
     // 根据序号(1-based)取得参数对象
     virtual DbParam* paramByNumber(int number);
 
@@ -410,7 +410,7 @@ public:
     DbDataSet* query();
 
     // 转换字符串使之在SQL中合法 (str 中可含 '\0' 字符)
-    virtual string escapeString(const string& str);
+    virtual std::string escapeString(const std::string& str);
     // 取得执行SQL后受影响的行数
     virtual UINT getAffectedRowCount();
     // 取得最后一条插入语句的自增ID的值
@@ -423,7 +423,7 @@ public:
 
 protected:
     // 设置SQL语句
-    virtual void doSetSql(const string& sql) {}
+    virtual void doSetSql(const std::string& sql) {}
     // 执行SQL (若 resultDataSet 为 NULL，则表示无数据集返回。若失败则抛出异常)
     virtual void doExecute(DbDataSet *resultDataSet) {}
 
@@ -434,7 +434,7 @@ protected:
     Database *database_;           // Database 对象引用
     DbConnection *dbConnection_;   // DbConnection 对象引用
     DbParamList *dbParamList_;     // SQL 参数列表
-    string sql_;                   // 待执行的SQL语句
+    std::string sql_;                   // 待执行的SQL语句
 };
 
 ///////////////////////////////////////////////////////////////////////////////

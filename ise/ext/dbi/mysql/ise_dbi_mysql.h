@@ -82,7 +82,7 @@ public:
 
     void setData(void *dataPtr, int dataSize);
     virtual bool isNull() const { return (dataPtr_ == NULL); }
-    virtual string asString() const;
+    virtual std::string asString() const;
 
 private:
     char* dataPtr_;               // 指向字段数据
@@ -126,7 +126,7 @@ public:
     MySqlQuery(Database *database);
     virtual ~MySqlQuery();
 
-    virtual string escapeString(const string& str);
+    virtual std::string escapeString(const std::string& str);
     virtual UINT getAffectedRowCount();
     virtual UINT64 getLastInsertId();
 

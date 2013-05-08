@@ -61,8 +61,8 @@ MySqlConnection::~MySqlConnection()
 //-----------------------------------------------------------------------------
 void MySqlConnection::doConnect()
 {
-    static CriticalSection s_Lock;
-    AutoLocker locker(s_Lock);
+    static Mutex s_mutex;
+    AutoLocker locker(s_mutex);
 
     if (mysql_init(&connObject_) == NULL)
         iseThrowDbException(SEM_MYSQL_INIT_ERROR);
@@ -84,7 +84,7 @@ void MySqlConnection::doConnect()
     }
 
     // for MYSQL 5.0.7 or higher
-    string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
+    std::string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
     if (!strInitialCharSet.empty())
         mysql_set_character_set(&connObject_, strInitialCharSet.c_str());
 
@@ -117,9 +117,9 @@ void MySqlField::setData(void *dataPtr, int dataSize)
 //-----------------------------------------------------------------------------
 // 描述: 以字符串型返回字段值
 //-----------------------------------------------------------------------------
-string MySqlField::asString() const
+std::string MySqlField::asString() const
 {
-    string result;
+    std::string result;
 
     if (dataPtr_ && dataSize_ > 0)
         result.assign(dataPtr_, dataSize_);
@@ -285,7 +285,7 @@ MySqlQuery::~MySqlQuery()
 //-----------------------------------------------------------------------------
 // 描述: 转换字符串使之在SQL中合法
 //-----------------------------------------------------------------------------
-string MySqlQuery::escapeString(const string& str)
+std::string MySqlQuery::escapeString(const std::string& str)
 {
     if (str.empty()) return "";
 
@@ -375,14 +375,14 @@ void MySqlQuery::doExecute(DbDataSet *resultDataSet)
             }
 
             // 否则抛出异常
-            string sql(sql_);
+            std::string sql(sql_);
             if (sql.length() > 1024*2)
             {
                 sql.resize(100);
                 sql += "...";
             }
 
-            string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
+            std::string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
             iseThrowDbException(errMsg.c_str());
         }
         else break;

@@ -27,7 +27,7 @@ void AppBusiness::finalize()
     IseSvrModBusiness::finalize();
 
     const char *msg = "4in1-server stoped.";
-    cout << msg << endl;
+    std::cout << msg << std::endl;
     logger().writeStr(msg);
 }
 
@@ -40,7 +40,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
     case SS_AFTER_START:
         {
             const char *msg = "4in1-server started.";
-            cout << endl << msg << endl;
+            std::cout << std::endl << msg << std::endl;
             logger().writeStr(msg);
         }
         break;
@@ -48,7 +48,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
     case SS_START_FAIL:
         {
             const char *msg = "Fail to start 4in1-server.";
-            cout << endl << msg << endl;
+            std::cout << std::endl << msg << std::endl;
             logger().writeStr(msg);
         }
         break;

@@ -202,12 +202,12 @@ public:
     int getWritableBytes() const { return (int)buffer_.size() - writerIndex_; }
     int getUselessBytes() const { return readerIndex_; }
 
-    void append(const string& str);
+    void append(const std::string& str);
     void append(const void *data, int bytes);
     void append(int bytes);
 
     void retrieve(int bytes);
-    void retrieveAll(string& str);
+    void retrieveAll(std::string& str);
     void retrieveAll();
 
     void swap(IoBuffer& rhs);
@@ -219,7 +219,7 @@ private:
     void makeSpace(int moreBytes);
 
 private:
-    vector<char> buffer_;
+    std::vector<char> buffer_;
     int readerIndex_;
     int writerIndex_;
 };
@@ -244,13 +244,13 @@ private:
 class TcpEventLoop : boost::noncopyable
 {
 public:
-    typedef vector<Functor> Functors;
-    typedef map<string, TcpConnectionPtr> TcpConnectionMap;  // <connectionName, TcpConnectionPtr>
+    typedef std::vector<Functor> Functors;
+    typedef std::map<std::string, TcpConnectionPtr> TcpConnectionMap;  // <connectionName, TcpConnectionPtr>
 
     struct FunctorList
     {
         Functors items;
-        CriticalSection lock;
+        Mutex mutex;
     };
 
 public:
@@ -361,8 +361,8 @@ public:
         }
     };
 
-    typedef deque<SendTask> SendTaskQueue;
-    typedef deque<RecvTask> RecvTaskQueue;
+    typedef std::deque<SendTask> SendTaskQueue;
+    typedef std::deque<RecvTask> RecvTaskQueue;
 
 public:
     TcpConnection();
@@ -384,7 +384,7 @@ public:
 
     bool isFromClient() const { return (tcpServer_ == NULL);}
     bool isFromServer() const { return (tcpServer_ != NULL);}
-    const string& getConnectionName() const;
+    const std::string& getConnectionName() const;
     int getServerIndex() const;
     int getServerPort() const;
     int getServerConnCount() const;
@@ -398,7 +398,7 @@ protected:
 protected:
     void errorOccurred();
     void checkTimeout(UINT curTicks);
-    void postSendTask(const string& data, const Context& context, int timeout);
+    void postSendTask(const std::string& data, const Context& context, int timeout);
 
     void setEventLoop(TcpEventLoop *eventLoop);
     TcpEventLoop* getEventLoop() { return eventLoop_; }
@@ -409,7 +409,7 @@ private:
 protected:
     TcpServer *tcpServer_;           // 所属 TcpServer
     TcpEventLoop *eventLoop_;        // 所属 TcpEventLoop
-    mutable string connectionName_;  // 连接名称
+    mutable std::string connectionName_;  // 连接名称
     IoBuffer sendBuffer_;            // 数据发送缓存
     IoBuffer recvBuffer_;            // 数据接收缓存
     SendTaskQueue sendTaskQueue_;    // 发送任务队列
@@ -465,7 +465,7 @@ public:
         const InetAddress& peerAddr, const Context& context)> CompleteCallback;
 
 private:
-    typedef vector<SOCKET> FdList;
+    typedef std::vector<SOCKET> FdList;
 
     struct TaskItem
     {
@@ -516,7 +516,7 @@ private:
 
 private:
     TaskList taskList_;
-    CriticalSection lock_;
+    Mutex mutex_;
     WorkerThread *thread_;
 };
 
@@ -636,7 +636,7 @@ private:
     int bufferSize_;
     PointerList items_;
     int usedCount_;
-    CriticalSection lock_;
+    Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -663,7 +663,7 @@ private:
     typedef std::map<PVOID, CountData> Items;   // <caller, CountData>
 
     Items items_;
-    CriticalSection lock_;
+    Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -788,7 +788,7 @@ public:
         ET_ALLOW_RECV  = 3,
     };
 
-    typedef vector<struct epoll_event> EventList;
+    typedef std::vector<struct epoll_event> EventList;
     typedef int EventPipe[2];
 
     typedef boost::function<void (TcpConnection *connection, EVENT_TYPE eventType)> NotifyEventCallback;
@@ -875,7 +875,7 @@ private:
     void onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection);
 
 private:
-    typedef vector<TcpServer*> TcpServerList;
+    typedef std::vector<TcpServer*> TcpServerList;
 
     bool isActive_;
     TcpServerList tcpServerList_;

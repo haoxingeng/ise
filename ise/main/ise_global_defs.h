@@ -100,10 +100,10 @@ typedef pid_t THREAD_ID;
 
 typedef void* POINTER;
 
-typedef vector<string> StringArray;
-typedef vector<int> IntegerArray;
-typedef vector<bool> BooleanArray;
-typedef set<int> IntegerSet;
+typedef std::vector<std::string> StringArray;
+typedef std::vector<int> IntegerArray;
+typedef std::vector<bool> BooleanArray;
+typedef std::set<int> IntegerSet;
 
 typedef boost::any Context;
 typedef boost::function<void(void)> Functor;

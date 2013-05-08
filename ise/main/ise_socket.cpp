@@ -104,9 +104,9 @@ int iseSocketGetLastError()
 //-----------------------------------------------------------------------------
 // 描述: 返回错误信息
 //-----------------------------------------------------------------------------
-string iseSocketGetErrorMsg(int errorCode)
+std::string iseSocketGetErrorMsg(int errorCode)
 {
-    string result;
+    std::string result;
     const char *p = "";
 
     switch (errorCode)
@@ -159,7 +159,7 @@ string iseSocketGetErrorMsg(int errorCode)
 //-----------------------------------------------------------------------------
 // 描述: 取得最后错误的对应信息
 //-----------------------------------------------------------------------------
-string iseSocketGetLastErrMsg()
+std::string iseSocketGetLastErrMsg()
 {
     return iseSocketGetErrorMsg(iseSocketGetLastError());
 }
@@ -180,7 +180,7 @@ void iseCloseSocket(SOCKET handle)
 //-----------------------------------------------------------------------------
 // 描述: 整形IP(主机字节顺序) -> 串型IP
 //-----------------------------------------------------------------------------
-string ipToString(UINT ip)
+std::string ipToString(UINT ip)
 {
 #pragma pack(1)
     union CIpUnion
@@ -206,7 +206,7 @@ string ipToString(UINT ip)
 //-----------------------------------------------------------------------------
 // 描述: 串型IP -> 整形IP(主机字节顺序)
 //-----------------------------------------------------------------------------
-UINT stringToIp(const string& str)
+UINT stringToIp(const std::string& str)
 {
 #pragma pack(1)
     union CIpUnion
@@ -358,10 +358,10 @@ void getLocalIpList(StrList& ipList)
 //-----------------------------------------------------------------------------
 // 描述: 取得本机IP
 //-----------------------------------------------------------------------------
-string getLocalIp()
+std::string getLocalIp()
 {
     StrList ipList;
-    string result;
+    std::string result;
 
     getLocalIpList(ipList);
     if (!ipList.isEmpty())
@@ -391,9 +391,9 @@ string getLocalIp()
 // 描述: 域名地址 -> IP地址
 // 备注: 若失败，则返回空字符串。
 //-----------------------------------------------------------------------------
-string lookupHostAddr(const string& host)
+std::string lookupHostAddr(const std::string& host)
 {
-    string result = "";
+    std::string result = "";
 
     struct hostent* hostentPtr = gethostbyname(host.c_str());
     if (hostentPtr != NULL)
@@ -413,7 +413,7 @@ void iseThrowSocketLastError()
 ///////////////////////////////////////////////////////////////////////////////
 // class InetAddress
 
-string InetAddress::getDisplayStr() const
+std::string InetAddress::getDisplayStr() const
 {
     return formatString("%s:%u", ipToString(ip).c_str(), port);
 }
@@ -1230,7 +1230,7 @@ BaseTcpClient::~BaseTcpClient()
 // 描述: 发起TCP连接请求 (阻塞式)
 // 备注: 若连接失败，则抛出异常。
 //-----------------------------------------------------------------------------
-void BaseTcpClient::connect(const string& ip, int port)
+void BaseTcpClient::connect(const std::string& ip, int port)
 {
     ensureConnCreated();
     TcpSocket& socket = getSocket();
@@ -1271,7 +1271,7 @@ void BaseTcpClient::connect(const string& ip, int port)
 // 备注:
 //   不抛异常。
 //-----------------------------------------------------------------------------
-int BaseTcpClient::asyncConnect(const string& ip, int port, int timeoutMSecs)
+int BaseTcpClient::asyncConnect(const std::string& ip, int port, int timeoutMSecs)
 {
     int result = ACS_CONNECTING;
 

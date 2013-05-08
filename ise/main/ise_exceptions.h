@@ -45,10 +45,10 @@ public:
     virtual ~Exception() throw() {}
 
     virtual const char* what() const throw();
-    virtual string getErrorMessage() const { return ""; }
-    virtual string makeLogStr() const;
+    virtual std::string getErrorMessage() const { return ""; }
+    virtual std::string makeLogStr() const;
 private:
-    mutable string what_;
+    mutable std::string what_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -63,13 +63,13 @@ public:
         int srcLineNumber = -1);
     virtual ~SimpleException() throw() {}
 
-    virtual string getErrorMessage() const { return errorMsg_; }
-    virtual string makeLogStr() const;
+    virtual std::string getErrorMessage() const { return errorMsg_; }
+    virtual std::string makeLogStr() const;
     void setErrorMesssage(const char *msg) { errorMsg_ = msg; }
 
 protected:
-    string errorMsg_;
-    string srcFileName_;
+    std::string errorMsg_;
+    std::string srcFileName_;
     int srcLineNumber_;
 };
 
@@ -105,7 +105,7 @@ public:
     FileException(const char *fileName, int errorCode, const char *errorMsg = NULL);
     virtual ~FileException() throw() {}
 protected:
-    string fileName_;
+    std::string fileName_;
     int errorCode_;
 };
 

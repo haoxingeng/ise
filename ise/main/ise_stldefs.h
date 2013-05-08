@@ -76,11 +76,8 @@
   #define EXT_STL_NAMESPACE   __gnu_cxx
 #endif
 
-using namespace std;
-using namespace EXT_STL_NAMESPACE;
-
 ///////////////////////////////////////////////////////////////////////////////
-// string hasher 定义
+// std::string hasher 定义
 
 #ifdef ISE_USING_EXT_STL
 #ifdef ISE_LINUX
@@ -98,7 +95,7 @@ namespace EXT_STL_NAMESPACE
     }
 
     template <> struct hash<string> {
-        size_t operator()(const string& s) const { return stl_string_hash(s); }
+        size_t operator()(const std::string& s) const { return stl_string_hash(s); }
     };
 
     template <> struct hash<wstring> {
