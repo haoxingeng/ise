@@ -56,14 +56,14 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
 
 void AppBusiness::initIseOptions(IseOptions& options)
 {
-    options.setLogFileName(getAppSubPath("log") + "discard-log.txt", true);
+    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
     options.setIsDaemon(true);
     options.setAllowMultiInstance(false);
 
     options.setServerType(ST_TCP);
     options.setTcpServerCount(1);
     options.setTcpServerPort(10001);
-    options.setTcpEventLoopCount(1);
+    options.setTcpServerEventLoopCount(1);
 }
 
 //-----------------------------------------------------------------------------

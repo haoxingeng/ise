@@ -131,7 +131,7 @@ const unsigned int FA_VOLUME_ID     = 0x00000008;    // Windows Only
 const unsigned int FA_DIRECTORY     = 0x00000010;
 const unsigned int FA_ARCHIVE       = 0x00000020;
 const unsigned int FA_SYM_LINK      = 0x00000040;    // Linux Only
-const unsigned int FA_ANY_FILE      = 0x0000003F;
+const unsigned int FA_ANY_FILE      = 0x0000007F;
 
 // ·¶Î§Öµ
 #define MINCHAR     0x80

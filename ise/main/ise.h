@@ -45,5 +45,6 @@
 #include "ise/main/ise_scheduler.h"
 #include "ise/main/ise_database.h"
 #include "ise/main/ise_http.h"
+#include "ise/main/ise_inspector.h"
 
 #endif // _ISE_H_

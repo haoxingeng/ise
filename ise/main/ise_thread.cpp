@@ -534,7 +534,10 @@ int LinuxThreadImpl::waitFor()
     {
         pthreadId_ = 0;
         threadId_ = 0;
-        checkThreadError(pthread_join(threadId, (void**)&returnValue_));
+
+        void *valuePtr = NULL;
+        checkThreadError(pthread_join(threadId, &valuePtr));
+        returnValue_ = (intptr_t)valuePtr;
     }
 
     return returnValue_;

@@ -81,7 +81,7 @@ class StrList;
 struct FileFindItem
 {
     INT64 fileSize;         // 文件大小
-    std::string fileName;        // 文件名(不含路径)
+    std::string fileName;   // 文件名(不含路径)
     UINT attr;              // 文件属性
 };
 
@@ -120,8 +120,6 @@ std::string repalceString(const std::string& sourceStr, const std::string& oldPa
 void splitString(const std::string& sourceStr, char splitter, StrList& strList,
     bool trimResult = false);
 void splitStringToInt(const std::string& sourceStr, char splitter, IntegerArray& intList);
-char* strNCopy(char *dest, const char *source, int maxBytes);
-char* strNZCopy(char *dest, const char *source, int destSize);
 std::string fetchStr(std::string& inputStr, char delimiter = ' ', bool del = true);
 std::string addThousandSep(const INT64& number);
 
@@ -148,7 +146,7 @@ INT64 getFileSize(const std::string& fileName);
 void findFiles(const std::string& path, UINT attr, FileFindResult& findResult);
 std::string pathWithSlash(const std::string& path);
 std::string pathWithoutSlash(const std::string& path);
-std::string GetAppExeName();
+std::string getAppExeName();
 std::string getAppPath();
 std::string getAppSubPath(const std::string& subDir = "");
 

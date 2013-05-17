@@ -116,8 +116,8 @@ private:
     XmlNode *parentNode_;       // 父节点
     PointerList *childNodes_;   // 子节点列表 (XmlNode*)[]
     XmlNodeProps *props_;       // 属性值列表
-    std::string name_;               // 节点名称
-    std::string dataString_;         // 节点数据(xmlToStr之后的数据)
+    std::string name_;          // 节点名称
+    std::string dataString_;    // 节点数据(xmlToStr之后的数据)
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -189,10 +189,10 @@ public:
     void setEncoding(const std::string& value) { encoding_ = value; }
 
 private:
-    bool autoIndent_;     // 是否自动缩进
-    int indentSpaces_;    // 缩进空格数
-    XmlNode rootNode_;    // 根节点
-    std::string encoding_;     // XML编码
+    bool autoIndent_;       // 是否自动缩进
+    int indentSpaces_;      // 缩进空格数
+    XmlNode rootNode_;      // 根节点
+    std::string encoding_;  // XML编码
 };
 
 ///////////////////////////////////////////////////////////////////////////////

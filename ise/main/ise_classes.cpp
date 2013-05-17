@@ -770,13 +770,17 @@ INT64 Stream::getSize()
 // 参数:
 //   memoryDelta - 内存增长步长 (字节数，必须是 2 的 N 次方)
 //-----------------------------------------------------------------------------
-MemoryStream::MemoryStream(int memoryDelta) :
-    memory_(NULL),
-    capacity_(0),
-    size_(0),
-    position_(0)
+MemoryStream::MemoryStream(int memoryDelta)
 {
-    setMemoryDelta(memoryDelta);
+    init();
+}
+
+//-----------------------------------------------------------------------------
+
+MemoryStream::MemoryStream(const MemoryStream& src)
+{
+    init();
+    assign(src);
 }
 
 //-----------------------------------------------------------------------------
@@ -784,6 +788,26 @@ MemoryStream::MemoryStream(int memoryDelta) :
 MemoryStream::~MemoryStream()
 {
     clear();
+}
+
+//-----------------------------------------------------------------------------
+
+void MemoryStream::init()
+{
+    memory_ = NULL;
+    capacity_ = 0;
+    size_ = 0;
+    position_ = 0;
+    setMemoryDelta(DEFAULT_MEMORY_DELTA);
+}
+
+//-----------------------------------------------------------------------------
+
+MemoryStream& MemoryStream::operator = (const MemoryStream& rhs)
+{
+    if (this != &rhs)
+        assign(rhs);
+    return *this;
 }
 
 //-----------------------------------------------------------------------------
@@ -957,6 +981,17 @@ void MemoryStream::clear()
     setCapacity(0);
     size_ = 0;
     position_ = 0;
+}
+
+//-----------------------------------------------------------------------------
+
+void MemoryStream::assign(const MemoryStream& src)
+{
+    setMemoryDelta(src.memoryDelta_);
+    setSize(src.size_);
+    setPosition(src.position_);
+    if (size_ > 0)
+        memmove(memory_, src.memory_, size_);
 }
 
 //-----------------------------------------------------------------------------
@@ -1327,7 +1362,8 @@ INT64 FileStream::fileSeek(HANDLE handle, INT64 offset, SEEK_ORIGIN seekOrigin)
     return result;
 #endif
 #ifdef ISE_LINUX
-    return ::lseek(handle, static_cast<__off_t>(offset), seekOrigin);
+    INT64 result = ::lseek(handle, static_cast<__off_t>(offset), seekOrigin);
+    return result;
 #endif
 }
 
@@ -1630,7 +1666,10 @@ PropertyList::PropertyList()
     // nothing
 }
 
-//-----------------------------------------------------------------------------
+PropertyList::PropertyList(const PropertyList& src)
+{
+    assign(src);
+}
 
 PropertyList::~PropertyList()
 {
@@ -1728,7 +1767,7 @@ bool PropertyList::getValue(const std::string& name, std::string& value) const
 //-----------------------------------------------------------------------------
 // 描述: 根据下标号(0-based)取得属性项目
 //-----------------------------------------------------------------------------
-const PropertyList::PropertyItem& PropertyList::getItems(int index) const
+const PropertyList::PropertyItem& PropertyList::getItem(int index) const
 {
     if (index < 0 || index >= getCount())
         iseThrowException(SEM_INDEX_ERROR);
@@ -1755,7 +1794,7 @@ std::string PropertyList::getPropString() const
 
     for (int index = 0; index < getCount(); index++)
     {
-        const PropertyItem& item = getItems(index);
+        const PropertyItem& item = getItem(index);
 
         itemStr = item.name + (char)NAME_VALUE_SEP + item.value;
         if (hasReservedChar(itemStr))
@@ -1800,12 +1839,8 @@ void PropertyList::setPropString(const std::string& propString)
 //-----------------------------------------------------------------------------
 PropertyList& PropertyList::operator = (const PropertyList& rhs)
 {
-    if (this == &rhs) return *this;
-
-    clear();
-    for (int i = 0; i < rhs.getCount(); i++)
-        add(rhs.getItems(i).name, rhs.getItems(i).value);
-
+    if (this != &rhs)
+        assign(rhs);
     return *this;
 }
 
@@ -1823,6 +1858,15 @@ std::string& PropertyList::operator[] (const std::string& name)
     }
 
     return ((PropertyItem*)items_[i])->value;
+}
+
+//-----------------------------------------------------------------------------
+
+void PropertyList::assign(const PropertyList& src)
+{
+    clear();
+    for (int i = 0; i < src.getCount(); i++)
+        add(src.getItem(i).name, src.getItem(i).value);
 }
 
 //-----------------------------------------------------------------------------
@@ -2101,15 +2145,24 @@ bool Strings::loadFromStream(Stream& stream)
     {
         AutoUpdater autoUpdater(*this);
 
-        INT64 size64 = stream.getSize() - stream.getPosition();
-        ISE_ASSERT(size64 <= MAXLONG);
-        int size = (int)size64;
+        const int BLOCK_SIZE = 1024*64;
+        Buffer block(BLOCK_SIZE);
+        MemoryStream memStream;
 
-        Buffer buffer(size + sizeof(char));
-        stream.readBuffer(buffer, size);
-        *((char*)(buffer.data() + size)) = '\0';
+        while (true)
+        {
+            int bytesRead = stream.read(block.data(), block.getSize());
+            if (bytesRead > 0)
+                memStream.write(block.data(), bytesRead);
 
-        setText(buffer);
+            if (bytesRead < block.getSize())
+                break;
+        }
+
+        char endChar = 0;
+        memStream.write(&endChar, sizeof(char));
+
+        setText(memStream.getMemory());
         return true;
     }
     catch (Exception&)

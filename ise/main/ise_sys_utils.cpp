@@ -157,7 +157,7 @@ std::string intToStr(INT64 value)
     sprintf(temp, "%I64d", value);
 #endif
 #ifdef ISE_LINUX
-    sprintf(temp, "%lld", value);
+    sprintf(temp, "%lld", static_cast<long long int>(value));
 #endif
     return &temp[0];
 }
@@ -472,51 +472,6 @@ void splitStringToInt(const std::string& sourceStr, char splitter, IntegerArray&
     intList.clear();
     for (int i = 0; i < strList.getCount(); i++)
         intList.push_back(atoi(strList[i].c_str()));
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 复制串 source 到 dest 中
-// 备注:
-//   1. 最多只复制 maxBytes 个字节到 dest 中，包括结束符'\0'。
-//   2. 如果 source 的实际长度(strlen)小于 maxBytes，则复制会提前结束，
-//      dest 的剩余部分以 '\0' 填充。
-//   3. 如果 source 的实际长度(strlen)大于 maxBytes，则复制之后的 dest 没有结束符。
-//-----------------------------------------------------------------------------
-char *strNCopy(char *dest, const char *source, int maxBytes)
-{
-    if (maxBytes > 0)
-    {
-        if (source)
-            return strncpy(dest, source, maxBytes);
-        else
-            return strcpy(dest, "");
-    }
-
-    return dest;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 复制串 source 到 dest 中
-// 备注: 最多只复制 destSize 个字节到 dest 中。并将 dest 的最后字节设为'\0'。
-// 参数:
-//   destSize - dest的大小
-//-----------------------------------------------------------------------------
-char *strNZCopy(char *dest, const char *source, int destSize)
-{
-    if (destSize > 0)
-    {
-        if (source)
-        {
-            char *p;
-            p = strncpy(dest, source, destSize);
-            dest[destSize - 1] = '\0';
-            return p;
-        }
-        else
-            return strcpy(dest, "");
-    }
-    else
-        return dest;
 }
 
 //-----------------------------------------------------------------------------
@@ -1148,9 +1103,9 @@ void findFiles(const std::string& path, UINT attr, FileFindResult& findResult)
                 if (euidaccess(fullName.c_str(), W_OK) != 0)
                     fileAttr |= FA_READ_ONLY;
 
-                bool bIsSpecDir = (fileAttr & FA_DIRECTORY) && (name == "." || name == "..");
+                bool isSpecDir = (fileAttr & FA_DIRECTORY) && (name == "." || name == "..");
 
-                if ((fileAttr & excludeAttr) == 0 && !bIsSpecDir)
+                if ((fileAttr & excludeAttr) == 0 && !isSpecDir)
                 {
                     FileFindItem item;
                     item.fileSize = statBuf.st_size;
@@ -1194,7 +1149,7 @@ std::string pathWithoutSlash(const std::string& path)
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件的全名(含绝对路径)
 //-----------------------------------------------------------------------------
-std::string GetAppExeName()
+std::string getAppExeName()
 {
 #ifdef ISE_WINDOWS
     char buffer[MAX_PATH];
@@ -1229,7 +1184,7 @@ std::string GetAppExeName()
 //-----------------------------------------------------------------------------
 std::string getAppPath()
 {
-    return extractFilePath(GetAppExeName());
+    return extractFilePath(getAppExeName());
 }
 
 //-----------------------------------------------------------------------------

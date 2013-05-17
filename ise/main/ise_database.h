@@ -95,10 +95,10 @@ public:
     void setPort(const int value) { port_ = value; }
 
 private:
-    std::string hostName_;           // 主机地址
-    std::string userName_;           // 用户名
-    std::string password_;           // 用户口令
-    std::string dbName_;             // 数据库名
+    std::string hostName_;      // 主机地址
+    std::string userName_;      // 用户名
+    std::string password_;      // 用户口令
+    std::string dbName_;        // 数据库名
     int port_;                  // 连接端口号
 };
 
@@ -124,7 +124,7 @@ public:
 private:
     int maxDbConnections_;                      // 连接池所允许的最大连接数
     StrList initialSqlCmdList_;                 // 数据库刚建立连接时要执行的命令
-    std::string initialCharSet_;                     // 数据库刚建立连接时要设置的字符集
+    std::string initialCharSet_;                // 数据库刚建立连接时要设置的字符集
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -216,7 +216,7 @@ public:
     int getType() const { return type_; }
 
 protected:
-    std::string name_;               // 字段名称
+    std::string name_;          // 字段名称
     int type_;                  // 字段类型(含义由子类定义)
 };
 
@@ -301,7 +301,7 @@ public:
 
 protected:
     DbQuery *dbQuery_;   // DbQuery 对象引用
-    std::string name_;        // 参数名称
+    std::string name_;   // 参数名称
     int number_;         // 参数序号(1-based)
 };
 
@@ -434,7 +434,7 @@ protected:
     Database *database_;           // Database 对象引用
     DbConnection *dbConnection_;   // DbConnection 对象引用
     DbParamList *dbParamList_;     // SQL 参数列表
-    std::string sql_;                   // 待执行的SQL语句
+    std::string sql_;              // 待执行的SQL语句
 };
 
 ///////////////////////////////////////////////////////////////////////////////

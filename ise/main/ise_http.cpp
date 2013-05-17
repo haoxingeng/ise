@@ -33,7 +33,7 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // Misc Routines
 
-std::string GetHttpProtoVerStr(HTTP_PROTO_VER version)
+std::string getHttpProtoVerStr(HTTP_PROTO_VER version)
 {
     switch (version)
     {
@@ -45,13 +45,62 @@ std::string GetHttpProtoVerStr(HTTP_PROTO_VER version)
 
 //-----------------------------------------------------------------------------
 
-std::string GetHttpMethodStr(HTTP_METHOD_TYPE httpMethod)
+std::string getHttpMethodStr(HTTP_METHOD_TYPE httpMethod)
 {
     switch (httpMethod)
     {
     case HMT_GET:   return "GET";
     case HMT_POST:  return "POST";
     default:        return "";
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+std::string getHttpStatusMessage(int statusCode)
+{
+    switch (statusCode)
+    {
+    case 100: return "Continue";
+    // 2XX: Success
+    case 200: return "OK";
+    case 201: return "Created";
+    case 202: return "Accepted";
+    case 203: return "Non-authoritative Information";
+    case 204: return "No Content";
+    case 205: return "Reset Content";
+    case 206: return "Partial Content";
+    // 3XX: Redirections
+    case 301: return "Moved Permanently";
+    case 302: return "Moved Temporarily";
+    case 303: return "See Other";
+    case 304: return "Not Modified";
+    case 305: return "Use Proxy";
+    // 4XX Client Errors
+    case 400: return "Bad Request";
+    case 401: return "Unauthorized";
+    case 403: return "Forbidden";
+    case 404: return "Not Found";
+    case 405: return "Method not allowed";
+    case 406: return "Not Acceptable";
+    case 407: return "Proxy Authentication Required";
+    case 408: return "Request Timeout";
+    case 409: return "Conflict";
+    case 410: return "Gone";
+    case 411: return "Length Required";
+    case 412: return "Precondition Failed";
+    case 413: return "Request Entity Too Long";
+    case 414: return "Request-URI Too Long. 256 Chars max";
+    case 415: return "Unsupported Media Type";
+    case 417: return "Expectation Failed";
+    // 5XX Server errors
+    case 500: return "Internal Server Error";
+    case 501: return "Not Implemented";
+    case 502: return "Bad Gateway";
+    case 503: return "Service Unavailable";
+    case 504: return "Gateway timeout";
+    case 505: return "HTTP version not supported";
+    default:  return "Unknown Status Code";
     }
 }
 
@@ -463,8 +512,7 @@ void HttpResponseHeaderInfo::buildHeaders()
 ///////////////////////////////////////////////////////////////////////////////
 // class HttpRequest
 
-HttpRequest::HttpRequest(CustomHttpClient& HttpClient) :
-    httpClient_(HttpClient)
+HttpRequest::HttpRequest()
 {
     init();
 }
@@ -487,21 +535,87 @@ void HttpRequest::clear()
     init();
 }
 
+//-----------------------------------------------------------------------------
+
+bool HttpRequest::setRequestLine(const std::string& reqLine)
+{
+    return parseRequestLine(reqLine, method_, url_, protocolVersion_);
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpRequest::makeRequestHeaderBuffer(Buffer& buffer)
+{
+    buildHeaders();
+
+    std::string text;
+    text = method_ + " " + url_ + " HTTP/" + getHttpProtoVerStr(protocolVersion_) + "\r\n";
+
+    for (int i = 0; i < getRawHeaders().getCount(); i++)
+    {
+        std::string s = getRawHeaders()[i];
+        if (!s.empty())
+            text = text + s + "\r\n";
+    }
+
+    text += "\r\n";
+
+    buffer.assign(text.c_str(), (int)text.length());
+}
+
+//-----------------------------------------------------------------------------
+
+// example: "GET /images/logo.gif HTTP/1.1"
+bool HttpRequest::parseRequestLine(const std::string& reqLine, std::string& method,
+    std::string& url, HTTP_PROTO_VER& protoVer)
+{
+    bool result = false;
+    StrList strList;
+
+    splitString(trimString(reqLine), ' ', strList, true);
+    result = (strList.getCount() == 3);
+    if (result)
+    {
+        std::string s = strList[0];
+        result = (s == "HEAD" || s == "GET" || s == "POST");
+    }
+
+    if (result)
+    {
+        std::string s = strList[2];
+        result = (s == "HTTP/1.0" || s == "HTTP/1.1");
+    }
+
+    if (result)
+    {
+        method = strList[0];
+        url = strList[1];
+        protoVer = (strList[2] == "HTTP/1.1" ? HPV_1_1 : HPV_1_0);
+    }
+
+    return result;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // class HttpResponse
 
-HttpResponse::HttpResponse(CustomHttpClient& httpClient) :
-    httpClient_(httpClient)
+HttpResponse::HttpResponse()
 {
     init();
+}
+
+HttpResponse::~HttpResponse()
+{
+    setContentStream(NULL, false);
 }
 
 //-----------------------------------------------------------------------------
 
 void HttpResponse::init()
 {
-    responseText_.clear();
+    statusLine_.clear();
     contentStream_ = NULL;
+    ownsContentStream_ = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -514,24 +628,18 @@ void HttpResponse::clear()
 
 //-----------------------------------------------------------------------------
 
-bool HttpResponse::getKeepAlive()
+bool HttpResponse::getKeepAlive() const
 {
-    bool result = httpClient_.tcpClient_.isConnected();
-
-    if (result)
-    {
-        std::string str = getConnection();
-        result = !str.empty() && !sameText(str, "close");
-    }
-
+    std::string str = getConnection();
+    bool result = !str.empty() && !sameText(str, "close");
     return result;
 }
 
 //-----------------------------------------------------------------------------
 
-int HttpResponse::getResponseCode() const
+int HttpResponse::getStatusCode() const
 {
-    std::string s = responseText_;
+    std::string s = statusLine_;
     fetchStr(s);
     s = trimString(s);
     s = fetchStr(s);
@@ -545,22 +653,64 @@ int HttpResponse::getResponseCode() const
 HTTP_PROTO_VER HttpResponse::getResponseVersion() const
 {
     // eg: HTTP/1.1 200 OK
-    std::string s = responseText_.substr(5, 3);
+    std::string s = (statusLine_.length() > 8) ? statusLine_.substr(5, 3) : "";
 
-    if (sameText(s, GetHttpProtoVerStr(HPV_1_0)))
+    if (sameText(s, getHttpProtoVerStr(HPV_1_0)))
         return HPV_1_0;
-    else if (sameText(s, GetHttpProtoVerStr(HPV_1_1)))
+    else if (sameText(s, getHttpProtoVerStr(HPV_1_1)))
         return HPV_1_1;
     else
-        return HPV_1_0;
+        return HPV_1_1;
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpResponse::setStatusCode(int statusCode)
+{
+    statusLine_ = formatString("HTTP/%s %d %s",
+        getHttpProtoVerStr(getResponseVersion()).c_str(),
+        statusCode, getHttpStatusMessage(statusCode).c_str());
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpResponse::setContentStream(Stream *stream, bool ownsObject)
+{
+    if (ownsContentStream_)
+    {
+        delete contentStream_;
+        contentStream_ = NULL;
+    }
+
+    contentStream_ = stream;
+    ownsContentStream_ = ownsObject;
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpResponse::makeResponseHeaderBuffer(Buffer& buffer)
+{
+    buildHeaders();
+
+    std::string text;
+    text = statusLine_ + "\r\n";
+
+    for (int i = 0; i < getRawHeaders().getCount(); i++)
+    {
+        std::string s = getRawHeaders()[i];
+        if (!s.empty())
+            text = text + s + "\r\n";
+    }
+
+    text += "\r\n";
+
+    buffer.assign(text.c_str(), (int)text.length());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // class CustomHttpClient
 
 CustomHttpClient::CustomHttpClient() :
-    request_(*this),
-    response_(*this),
     handleRedirects_(true),
     redirectCount_(0),
     lastKeepAlive_(false)
@@ -590,29 +740,6 @@ InetAddress CustomHttpClient::getInetAddrFromUrl(Url& url)
     }
 
     return inetAddr;
-}
-
-//-----------------------------------------------------------------------------
-
-void CustomHttpClient::makeRequestBuffer(Buffer& buffer)
-{
-    request_.buildHeaders();
-
-    std::string text;
-    text = request_.getMethod() + " " + request_.getUrl() +
-        " HTTP/" + GetHttpProtoVerStr(request_.getProtocolVersion()) +
-        "\r\n";
-
-    for (int i = 0; i < request_.getRawHeaders().getCount(); i++)
-    {
-        std::string s = request_.getRawHeaders()[i];
-        if (!s.empty())
-            text = text + s + "\r\n";
-    }
-
-    text += "\r\n";
-
-    buffer.assign(text.c_str(), (int)text.length());
 }
 
 //-----------------------------------------------------------------------------
@@ -672,11 +799,11 @@ int CustomHttpClient::beforeRequest(HTTP_METHOD_TYPE httpMethod, const std::stri
         responseContent->setPosition(resStreamPos);
     }
 
-    request_.setMethod(GetHttpMethodStr(httpMethod));
+    request_.setMethod(getHttpMethodStr(httpMethod));
     request_.setUrl(url_.getUrl(Url::URL_PATH | Url::URL_FILENAME | Url::URL_PARAMS));
 
-    //if (request_.GetReferer().empty())
-    //	request_.SetReferer(url_.GetUrl(Url::URL_ALL & ~(Url::URL_FILENAME | Url::URL_BOOKMARK | Url::URL_PARAMS)));
+    //if (request_.getReferer().empty())
+    //	request_.setReferer(url_.getUrl(Url::URL_ALL & ~(Url::URL_FILENAME | Url::URL_BOOKMARK | Url::URL_PARAMS)));
 
     int port = strToInt(url.getPort(), DEFAULT_HTTP_PORT);
     request_.setHost(port == DEFAULT_HTTP_PORT ?
@@ -726,7 +853,7 @@ bool CustomHttpClient::parseResponseHeader(void *buffer, int size)
     {
         std::string str = lines[0];
         if (sameText(str.substr(0, 7), "HTTP/1."))
-            response_.setResponseText(str);
+            response_.setStatusLine(str);
         else
             result = false;
     }
@@ -753,14 +880,14 @@ HTTP_NEXT_OP CustomHttpClient::processResponseHeader()
 {
     HTTP_NEXT_OP result = HNO_EXIT;
 
-    int responseCode = response_.getResponseCode();
-    int responseDigit = responseCode / 100;
+    int statusCode = response_.getStatusCode();
+    int responseDigit = statusCode / 100;
 
-    lastKeepAlive_ = response_.getKeepAlive();
+    lastKeepAlive_ = tcpClient_.isConnected() && response_.getKeepAlive();
 
     // Handle Redirects
-    if ((responseDigit == 3 && responseCode != 304) ||
-        (!response_.getLocation().empty() && responseCode != 201))
+    if ((responseDigit == 3 && statusCode != 304) ||
+        (!response_.getLocation().empty() && statusCode != 201))
     {
         redirectCount_++;
         if (handleRedirects_)
@@ -938,7 +1065,7 @@ int HttpClient::tcpConnect()
     {
         InetAddress inetAddr = getInetAddrFromUrl(url_);
         int state = tcpClient_.asyncConnect(ipToString(inetAddr.ip),
-            inetAddr.port, options_.tcpConnectTimeOut);
+            inetAddr.port, options_.tcpConnectTimeout);
 
         if (state != ACS_CONNECTED)
             return EC_HTTP_SOCKET_ERROR;
@@ -947,7 +1074,7 @@ int HttpClient::tcpConnect()
     if (tcpClient_.isConnected())
     {
         SOCKET handle = tcpClient_.getConnection().getSocket().getHandle();
-        int timeout = options_.socketOpTimeOut;
+        int timeout = options_.socketOpTimeout;
         ::setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
         ::setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
     }
@@ -961,10 +1088,10 @@ int HttpClient::sendRequestHeader()
 {
     int result = EC_HTTP_SUCCESS;
     Buffer buffer;
-    makeRequestBuffer(buffer);
+    request_.makeRequestHeaderBuffer(buffer);
 
     int r = tcpClient_.getConnection().sendBuffer(buffer.data(), buffer.getSize(),
-        true, options_.sendReqHeaderTimeOut);
+        true, options_.sendReqHeaderTimeout);
 
     if (r != buffer.getSize())
         result = EC_HTTP_SOCKET_ERROR;
@@ -991,7 +1118,7 @@ int HttpClient::sendRequestContent()
         if (readSize > 0)
         {
             int r = tcpClient_.getConnection().sendBuffer(buffer.data(), readSize,
-                true, options_.sendReqContBlockTimeOut);
+                true, options_.sendReqContBlockTimeout);
 
             if (r < 0)
             {
@@ -1015,7 +1142,7 @@ int HttpClient::sendRequestContent()
 
 int HttpClient::recvResponseHeader()
 {
-    const int RECV_TIMEOUT = options_.recvResHeaderTimeOut;
+    const int RECV_TIMEOUT = options_.recvResHeaderTimeout;
 
     int result = EC_HTTP_SUCCESS;
     UINT64 startTicks = getCurTicks();
@@ -1063,7 +1190,7 @@ int HttpClient::recvResponseHeader()
                 result = EC_HTTP_RESPONSE_TEXT_ERROR;
         }
     }
-    while (response_.getResponseCode() == 100 && result == EC_HTTP_SUCCESS);
+    while (response_.getStatusCode() == 100 && result == EC_HTTP_SUCCESS);
 
     return result;
 }
@@ -1079,7 +1206,7 @@ int HttpClient::recvResponseContent()
     {
         while (true)
         {
-            int timeout = options_.recvResContBlockTimeOut;
+            int timeout = options_.recvResContBlockTimeout;
             UINT chunkSize = 0;
             result = readChunkSize(chunkSize, timeout);
             if (result != EC_HTTP_SUCCESS)
@@ -1117,7 +1244,7 @@ int HttpClient::recvResponseContent()
             {
                 int blockSize = (int)ise::min(remainSize, (INT64)BLOCK_SIZE);
                 int recvSize = tcpClient_.getConnection().recvBuffer(buffer.data(),
-                    blockSize, true, options_.recvResContBlockTimeOut);
+                    blockSize, true, options_.recvResContBlockTimeout);
 
                 if (recvSize < 0)
                 {
@@ -1242,6 +1369,181 @@ int HttpClient::readStream(Stream& stream, int bytes, int timeout)
     }
 
     return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class HttpServer
+
+HttpServer::HttpServer()
+{
+    // nothing
+}
+
+HttpServer::~HttpServer()
+{
+    // nothing
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpServer::onTcpConnected(const TcpConnectionPtr& connection)
+{
+    connCount_.increment();
+
+    if (options_.maxConnectionCount >= 0 && getConnCount() > options_.maxConnectionCount)
+    {
+        connection->shutdown();
+        return;
+    }
+
+    connection->setContext(ConnContextPtr(new ConnContext()));
+    connection->recv(LINE_PACKET_SPLITTER, EMPTY_CONTEXT, options_.recvLineTimeout);
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpServer::onTcpDisconnected(const TcpConnectionPtr& connection)
+{
+    connCount_.decrement();
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpServer::onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
+    int packetSize, const Context& context)
+{
+    ConnContextPtr connContext = boost::any_cast<ConnContextPtr>(connection->getContext());
+
+    while (true)
+    {
+        switch (connContext->recvReqState)
+        {
+        case RRS_RECVING_REQ_LINE:
+            {
+                std::string line((const char*)packetBuffer, packetSize);
+                if (connContext->httpRequest.setRequestLine(line))
+                {
+                    connContext->recvReqState = RRS_RECVING_REQ_HEADERS;
+                    connection->recv(LINE_PACKET_SPLITTER, EMPTY_CONTEXT, options_.recvLineTimeout);
+                }
+                else
+                    connection->shutdown();
+                break;
+            }
+
+        case RRS_RECVING_REQ_HEADERS:
+            {
+                std::string line((const char*)packetBuffer, packetSize);
+                line = trimString(line);
+
+                if (!line.empty())
+                {
+                    connContext->httpRequest.getRawHeaders().add(line);
+                    connection->recv(LINE_PACKET_SPLITTER, EMPTY_CONTEXT, options_.recvLineTimeout);
+                }
+                else
+                {
+                    // recved '\r\n\r\n'.
+                    connContext->recvReqState = RRS_RECVING_CONTENT;
+                    connContext->httpRequest.parseHeaders();
+
+                    if (connContext->httpRequest.getContentLength() > 0)
+                        connection->recv(ANY_PACKET_SPLITTER, EMPTY_CONTEXT, options_.recvContentTimeout);
+                    else
+                    {
+                        connContext->recvReqState = RRS_COMPLETE;
+                        continue;
+                    }
+                }
+
+                break;
+            }
+
+        case RRS_RECVING_CONTENT:
+            {
+                INT64 contentLength = connContext->httpRequest.getContentLength();
+                if (connContext->reqContentStream.getSize() >= contentLength)
+                {
+                    connContext->recvReqState = RRS_COMPLETE;
+                    connContext->httpRequest.getContentStream()->setPosition(0);
+                }
+                else
+                {
+                    connContext->reqContentStream.write(packetBuffer, packetSize);
+                    connection->recv(ANY_PACKET_SPLITTER, EMPTY_CONTEXT, options_.recvContentTimeout);
+                }
+
+                break;
+            }
+
+        case RRS_COMPLETE:
+            {
+                if (onHttpSession_)
+                    onHttpSession_(connContext->httpRequest, connContext->httpResponse);
+
+                connContext->sendResState = SRS_SENDING_RES_HEADERS;
+
+                if (connContext->httpResponse.getStatusLine().empty())
+                    connContext->httpResponse.setStatusCode(200);
+
+                Stream *contentStream = connContext->httpResponse.getContentStream();
+                if (contentStream != NULL)
+                {
+                    contentStream->setPosition(0);
+                    connContext->httpResponse.setContentLength(contentStream->getSize());
+                }
+
+                Buffer buffer;
+                connContext->httpResponse.makeResponseHeaderBuffer(buffer);
+                connection->send(buffer.data(), buffer.getSize(), EMPTY_CONTEXT, options_.sendResponseHeaderTimeout);
+
+                break;
+            }
+
+        default:
+            break;
+        }
+
+        break;
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void HttpServer::onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context)
+{
+    ConnContextPtr connContext = boost::any_cast<ConnContextPtr>(connection->getContext());
+
+    switch (connContext->sendResState)
+    {
+    case SRS_SENDING_RES_HEADERS:
+    case SRS_SENDING_CONTENT:
+        {
+            connContext->sendResState = SRS_SENDING_CONTENT;
+
+            Stream *contentStream = connContext->httpResponse.getContentStream();
+
+            const int SEND_BLOCK_SIZE = 1024*64;
+            Buffer buffer(SEND_BLOCK_SIZE);
+
+            int readSize = contentStream->read(buffer.data(), buffer.getSize());
+            if (readSize > 0)
+                connection->send(buffer.data(), buffer.getSize(), EMPTY_CONTEXT, options_.sendContentBlockTimeout);
+            else
+            {
+                connContext->sendResState = SRS_COMPLETE;
+                connection->disconnect();
+            }
+
+            break;
+        }
+
+    case SRS_COMPLETE:
+        break;
+
+    default:
+        break;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

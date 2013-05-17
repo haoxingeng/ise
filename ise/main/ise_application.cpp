@@ -203,8 +203,8 @@ IseOptions::IseOptions()
     for (int i = 0; i < DEF_TCP_SERVER_COUNT; i++)
         setTcpServerPort(i, DEF_TCP_SERVER_PORT);
     for (int i = 0; i < DEF_TCP_SERVER_COUNT; i++)
-        setTcpConnEventLoopIndex(i, DEF_TCP_CONN_EVENT_LOOP_INDEX);
-    setTcpEventLoopCount(DEF_TCP_EVENT_LOOP_COUNT);
+        setTcpServerEventLoopCount(i, DEF_TCP_SERVER_EVENT_LOOP_COUNT);
+    setTcpClientEventLoopCount(DEF_TCP_CLIENT_EVENT_LOOP_COUNT);
     setTcpMaxRecvBufferSize(DEF_TCP_MAX_RECV_BUFFER_SIZE);
 }
 
@@ -353,25 +353,26 @@ void IseOptions::setTcpServerPort(int serverIndex, int port)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置TCP服务器产生的连接所属 EventLoop
+// 描述: 设置每个TCP服务器中事件循环的个数
 // 参数:
 //   serverIndex    - TCP服务器序号 (0-based)
-//   eventLoopIndex - EventLoop 的序号 (0-based)，为 -1 表示自动选择
+//   eventLoopCount - 事件循环个数
 //-----------------------------------------------------------------------------
-void IseOptions::setTcpConnEventLoopIndex(int serverIndex, int eventLoopIndex)
+void IseOptions::setTcpServerEventLoopCount(int serverIndex, int eventLoopCount)
 {
     if (serverIndex < 0 || serverIndex >= tcpServerCount_) return;
 
-    tcpServerOpts_[serverIndex].eventLoopIndex = eventLoopIndex;
+    eventLoopCount = ise::max(eventLoopCount, 1);
+    tcpServerOpts_[serverIndex].eventLoopCount = eventLoopCount;
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置TCP事件循环的个数
+// 描述: 设置用于全部TCP客户端的事件循环的个数
 //-----------------------------------------------------------------------------
-void IseOptions::setTcpEventLoopCount(int count)
+void IseOptions::setTcpClientEventLoopCount(int eventLoopCount)
 {
-    count = ise::max(count, 1);
-    tcpEventLoopCount_ = count;
+    eventLoopCount = ise::max(eventLoopCount, 1);
+    tcpClientEventLoopCount_ = eventLoopCount;
 }
 
 //-----------------------------------------------------------------------------
@@ -423,15 +424,15 @@ int IseOptions::getTcpServerPort(int serverIndex)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得TCP服务器产生的连接所属 EventLoop 的序号 (0-based)
+// 描述: 取得TCP服务器中事件循环的个数
 // 参数:
 //   serverIndex - TCP服务器的序号 (0-based)
 //-----------------------------------------------------------------------------
-int IseOptions::getTcpConnEventLoopIndex(int serverIndex)
+int IseOptions::getTcpServerEventLoopCount(int serverIndex)
 {
     if (serverIndex < 0 || serverIndex >= tcpServerCount_) return -1;
 
-    return tcpServerOpts_[serverIndex].eventLoopIndex;
+    return tcpServerOpts_[serverIndex].eventLoopCount;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -599,11 +600,11 @@ bool IseApplication::parseArguments(int argc, char *argv[])
 {
     // 先记录命令行参数
     argList_.clear();
-    for (int i = 0; i < argc; i++)
+    for (int i = 1; i < argc; i++)
         argList_.add(argv[i]);
 
     // 处理标准命令行参数
-    if (processStandardArgs()) return false;
+    if (processStandardArgs(false)) return false;
 
     // 交给 IseBusiness 对象解释
     return iseBusiness_->parseArguments(argc, argv);
@@ -627,6 +628,7 @@ void IseApplication::initialize()
         initExeName();
         iseBusiness_->doStartupState(SS_BEFORE_START);
         iseBusiness_->initIseOptions(iseOptions_);
+        processStandardArgs(true);
         checkMultiInstance();
         if (iseOptions_.getIsDaemon()) initDaemon();
         initSignals();
@@ -704,25 +706,38 @@ void IseApplication::registerUserSignalHandler(const UserSignalHandlerCallback& 
 
 //-----------------------------------------------------------------------------
 // 描述: 处理标准命令行参数
+// 参数:
+//   isInitializing - 应用程序 (IseApplication) 是否处于初始化期间
 // 返回:
 //   true  - 当前命令行参数是标准参数
 //   false - 与上相反
 //-----------------------------------------------------------------------------
-bool IseApplication::processStandardArgs()
+bool IseApplication::processStandardArgs(bool isInitializing)
 {
-    if (getArgCount() == 2)
+    if (!isInitializing)
     {
-        std::string arg = getArgString(1);
-        if (arg == "--version")
+        if (getArgCount() == 1)
         {
-            std::string version = iseBusiness_->getAppVersion();
-            printf("%s\n", version.c_str());
-            return true;
+            std::string arg = getArgString(0);
+            if (arg == "--version")
+            {
+                std::string version = iseBusiness_->getAppVersion();
+                printf("%s\n", version.c_str());
+                return true;
+            }
+            if (arg == "--help")
+            {
+                std::string help = iseBusiness_->getAppHelp();
+                printf("%s\n", help.c_str());
+                return true;
+            }
         }
-        if (arg == "--help")
+    }
+    else
+    {
+        if (argList_.exists("--nodaemon"))
         {
-            std::string help = iseBusiness_->getAppHelp();
-            printf("%s\n", help.c_str());
+            iseOptions_.setIsDaemon(false);
             return true;
         }
     }
@@ -802,7 +817,7 @@ void IseApplication::freeIseBusiness()
 //-----------------------------------------------------------------------------
 void IseApplication::initExeName()
 {
-    exeName_ = GetAppExeName();
+    exeName_ = getAppExeName();
 }
 
 //-----------------------------------------------------------------------------

@@ -32,12 +32,37 @@
 #include "ise/main/ise_sys_utils.h"
 #include "ise/main/ise_socket.h"
 #include "ise/main/ise_exceptions.h"
+#include "ise/main/ise_server_tcp.h"
+#include "ise/main/ise_application.h"
 
 namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// ÌáÇ°ÉùÃ÷
+// HTTP Protocol Example:
+/*
+
+Request:
+~~~~~~~~
+GET /images/logo.gif HTTP/1.1          <- request line
+Host: www.google.com                   <- request header
+...
+<CR><LF>                               <- empty line
+content stream
+
+Response:
+~~~~~~~~~
+HTTP/1.1 200 OK                        <- status line
+Content-Length: 3059                   <- response header
+Content-Type: text/html
+...
+<CR><LF>                               <- empty line
+content stream
+
+*/
+
+///////////////////////////////////////////////////////////////////////////////
+// classes
 
 class HttpHeaderStrList;
 class HttpEntityHeaderInfo;
@@ -108,21 +133,43 @@ const int EC_HTTP_IOCP_ERROR               = -10;
 struct HttpClientOptions
 {
 public:
-    int tcpConnectTimeOut;                // TCP connect timeout (ms).
-    int sendReqHeaderTimeOut;             // Send request header timeout.
-    int sendReqContBlockTimeOut;          // Send request content block timeout.
-    int recvResHeaderTimeOut;             // Receive response header timeout.
-    int recvResContBlockTimeOut;          // Receive response content block timeout.
-    int socketOpTimeOut;                  // Socket operation (recv/send) timeout.
+    int tcpConnectTimeout;                // TCP connect timeout (ms).
+    int sendReqHeaderTimeout;             // The timeout of sending the request header.
+    int sendReqContBlockTimeout;          // The timeout of sending the request content block.
+    int recvResHeaderTimeout;             // The timeout of receiving the response header.
+    int recvResContBlockTimeout;          // The timeout of receiving the response content block.
+    int socketOpTimeout;                  // The timeout of the socket operation (recv/send).
 public:
     HttpClientOptions()
     {
-        tcpConnectTimeOut = HTTP_TCP_CONNECT_TIMEOUT;
-        sendReqHeaderTimeOut = HTTP_SEND_REQ_HEADER_TIMEOUT;
-        sendReqContBlockTimeOut = HTTP_SEND_REQ_CONT_BLOCK_TIMEOUT;
-        recvResHeaderTimeOut = HTTP_RECV_RES_HEADER_TIMEOUT;
-        recvResContBlockTimeOut = HTTP_RECV_RES_CONT_BLOCK_TIMEOUT;
-        socketOpTimeOut = HTTP_SOCKET_OP_TIMEOUT;
+        tcpConnectTimeout = HTTP_TCP_CONNECT_TIMEOUT;
+        sendReqHeaderTimeout = HTTP_SEND_REQ_HEADER_TIMEOUT;
+        sendReqContBlockTimeout = HTTP_SEND_REQ_CONT_BLOCK_TIMEOUT;
+        recvResHeaderTimeout = HTTP_RECV_RES_HEADER_TIMEOUT;
+        recvResContBlockTimeout = HTTP_RECV_RES_CONT_BLOCK_TIMEOUT;
+        socketOpTimeout = HTTP_SOCKET_OP_TIMEOUT;
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class HttpServerOptions
+
+struct HttpServerOptions
+{
+public:
+    int recvLineTimeout;                  // The timeout (ms) of receiving a text line.
+    int recvContentTimeout;               // The timeout of receiving any data of the request content stream.
+    int sendResponseHeaderTimeout;        // The timeout of sending the response header.
+    int sendContentBlockTimeout;          // The timeout of sending a response content block.
+    int maxConnectionCount;               // The maximum connections, -1 for no limitation.
+public:
+    HttpServerOptions()
+    {
+        recvLineTimeout = TIMEOUT_INFINITE;
+        recvContentTimeout = TIMEOUT_INFINITE;
+        sendResponseHeaderTimeout = TIMEOUT_INFINITE;
+        sendContentBlockTimeout = TIMEOUT_INFINITE;
+        maxConnectionCount = -1;
     }
 };
 
@@ -326,7 +373,7 @@ protected:
 class HttpRequest : public HttpRequestHeaderInfo
 {
 public:
-    HttpRequest(CustomHttpClient& HttpClient);
+    HttpRequest();
 
     virtual void clear();
 
@@ -339,12 +386,17 @@ public:
     void setUrl(const std::string& value) { url_ = value; }
     void setMethod(const std::string& value) { method_ = value; }
     void setContentStream(Stream *value) { contentStream_ = value; }
+    bool setRequestLine(const std::string& reqLine);
+
+    void makeRequestHeaderBuffer(Buffer& buffer);
+
+    static bool parseRequestLine(const std::string& reqLine, std::string& method,
+        std::string& url, HTTP_PROTO_VER& protoVer);
 
 protected:
     void init();
 
 protected:
-    CustomHttpClient& httpClient_;
     HTTP_PROTO_VER protocolVersion_;
     std::string url_;
     std::string method_;
@@ -357,26 +409,30 @@ protected:
 class HttpResponse : public HttpResponseHeaderInfo
 {
 public:
-    HttpResponse(CustomHttpClient& httpClient);
+    HttpResponse();
+    virtual ~HttpResponse();
 
     virtual void clear();
 
-    bool getKeepAlive();
-    const std::string& getResponseText() const { return responseText_; }
-    int getResponseCode() const;
+    bool getKeepAlive() const;
+    const std::string& getStatusLine() const { return statusLine_; }
+    int getStatusCode() const;
     HTTP_PROTO_VER getResponseVersion() const;
     Stream* getContentStream() const { return contentStream_; }
 
-    void setResponseText(const std::string& value) { responseText_ = value; }
-    void setContentStream(Stream *value) { contentStream_ = value; }
+    void setStatusLine(const std::string& value) { statusLine_ = value; }
+    void setStatusCode(int statusCode);
+    void setContentStream(Stream *stream, bool ownsObject = false);
+
+    void makeResponseHeaderBuffer(Buffer& buffer);
 
 protected:
     void init();
 
 protected:
-    CustomHttpClient& httpClient_;
-    std::string responseText_;
+    std::string statusLine_;
     Stream *contentStream_;
+    bool ownsContentStream_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -421,10 +477,10 @@ public:
     HttpResponse& httpResponse() { return response_; }
     /// The http client options
     HttpClientOptions& options() { return options_; }
-    /// Returns the response text.
-    std::string getResponseText() { return response_.getResponseText(); }
-    /// Returns the response code.
-    int getResponseCode() { return response_.getResponseCode(); }
+    /// Returns the status line of the response.
+    std::string getStatusLine() { return response_.getStatusLine(); }
+    /// Returns the status code of the response.
+    int getStatusCode() { return response_.getStatusCode(); }
     /// Indicates if the http client can handle redirections.
     bool getHandleRedirects() { return handleRedirects_; }
     /// Indicates the number of redirects encountered in the last request for the http client.
@@ -437,7 +493,6 @@ public:
 
 protected:
     InetAddress getInetAddrFromUrl(Url& url);
-    void makeRequestBuffer(Buffer& buffer);
     int beforeRequest(HTTP_METHOD_TYPE httpMethod, const std::string& urlStr, Stream *requestContent,
         Stream *responseContent, INT64 reqStreamPos, INT64 resStreamPos);
     void checkResponseHeader(char *buffer, int size, bool& finished, bool& error);
@@ -496,6 +551,77 @@ private:
     int readLine(std::string& line, int timeout);
     int readChunkSize(UINT& chunkSize, int timeout);
     int readStream(Stream& stream, int bytes, int timeout);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class HttpServer - HTTP server class.
+
+class HttpServer :
+    boost::noncopyable,
+    public TcpCallbacks
+{
+public:
+    typedef boost::function<void (
+        const HttpRequest& request,
+        HttpResponse& response
+        )> HttpSessionCallback;
+
+public:
+    HttpServer();
+    virtual ~HttpServer();
+
+    void setHttpSessionCallback(const HttpSessionCallback& callback) { onHttpSession_ = callback; }
+    HttpServerOptions& options() { return options_; }
+    int getConnCount() { return static_cast<int>(connCount_.get()); }
+
+public:  /* interface TcpCallbacks */
+    virtual void onTcpConnected(const TcpConnectionPtr& connection);
+    virtual void onTcpDisconnected(const TcpConnectionPtr& connection);
+    virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
+        int packetSize, const Context& context);
+    virtual void onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context);
+
+private:
+    enum RecvReqState
+    {
+        RRS_RECVING_REQ_LINE,
+        RRS_RECVING_REQ_HEADERS,
+        RRS_RECVING_CONTENT,
+        RRS_COMPLETE,
+    };
+
+    enum SendResState
+    {
+        SRS_SENDING_RES_HEADERS,
+        SRS_SENDING_CONTENT,
+        SRS_COMPLETE,
+    };
+
+    struct ConnContext
+    {
+    public:
+        RecvReqState recvReqState;
+        SendResState sendResState;
+        HttpRequest httpRequest;
+        MemoryStream reqContentStream;
+        HttpResponse httpResponse;
+        MemoryStream resContentStream;
+    public:
+        ConnContext()
+        {
+            recvReqState = static_cast<RecvReqState>(0); 
+            sendResState = static_cast<SendResState>(0); 
+            httpRequest.setContentStream(&reqContentStream);
+            httpResponse.setContentStream(&resContentStream, false);
+        }
+    };
+
+    typedef boost::shared_ptr<ConnContext> ConnContextPtr;
+
+private:
+    HttpServerOptions options_;
+    AtomicInt connCount_;
+    HttpSessionCallback onHttpSession_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -62,7 +62,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
 //-----------------------------------------------------------------------------
 void AppBusiness::initIseOptions(IseOptions& options)
 {
-    options.setLogFileName(getAppSubPath("log") + "echo-log.txt", true);
+    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
     options.setIsDaemon(true);
     options.setAllowMultiInstance(false);
 
@@ -73,7 +73,7 @@ void AppBusiness::initIseOptions(IseOptions& options)
     // 设置TCP服务端口号
     options.setTcpServerPort(10000);
     // 设置TCP事件循环的个数
-    options.setTcpEventLoopCount(1);
+    options.setTcpServerEventLoopCount(1);
 }
 
 //-----------------------------------------------------------------------------

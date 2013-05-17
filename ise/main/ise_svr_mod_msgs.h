@@ -27,7 +27,7 @@
 #ifndef _ISE_SVR_MOD_MSGS_H_
 #define _ISE_SVR_MOD_MSGS_H_
 
-#include "ise.h"
+#include "ise/main/ise_options.h"
 
 namespace ise
 {
@@ -35,7 +35,7 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 消息代码定义 (Server Module Message Code)
 
-const int SMMC_BASE = 100;
+const UINT SMMC_BASE = 100;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 消息结构定义

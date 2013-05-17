@@ -599,7 +599,10 @@ public:
 
 public:
     explicit MemoryStream(int memoryDelta = DEFAULT_MEMORY_DELTA);
+    MemoryStream(const MemoryStream& src);
     virtual ~MemoryStream();
+
+    MemoryStream& operator = (const MemoryStream& rhs);
 
     virtual int read(void *buffer, int count);
     virtual int write(const void *buffer, int count);
@@ -613,6 +616,8 @@ public:
     char* getMemory() { return memory_; }
 
 private:
+    void init();
+    void assign(const MemoryStream& src);
     void setMemoryDelta(int newMemoryDelta);
     void setPointer(char *memory, int size);
     void setCapacity(int newCapacity);
@@ -780,6 +785,7 @@ public:
 
 public:
     PropertyList();
+    PropertyList(const PropertyList& src);
     virtual ~PropertyList();
 
     void add(const std::string& name, const std::string& value);
@@ -790,7 +796,7 @@ public:
     bool getValue(const std::string& name, std::string& value) const;
     int getCount() const { return items_.getCount(); }
     bool isEmpty() const { return (getCount() <= 0); }
-    const PropertyItem& getItems(int index) const;
+    const PropertyItem& getItem(int index) const;
     std::string getPropString() const;
     void setPropString(const std::string& propString);
 
@@ -798,6 +804,7 @@ public:
     std::string& operator[] (const std::string& name);
 
 private:
+    void assign(const PropertyList& src);
     PropertyItem* find(const std::string& name);
     static bool isReservedChar(char ch);
     static bool hasReservedChar(const std::string& str);
@@ -1449,7 +1456,7 @@ private:
     void writeToFile(const std::string& str);
 
 private:
-    std::string fileName_;            // 日志文件名
+    std::string fileName_;       // 日志文件名
     bool isNewFileDaily_;        // 是否每天用一个单独的文件存储日志
     Mutex mutex_;
 };

@@ -27,6 +27,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 set(ISE_ROOT_PATH ${CMAKE_SOURCE_DIR}/../..)
 
 find_package(Boost REQUIRED)
+message(STATUS "Boost_INCLUDE_DIRS = " ${Boost_INCLUDE_DIRS})
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${ISE_ROOT_PATH})

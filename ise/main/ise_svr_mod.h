@@ -27,7 +27,7 @@
 #ifndef _ISE_SVR_MOD_H_
 #define _ISE_SVR_MOD_H_
 
-#include "ise.h"
+#include "ise/main/ise_options.h"
 #include "ise/main/ise_application.h"
 #include "ise/main/ise_svr_mod_msgs.h"
 
@@ -49,6 +49,8 @@ typedef std::vector<UINT> ActionCodeArray;
 
 typedef IseOptions::UdpRequestGroupOption UdpGroupOptions;
 typedef IseOptions::TcpServerOption TcpServerOptions;
+
+typedef std::vector<IseServerModule*> IseServerModuleList;
 
 ///////////////////////////////////////////////////////////////////////////////
 // class IseServerModule - 服务器模块基类
@@ -73,7 +75,7 @@ public:
     virtual void getTcpServerOptions(int serverIndex, TcpServerOptions& options) {}
 
     // UDP数据包分派
-    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, UdpPacket& ) {}
+    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, UdpPacket& packet) {}
 
     // 接受了一个新的TCP连接
     virtual void onTcpConnected(const TcpConnectionPtr& connection) {}
@@ -92,11 +94,14 @@ public:
     // 系统守护线程执行 (secondCount: 0-based)
     virtual void daemonThreadExecute(Thread& thread, int secondCount) {}
 
-    // 消息分派
-    virtual void dispatchMessage(BaseSvrModMessage& Message) {}
+    // 收到服务模块消息
+    virtual void onSvrModMessage(BaseSvrModMessage& message) {}
 
     // 返回服务模块序号
     int getSvrModIndex() const { return svrModIndex_; }
+
+    // 向所有服务模块广播消息
+    void broadcastMessage(BaseSvrModMessage& message);
 
 private:
     int svrModIndex_;   // (0-based)
@@ -111,14 +116,14 @@ public:
     IseServerModuleMgr();
     virtual ~IseServerModuleMgr();
 
-    void initServerModuleList(const PointerList& list);
+    void initServerModuleList(const IseServerModuleList& list);
     void clearServerModuleList();
 
-    inline int getCount() const { return items_.getCount(); }
-    inline IseServerModule& getItems(int index) { return *(IseServerModule*)items_[index]; }
+    inline int getCount() const { return static_cast<int>(items_.size()); }
+    inline IseServerModule& getItem(int index) { return *items_[index]; }
 
 private:
-    PointerList items_;        // 服务模块列表( (IseServerModule*)[] )
+    IseServerModuleList items_;   // 服务模块列表( (IseServerModule*)[] )
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -150,7 +155,7 @@ public:
 
 public:
     int getAssistorIndex(int serverModuleIndex, int localAssistorIndex);
-    void dispatchMessage(BaseSvrModMessage& message);
+    void broadcastMessage(BaseSvrModMessage& message);
 
 protected:
     // UDP数据包过滤函数 (返回: true-有效包, false-无效包)
@@ -158,7 +163,7 @@ protected:
     // 取得UDP数据包中的动作代码
     virtual UINT getUdpPacketActionCode(void *packetBuffer, int packetSize) { return 0; }
     // 创建所有服务模块
-    virtual void createServerModules(PointerList& svrModList) {}
+    virtual void createServerModules(IseServerModuleList& svrModList) {}
 
 private:
     int getUdpGroupCount();
@@ -169,9 +174,9 @@ private:
     void updateIseOptions();
 
 protected:
-    typedef std::map<UINT, int> ActionCodeMap;            // <动作代码, UDP组别号>
-    typedef std::map<UINT, int> UdpGroupIndexMap;         // <全局UDP组别号, 服务模块号>
-    typedef std::map<UINT, int> TcpServerIndexMap;        // <全局TCP服务器序号, 服务模块号>
+    typedef std::map<UINT, int> ActionCodeMap;       // <动作代码, UDP组别号>
+    typedef std::map<UINT, int> UdpGroupIndexMap;    // <全局UDP组别号, 服务模块号>
+    typedef std::map<UINT, int> TcpServerIndexMap;   // <全局TCP服务器序号, 服务模块号>
 
     IseServerModuleMgr serverModuleMgr_;             // 服务模块管理器
     ActionCodeMap actionCodeMap_;                    // <动作代码, UDP组别号> 映射表

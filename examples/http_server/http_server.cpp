@@ -1,8 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "chargen_server.h"
-
-//-----------------------------------------------------------------------------
+#include "http_server.h"
 
 IseBusiness* createIseBusinessObject()
 {
@@ -11,31 +9,16 @@ IseBusiness* createIseBusinessObject()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void AppBusiness::initMessage()
-{
-    string line;
-    for (int i = 33; i < 127; ++i)
-        line.push_back(char(i));
-    line += line;
-
-    message_.clear();
-    for (size_t i = 0; i < 127-33; ++i)
-        message_ += line.substr(i, 72) + '\n';
-}
-
-//-----------------------------------------------------------------------------
-
 void AppBusiness::initialize()
 {
-    initMessage();
-    transferredBytes_ = 0;
+    httpServer_.setHttpSessionCallback(boost::bind(&AppBusiness::onHttpSession, this, _1, _2));
 }
 
 //-----------------------------------------------------------------------------
 
 void AppBusiness::finalize()
 {
-    const char *msg = "Chargen server stoped.";
+    const char *msg = "Http server stoped.";
     std::cout << msg << std::endl;
     logger().writeStr(msg);
 }
@@ -48,7 +31,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
     {
     case SS_AFTER_START:
         {
-            const char *msg = "Chargen server started.";
+            const char *msg = "Http server started.";
             std::cout << std::endl << msg << std::endl;
             logger().writeStr(msg);
         }
@@ -56,7 +39,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
 
     case SS_START_FAIL:
         {
-            const char *msg = "Fail to start chargen server.";
+            const char *msg = "Fail to start http server.";
             std::cout << std::endl << msg << std::endl;
             logger().writeStr(msg);
         }
@@ -77,7 +60,7 @@ void AppBusiness::initIseOptions(IseOptions& options)
 
     options.setServerType(ST_TCP);
     options.setTcpServerCount(1);
-    options.setTcpServerPort(10003);
+    options.setTcpServerPort(8080);
     options.setTcpServerEventLoopCount(1);
 }
 
@@ -85,21 +68,14 @@ void AppBusiness::initIseOptions(IseOptions& options)
 
 void AppBusiness::onTcpConnected(const TcpConnectionPtr& connection)
 {
-    logger().writeFmt("onTcpConnected (%s) (ConnCount: %d)",
-        connection->getPeerAddr().getDisplayStr().c_str(),
-        connection->getServerConnCount());
-
-    connection->setNoDelay(true);
-
-    connection->recv();
-    connection->send(message_.c_str(), message_.length());
+    httpServer_.onTcpConnected(connection);
 }
 
 //-----------------------------------------------------------------------------
 
 void AppBusiness::onTcpDisconnected(const TcpConnectionPtr& connection)
 {
-    logger().writeFmt("onTcpDisconnected (%s)", connection->getConnectionName().c_str());
+    httpServer_.onTcpDisconnected(connection);
 }
 
 //-----------------------------------------------------------------------------
@@ -107,16 +83,22 @@ void AppBusiness::onTcpDisconnected(const TcpConnectionPtr& connection)
 void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
     int packetSize, const Context& context)
 {
-    logger().writeFmt("[%s] Discarded %u bytes.",
-        connection->getConnectionName().c_str(), packetSize);
-
-    connection->recv();
+    httpServer_.onTcpRecvComplete(connection, packetBuffer, packetSize, context);
 }
 
 //-----------------------------------------------------------------------------
 
 void AppBusiness::onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context)
 {
-    transferredBytes_ += message_.length();
-    connection->send(message_.c_str(), message_.length());
+    httpServer_.onTcpSendComplete(connection, context);
+}
+
+//-----------------------------------------------------------------------------
+
+void AppBusiness::onHttpSession(const HttpRequest& request, HttpResponse& response)
+{
+    std::string content = "this is a simple http server.";
+
+    response.setStatusCode(200);
+    response.getContentStream()->write(content.c_str(), content.length());
 }

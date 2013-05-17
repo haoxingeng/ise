@@ -291,7 +291,7 @@ private:
     TcpConnectionMap tcpConnMap_;
     FunctorList delegatedFunctors_;
     FunctorList finalizers_;
-    UINT lastCheckTimeoutTicks_;
+    UINT64 lastCheckTimeoutTicks_;
 
     friend class TcpEventLoopThread;
 };
@@ -311,6 +311,8 @@ public:
     void start();
     void stop();
 
+    bool registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex = -1);
+
     int getCount() { return items_.getCount(); }
     TcpEventLoop* getItem(int index) { return items_[index]; }
     TcpEventLoop* operator[] (int index) { return getItem(index); }
@@ -320,6 +322,7 @@ private:
 
 private:
     ObjectList<TcpEventLoop> items_;
+    Mutex mutex_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -407,17 +410,17 @@ private:
     void init();
 
 protected:
-    TcpServer *tcpServer_;           // 所属 TcpServer
-    TcpEventLoop *eventLoop_;        // 所属 TcpEventLoop
+    TcpServer *tcpServer_;                // 所属 TcpServer
+    TcpEventLoop *eventLoop_;             // 所属 TcpEventLoop
     mutable std::string connectionName_;  // 连接名称
-    IoBuffer sendBuffer_;            // 数据发送缓存
-    IoBuffer recvBuffer_;            // 数据接收缓存
-    SendTaskQueue sendTaskQueue_;    // 发送任务队列
-    RecvTaskQueue recvTaskQueue_;    // 接收任务队列
-    bool isErrorOccurred_;           // 连接上是否发生了错误
+    IoBuffer sendBuffer_;                 // 数据发送缓存
+    IoBuffer recvBuffer_;                 // 数据接收缓存
+    SendTaskQueue sendTaskQueue_;         // 发送任务队列
+    RecvTaskQueue recvTaskQueue_;         // 接收任务队列
+    bool isErrorOccurred_;                // 连接上是否发生了错误
 
-    friend class MainTcpServer;
     friend class TcpEventLoop;
+    friend class TcpEventLoopList;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -441,17 +444,25 @@ private:
 class TcpServer : public BaseTcpServer
 {
 public:
+    explicit TcpServer(int eventLoopCount);
+
     int getConnectionCount() const { return connCount_.get(); }
+
+    virtual void open();
+    virtual void close();
 
 protected:
     virtual BaseTcpConnection* createConnection(SOCKET socketHandle);
+    virtual void acceptConnection(BaseTcpConnection *connection);
 
 private:
     void incConnCount() { connCount_.increment(); }
     void decConnCount() { connCount_.decrement(); }
 
 private:
+    TcpEventLoopList eventLoopList_;
     mutable AtomicInt connCount_;
+
     friend class TcpConnection;
 };
 
@@ -763,6 +774,7 @@ private:
     void tryRecv();
 
     bool tryRetrievePacket();
+    static void afterPostRecvTask(const TcpConnectionPtr& thisObj);
 
 private:
     int bytesSent_;                  // 自从上次发送任务完成回调以来共发送了多少字节
@@ -864,7 +876,7 @@ public:
     void open();
     void close();
 
-    bool registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex = -1);
+    TcpEventLoopList& getTcpClientEventLoopList();
 
 private:
     void createTcpServerList();
@@ -872,14 +884,12 @@ private:
     void doOpen();
     void doClose();
 
-    void onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection);
-
 private:
     typedef std::vector<TcpServer*> TcpServerList;
 
     bool isActive_;
     TcpServerList tcpServerList_;
-    TcpEventLoopList eventLoopList_;
+    boost::scoped_ptr<TcpEventLoopList> tcpClientEventLoopList_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

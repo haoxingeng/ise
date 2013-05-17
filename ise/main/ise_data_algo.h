@@ -226,6 +226,7 @@ binary base16Decode(PVOID data, int dataSize);
 class DataAlgoProgress
 {
 public:
+    virtual ~DataAlgoProgress() {}
     virtual void progress(INT64 min, INT64 max, INT64 pos) = 0;
 };
 

@@ -32,6 +32,14 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
+// classs IseServerModule
+
+void IseServerModule::broadcastMessage(BaseSvrModMessage& message)
+{
+    (static_cast<IseSvrModBusiness*>(&iseApp().getIseBusiness()))->broadcastMessage(message);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // classs IseServerModuleMgr
 
 IseServerModuleMgr::IseServerModuleMgr()
@@ -47,14 +55,14 @@ IseServerModuleMgr::~IseServerModuleMgr()
 //-----------------------------------------------------------------------------
 // 描述: 初始化服务模块列表
 //-----------------------------------------------------------------------------
-void IseServerModuleMgr::initServerModuleList(const PointerList& list)
+void IseServerModuleMgr::initServerModuleList(const IseServerModuleList& list)
 {
     items_.clear();
-    for (int i = 0; i < list.getCount(); i++)
+    for (size_t i = 0; i < list.size(); ++i)
     {
-        IseServerModule *module = (IseServerModule*)list[i];
-        module->svrModIndex_ = i;
-        items_.add(module);
+        IseServerModule *module = list[i];
+        module->svrModIndex_ = static_cast<int>(i);
+        items_.push_back(module);
     }
 }
 
@@ -63,8 +71,8 @@ void IseServerModuleMgr::initServerModuleList(const PointerList& list)
 //-----------------------------------------------------------------------------
 void IseServerModuleMgr::clearServerModuleList()
 {
-    for (int i = 0; i < items_.getCount(); i++)
-        delete (IseServerModule*)items_[i];
+    for (size_t i = 0; i < items_.size(); ++i)
+        delete items_[i];
     items_.clear();
 }
 
@@ -79,7 +87,7 @@ void IseSvrModBusiness::initialize()
     IseBusiness::initialize();
 
     // 创建所有服务模块
-    PointerList svrModList;
+    IseServerModuleList svrModList;
     createServerModules(svrModList);
     serverModuleMgr_.initServerModuleList(svrModList);
 
@@ -128,7 +136,7 @@ void IseSvrModBusiness::dispatchUdpPacket(UdpWorkerThread& workerThread,
     if (iter != udpGroupIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).dispatchUdpPacket(workerThread, packet);
+        serverModuleMgr_.getItem(modIndex).dispatchUdpPacket(workerThread, packet);
     }
 }
 
@@ -141,7 +149,7 @@ void IseSvrModBusiness::onTcpConnected(const TcpConnectionPtr& connection)
     if (iter != tcpServerIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).onTcpConnected(connection);
+        serverModuleMgr_.getItem(modIndex).onTcpConnected(connection);
     }
 }
 
@@ -154,7 +162,7 @@ void IseSvrModBusiness::onTcpDisconnected(const TcpConnectionPtr& connection)
     if (iter != tcpServerIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).onTcpDisconnected(connection);
+        serverModuleMgr_.getItem(modIndex).onTcpDisconnected(connection);
     }
 }
 
@@ -168,7 +176,7 @@ void IseSvrModBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, vo
     if (iter != tcpServerIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).onTcpRecvComplete(connection,
+        serverModuleMgr_.getItem(modIndex).onTcpRecvComplete(connection,
             packetBuffer, packetSize, context);
     }
 }
@@ -182,7 +190,7 @@ void IseSvrModBusiness::onTcpSendComplete(const TcpConnectionPtr& connection, co
     if (iter != tcpServerIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItems(modIndex).onTcpSendComplete(connection, context);
+        serverModuleMgr_.getItem(modIndex).onTcpSendComplete(connection, context);
     }
 }
 
@@ -196,11 +204,11 @@ void IseSvrModBusiness::assistorThreadExecute(AssistorThread& assistorThread, in
     for (int i = 0; i < serverModuleMgr_.getCount(); i++)
     {
         index1 = index2;
-        index2 += serverModuleMgr_.getItems(i).getAssistorThreadCount();
+        index2 += serverModuleMgr_.getItem(i).getAssistorThreadCount();
 
         if (assistorIndex >= index1 && assistorIndex < index2)
         {
-            serverModuleMgr_.getItems(i).assistorThreadExecute(assistorThread, assistorIndex - index1);
+            serverModuleMgr_.getItem(i).assistorThreadExecute(assistorThread, assistorIndex - index1);
             break;
         }
     }
@@ -212,7 +220,7 @@ void IseSvrModBusiness::assistorThreadExecute(AssistorThread& assistorThread, in
 void IseSvrModBusiness::daemonThreadExecute(Thread& thread, int secondCount)
 {
     for (int i = 0; i < serverModuleMgr_.getCount(); i++)
-        serverModuleMgr_.getItems(i).daemonThreadExecute(thread, secondCount);
+        serverModuleMgr_.getItem(i).daemonThreadExecute(thread, secondCount);
 }
 
 //-----------------------------------------------------------------------------
@@ -226,7 +234,7 @@ int IseSvrModBusiness::getAssistorIndex(int serverModuleIndex, int localAssistor
     {
         result = 0;
         for (int i = 0; i < serverModuleIndex; i++)
-            result += serverModuleMgr_.getItems(i).getAssistorThreadCount();
+            result += serverModuleMgr_.getItem(i).getAssistorThreadCount();
         result += localAssistorIndex;
     }
 
@@ -234,14 +242,14 @@ int IseSvrModBusiness::getAssistorIndex(int serverModuleIndex, int localAssistor
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 分派消息给服务模块
+// 描述: 广播消息给服务模块
 //-----------------------------------------------------------------------------
-void IseSvrModBusiness::dispatchMessage(BaseSvrModMessage& message)
+void IseSvrModBusiness::broadcastMessage(BaseSvrModMessage& message)
 {
     for (int i = 0; i < serverModuleMgr_.getCount(); i++)
     {
         if (message.isHandled) break;
-        serverModuleMgr_.getItems(i).dispatchMessage(message);
+        serverModuleMgr_.getItem(i).onSvrModMessage(message);
     }
 }
 
@@ -254,7 +262,7 @@ int IseSvrModBusiness::getUdpGroupCount()
 
     for (int i = 0; i < serverModuleMgr_.getCount(); i++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(i);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(i);
         result += serverModule.getUdpGroupCount();
     }
 
@@ -270,7 +278,7 @@ int IseSvrModBusiness::getTcpServerCount()
 
     for (int i = 0; i < serverModuleMgr_.getCount(); i++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(i);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(i);
         result += serverModule.getTcpServerCount();
     }
 
@@ -287,7 +295,7 @@ void IseSvrModBusiness::initActionCodeMap()
 
     for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(modIndex);
         for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
         {
             ActionCodeArray actionCodes;
@@ -311,7 +319,7 @@ void IseSvrModBusiness::initUdpGroupIndexMap()
 
     for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(modIndex);
         for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
         {
             udpGroupIndexMap_[globalGroupIndex] = modIndex;
@@ -330,7 +338,7 @@ void IseSvrModBusiness::initTcpServerIndexMap()
 
     for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(modIndex);
         for (int serverIndex = 0; serverIndex < serverModule.getTcpServerCount(); serverIndex++)
         {
             tcpServerIndexMap_[globalServerIndex] = modIndex;
@@ -355,7 +363,7 @@ void IseSvrModBusiness::updateIseOptions()
     int globalGroupIndex = 0;
     for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(modIndex);
         for (int groupIndex = 0; groupIndex < serverModule.getUdpGroupCount(); groupIndex++)
         {
             UdpGroupOptions grpOpt;
@@ -370,13 +378,13 @@ void IseSvrModBusiness::updateIseOptions()
     int globalServerIndex = 0;
     for (int modIndex = 0; modIndex < serverModuleMgr_.getCount(); modIndex++)
     {
-        IseServerModule& serverModule = serverModuleMgr_.getItems(modIndex);
+        IseServerModule& serverModule = serverModuleMgr_.getItem(modIndex);
         for (int serverIndex = 0; serverIndex < serverModule.getTcpServerCount(); serverIndex++)
         {
             TcpServerOptions svrOpt;
             serverModule.getTcpServerOptions(serverIndex, svrOpt);
             options.setTcpServerPort(globalServerIndex, svrOpt.serverPort);
-            options.setTcpConnEventLoopIndex(globalServerIndex, svrOpt.eventLoopIndex);
+            options.setTcpServerEventLoopCount(globalServerIndex, svrOpt.eventLoopCount);
             globalServerIndex++;
         }
     }
@@ -384,7 +392,7 @@ void IseSvrModBusiness::updateIseOptions()
     // 设置辅助服务线程的数量
     int assistorCount = 0;
     for (int i = 0; i < serverModuleMgr_.getCount(); i++)
-        assistorCount += serverModuleMgr_.getItems(i).getAssistorThreadCount();
+        assistorCount += serverModuleMgr_.getItem(i).getAssistorThreadCount();
     options.setAssistorThreadCount(assistorCount);
 }
 

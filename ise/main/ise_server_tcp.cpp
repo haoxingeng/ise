@@ -522,6 +522,42 @@ void TcpEventLoopList::stop()
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 将 connection 挂接到 EventLoop 上
+// 参数:
+//   index - EventLoop 的序号 (0-based)，为 -1 表示自动选择。
+//-----------------------------------------------------------------------------
+bool TcpEventLoopList::registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex)
+{
+    TcpEventLoop *eventLoop = NULL;
+
+    if (eventLoopIndex >= 0 && eventLoopIndex < getCount())
+    {
+        AutoLocker locker(mutex_);
+        eventLoop = getItem(eventLoopIndex);
+    }
+    else
+    {
+        static int s_index = 0;
+        AutoLocker locker(mutex_);
+        // round-robin
+        eventLoop = getItem(s_index);
+        s_index = (s_index >= getCount() - 1 ? 0 : s_index + 1);
+    }
+
+    bool result = (eventLoop != NULL);
+    if (result)
+    {
+        // 将 ((TcpConnection*)connection)->setEventLoop(eventLoop) 委托给事件循环线程
+        eventLoop->delegateToLoop(boost::bind(
+            &TcpConnection::setEventLoop,
+            static_cast<TcpConnection*>(connection),
+            eventLoop));
+    }
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 设置 eventLoop 的个数
 //-----------------------------------------------------------------------------
 void TcpEventLoopList::setCount(int count)
@@ -803,7 +839,8 @@ bool TcpClient::registerToEventLoop(int index)
 
     if (connection_ != NULL)
     {
-        result = iseApp().getMainServer().getMainTcpServer().registerToEventLoop(connection_, index);
+        TcpEventLoopList& eventLoopList = iseApp().getMainServer().getMainTcpServer().getTcpClientEventLoopList();
+        result = eventLoopList.registerToEventLoop(connection_, index);
         if (result)
             connection_ = NULL;
     }
@@ -813,6 +850,28 @@ bool TcpClient::registerToEventLoop(int index)
 
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpServer
+
+TcpServer::TcpServer(int eventLoopCount) :
+    eventLoopList_(eventLoopCount)
+{
+    // nothing
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpServer::open()
+{
+    BaseTcpServer::open();
+    eventLoopList_.start();
+}
+
+//-----------------------------------------------------------------------------
+
+void TcpServer::close()
+{
+    eventLoopList_.stop();
+    BaseTcpServer::close();
+}
 
 //-----------------------------------------------------------------------------
 // 描述: 创建连接对象
@@ -829,6 +888,17 @@ BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
 #endif
 
     return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 收到连接
+// 注意:
+//   1. 此回调在TCP服务器监听线程(TcpListenerThread)中执行。
+//   2. 对 connection->setEventLoop() 的调用在事件循环线程中执行。
+//-----------------------------------------------------------------------------
+void TcpServer::acceptConnection(BaseTcpConnection *connection)
+{
+    eventLoopList_.registerToEventLoop(connection, -1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1263,7 +1333,7 @@ void WinTcpConnection::onSendCallback(const IocpTaskData& taskData)
 
     while (!sendTaskQueue_.empty())
     {
-        const SendTask& task = sendTaskQueue_.front();
+        SendTask& task = sendTaskQueue_.front();
         if (bytesSent_ >= task.bytes)
         {
             bytesSent_ -= task.bytes;
@@ -1869,9 +1939,11 @@ void LinuxTcpConnection::postRecvTask(const PacketSplitter& packetSplitter,
     if (!enableRecv_)
         setRecvEnabled(true);
 
-    // 直接调用 tryRetrievePacket() 会造成循环调用
+    // 注意: 此处必须调用 tryRetrievePacket()，否则会造成接收中止。但是，直接
+    // 调用 tryRetrievePacket() 又会造成循环调用，所以必须用 delegateToLoop()，
+    // 且必须使用 shared_from_this()，否则在某些情况下会导致程序崩溃。
     getEventLoop()->delegateToLoop(boost::bind(
-        &LinuxTcpConnection::tryRetrievePacket, this));
+        &LinuxTcpConnection::afterPostRecvTask, shared_from_this()));
 }
 
 //-----------------------------------------------------------------------------
@@ -1996,6 +2068,16 @@ bool LinuxTcpConnection::tryRetrievePacket()
     }
 
     return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 在 postRecvTask() 中调用此函数
+//-----------------------------------------------------------------------------
+void LinuxTcpConnection::afterPostRecvTask(const TcpConnectionPtr& thisObj)
+{
+    LinuxTcpConnection *thisPtr = static_cast<LinuxTcpConnection*>(thisObj.get());
+    if (!thisPtr->isErrorOccurred_)
+        thisPtr->tryRetrievePacket();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2287,8 +2369,7 @@ void LinuxTcpEventLoop::onEpollNotifyEvent(TcpConnection *connection, EpollObjec
 // class MainTcpServer
 
 MainTcpServer::MainTcpServer() :
-    isActive_(false),
-    eventLoopList_(iseApp().getIseOptions().getTcpEventLoopCount())
+    isActive_(false)
 {
     createTcpServerList();
 }
@@ -2332,40 +2413,22 @@ void MainTcpServer::close()
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 将 connection 挂接到 EventLoop 上
-// 参数:
-//   index - EventLoop 的序号 (0-based)，为 -1 表示自动选择
+// 描述: 延迟创建 tcpClientEventLoopList_
 //-----------------------------------------------------------------------------
-bool MainTcpServer::registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex)
+TcpEventLoopList& MainTcpServer::getTcpClientEventLoopList()
 {
-    static Mutex s_lock;
-    TcpEventLoop *eventLoop = NULL;
+    static Mutex s_mutex;
+    AutoLocker locker(s_mutex);
 
-    if (eventLoopIndex >= 0 && eventLoopIndex < eventLoopList_.getCount())
+    if (!tcpClientEventLoopList_)
     {
-        AutoLocker locker(s_lock);
-        eventLoop = eventLoopList_[eventLoopIndex];
-    }
-    else
-    {
-        static int s_index = 0;
-        AutoLocker locker(s_lock);
-        // round-robin
-        eventLoop = eventLoopList_[s_index];
-        s_index = (s_index >= eventLoopList_.getCount() - 1 ? 0 : s_index + 1);
+        int eventLoopCount = iseApp().getIseOptions().getTcpClientEventLoopCount();
+        tcpClientEventLoopList_.reset(new TcpEventLoopList(eventLoopCount));
+        if (isActive_)
+            tcpClientEventLoopList_->start();
     }
 
-    bool result = (eventLoop != NULL);
-    if (result)
-    {
-        // 将 ((TcpConnection*)connection)->setEventLoop(eventLoop) 委托给事件循环线程
-        eventLoop->delegateToLoop(boost::bind(
-            &TcpConnection::setEventLoop,
-            static_cast<TcpConnection*>(connection),
-            eventLoop));
-    }
-
-    return result;
+    return *tcpClientEventLoopList_;
 }
 
 //-----------------------------------------------------------------------------
@@ -2379,13 +2442,11 @@ void MainTcpServer::createTcpServerList()
     tcpServerList_.resize(serverCount);
     for (int i = 0; i < serverCount; i++)
     {
-        TcpServer *tcpServer = new TcpServer();
+        TcpServer *tcpServer = new TcpServer(iseApp().getIseOptions().getTcpServerEventLoopCount(i));
         tcpServer->setContext(i);
+        tcpServer->setLocalPort(static_cast<WORD>(iseApp().getIseOptions().getTcpServerPort(i)));
 
         tcpServerList_[i] = tcpServer;
-
-        tcpServer->setAcceptConnCallback(boost::bind(&MainTcpServer::onAcceptConnection, this, _1, _2));
-        tcpServer->setLocalPort(static_cast<WORD>(iseApp().getIseOptions().getTcpServerPort(i)));
     }
 }
 
@@ -2407,7 +2468,8 @@ void MainTcpServer::doOpen()
     for (int i = 0; i < (int)tcpServerList_.size(); i++)
         tcpServerList_[i]->open();
 
-    eventLoopList_.start();
+    if (tcpClientEventLoopList_)
+        tcpClientEventLoopList_->start();
 }
 
 //-----------------------------------------------------------------------------
@@ -2415,24 +2477,11 @@ void MainTcpServer::doOpen()
 //-----------------------------------------------------------------------------
 void MainTcpServer::doClose()
 {
-    eventLoopList_.stop();
+    if (tcpClientEventLoopList_)
+        tcpClientEventLoopList_->stop();
 
     for (int i = 0; i < (int)tcpServerList_.size(); i++)
         tcpServerList_[i]->close();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 收到新的连接
-// 注意:
-//   1. 此回调在TCP服务器监听线程(TcpListenerThread)中执行。
-//   2. 对 connection->setEventLoop() 的调用在事件循环线程中执行。
-//-----------------------------------------------------------------------------
-void MainTcpServer::onAcceptConnection(BaseTcpServer *tcpServer, BaseTcpConnection *connection)
-{
-    int serverIndex = (static_cast<TcpConnection*>(connection))->getServerIndex();
-    int eventLoopIndex = iseApp().getIseOptions().getTcpConnEventLoopIndex(serverIndex);
-
-    registerToEventLoop(connection, eventLoopIndex);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

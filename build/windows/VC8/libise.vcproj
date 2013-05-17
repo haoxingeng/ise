@@ -308,6 +308,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\ise\main\ise_inspector.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\ise\main\ise_scheduler.cpp"
 				>
 			</File>
@@ -391,6 +395,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\ise\main\ise_http.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_inspector.h"
 				>
 			</File>
 			<File

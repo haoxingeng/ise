@@ -84,9 +84,42 @@ enum SERVER_TYPE
 typedef boost::function<void (int signalNumber)> UserSignalHandlerCallback;
 
 ///////////////////////////////////////////////////////////////////////////////
+// interfaces
+
+class UdpCallbacks
+{
+public:
+    virtual ~UdpCallbacks() {}
+
+    // UDP数据包分类
+    virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex) = 0;
+    // UDP数据包分派
+    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) = 0;
+};
+
+class TcpCallbacks
+{
+public:
+    virtual ~TcpCallbacks() {}
+
+    // 接受了一个新的TCP连接
+    virtual void onTcpConnected(const TcpConnectionPtr& connection) = 0;
+    // 断开了一个TCP连接
+    virtual void onTcpDisconnected(const TcpConnectionPtr& connection) = 0;
+    // TCP连接上的一个接收任务已完成
+    virtual void onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
+        int packetSize, const Context& context) = 0;
+    // TCP连接上的一个发送任务已完成
+    virtual void onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context) = 0;
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // class IseBusiness - ISE业务基类
 
-class IseBusiness : boost::noncopyable
+class IseBusiness :
+    boost::noncopyable,
+    public UdpCallbacks,
+    public TcpCallbacks
 {
 public:
     IseBusiness() {}
@@ -108,11 +141,13 @@ public:
     // 初始化ISE配置信息
     virtual void initIseOptions(IseOptions& options) {}
 
+public:  /* interface UdpCallbacks */
     // UDP数据包分类
     virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex) { groupIndex = 0; }
     // UDP数据包分派
     virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) {}
 
+public:  /* interface TcpCallbacks */
     // 接受了一个新的TCP连接
     virtual void onTcpConnected(const TcpConnectionPtr& connection) {}
     // 断开了一个TCP连接
@@ -123,6 +158,7 @@ public:
     // TCP连接上的一个发送任务已完成
     virtual void onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context) {}
 
+public:
     // 辅助服务线程执行(assistorIndex: 0-based)
     virtual void assistorThreadExecute(AssistorThread& assistorThread, int assistorIndex) {}
     // 系统守护线程执行 (secondCount: 0-based)
@@ -138,33 +174,33 @@ public:
     // 服务器常规配置缺省值
     enum
     {
-        DEF_SERVER_TYPE               = ST_UDP,        // 服务器默认类型
-        DEF_ADJUST_THREAD_INTERVAL    = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
-        DEF_ASSISTOR_THREAD_COUNT     = 0,             // 辅助线程的个数
+        DEF_SERVER_TYPE                 = ST_UDP,        // 服务器默认类型
+        DEF_ADJUST_THREAD_INTERVAL      = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
+        DEF_ASSISTOR_THREAD_COUNT       = 0,             // 辅助线程的个数
     };
 
     // UDP服务器配置缺省值
     enum
     {
-        DEF_UDP_SERVER_PORT           = 9000,          // UDP服务默认端口
-        DEF_UDP_LISTENER_THD_COUNT    = 1,             // 监听线程的数量
-        DEF_UDP_REQ_GROUP_COUNT       = 1,             // 请求组别总数的缺省值
-        DEF_UDP_REQ_QUEUE_CAPACITY    = 5000,          // 请求队列的缺省容量(即能放下多少数据包)
-        DEF_UDP_WORKER_THREADS_MIN    = 1,             // 每个组别中工作者线程的缺省最少个数
-        DEF_UDP_WORKER_THREADS_MAX    = 8,             // 每个组别中工作者线程的缺省最多个数
-        DEF_UDP_REQ_EFF_WAIT_TIME     = 10,            // 请求在队列中的有效等待时间缺省值(秒)
-        DEF_UDP_WORKER_THD_TIMEOUT    = 60,            // 工作者线程的工作超时时间缺省值(秒)
-        DEF_UDP_QUEUE_ALERT_LINE      = 500,           // 队列中数据包数量警戒线缺省值，若超过警戒线则尝试增加线程
+        DEF_UDP_SERVER_PORT             = 9000,          // UDP服务默认端口
+        DEF_UDP_LISTENER_THD_COUNT      = 1,             // 监听线程的数量
+        DEF_UDP_REQ_GROUP_COUNT         = 1,             // 请求组别总数的缺省值
+        DEF_UDP_REQ_QUEUE_CAPACITY      = 5000,          // 请求队列的缺省容量(即能放下多少数据包)
+        DEF_UDP_WORKER_THREADS_MIN      = 1,             // 每个组别中工作者线程的缺省最少个数
+        DEF_UDP_WORKER_THREADS_MAX      = 8,             // 每个组别中工作者线程的缺省最多个数
+        DEF_UDP_REQ_EFF_WAIT_TIME       = 10,            // 请求在队列中的有效等待时间缺省值(秒)
+        DEF_UDP_WORKER_THD_TIMEOUT      = 60,            // 工作者线程的工作超时时间缺省值(秒)
+        DEF_UDP_QUEUE_ALERT_LINE        = 500,           // 队列中数据包数量警戒线缺省值，若超过警戒线则尝试增加线程
     };
 
     // TCP服务器配置缺省值
     enum
     {
-        DEF_TCP_SERVER_PORT           = 8000,          // TCP服务默认端口
-        DEF_TCP_SERVER_COUNT          = 1,             // TCP服务器总数的缺省值
-        DEF_TCP_CONN_EVENT_LOOP_INDEX = -1,            // TCP服务器产生的连接所属 EventLoop 的序号
-        DEF_TCP_EVENT_LOOP_COUNT      = 1,             // TCP事件循环的个数
-        DEF_TCP_MAX_RECV_BUFFER_SIZE  = 1024*1024*1,   // TCP接收缓存的最大字节数
+        DEF_TCP_SERVER_PORT             = 8000,          // TCP服务默认端口
+        DEF_TCP_SERVER_COUNT            = 1,             // TCP服务器总数的缺省值
+        DEF_TCP_SERVER_EVENT_LOOP_COUNT = 1,             // TCP服务器中事件循环个数的缺省值
+        DEF_TCP_CLIENT_EVENT_LOOP_COUNT = 1,             // 用于全部TCP客户端的事件循环的个数的缺省值
+        DEF_TCP_MAX_RECV_BUFFER_SIZE    = 1024*1024*1,   // TCP接收缓存的最大字节数
     };
 
     // UDP请求组别的配置
@@ -187,12 +223,12 @@ public:
     struct TcpServerOption
     {
         int serverPort;                // TCP服务端口号
-        int eventLoopIndex;            // TCP服务器产生的连接所属 EventLoop 的序号 (0-based)
+        int eventLoopCount;            // 事件循环个数
 
         TcpServerOption()
         {
             serverPort = DEF_TCP_SERVER_PORT;
-            eventLoopIndex = DEF_TCP_CONN_EVENT_LOOP_INDEX;
+            eventLoopCount = DEF_TCP_SERVER_EVENT_LOOP_COUNT;
         }
     };
     typedef std::vector<TcpServerOption> TcpServerOptions;
@@ -243,10 +279,11 @@ public:
     // 设置TCP服务端口号
     void setTcpServerPort(int serverIndex, int port);
     void setTcpServerPort(int port) { setTcpServerPort(0, port); }
-    // 设置TCP服务器产生的连接所属 EventLoop
-    void setTcpConnEventLoopIndex(int serverIndex, int eventLoopIndex);
-    // 设置TCP事件循环的个数
-    void setTcpEventLoopCount(int count);
+    // 设置每个TCP服务器中事件循环的个数
+    void setTcpServerEventLoopCount(int serverIndex, int eventLoopCount);
+    void setTcpServerEventLoopCount(int eventLoopCount) { setTcpServerEventLoopCount(0, eventLoopCount); }
+    // 设置用于全部TCP客户端的事件循环的个数
+    void setTcpClientEventLoopCount(int eventLoopCount);
     // 设置TCP接收缓存在无接收任务时的最大字节数
     void setTcpMaxRecvBufferSize(int bytes);
 
@@ -267,14 +304,14 @@ public:
 
     int getTcpServerCount() { return tcpServerCount_; }
     int getTcpServerPort(int serverIndex);
-    int getTcpConnEventLoopIndex(int serverIndex);
-    int getTcpEventLoopCount() { return tcpEventLoopCount_; }
+    int getTcpServerEventLoopCount(int serverIndex);
+    int getTcpClientEventLoopCount() { return tcpClientEventLoopCount_; }
     int getTcpMaxRecvBufferSize() { return tcpMaxRecvBufferSize_; }
 
 private:
     /* ------------ 系统配置: ------------------ */
 
-    std::string logFileName_;              // 日志文件名 (含路径)
+    std::string logFileName_;         // 日志文件名 (含路径)
     bool logNewFileDaily_;            // 是否每天用一个单独的文件存储日志
     bool isDaemon_;                   // 是否后台守护程序(daemon)
     bool allowMultiInstance_;         // 是否允许多个程序实体同时运行
@@ -311,8 +348,8 @@ private:
     int tcpServerCount_;
     // 每个TCP服务器的配置
     TcpServerOptions tcpServerOpts_;
-    // TCP事件循环的个数
-    int tcpEventLoopCount_;
+    // 用于全部TCP客户端的事件循环的个数
+    int tcpClientEventLoopCount_;
     // TCP接收缓存在无接收任务时的最大字节数
     int tcpMaxRecvBufferSize_;
 };
@@ -394,7 +431,7 @@ private:
     IseApplication();
 
 private:
-    bool processStandardArgs();
+    bool processStandardArgs(bool isInitializing);
     void checkMultiInstance();
     void applyIseOptions();
     void createMainServer();
@@ -413,8 +450,8 @@ private:
     IseOptions iseOptions_;              // ISE配置
     IseBusiness *iseBusiness_;           // 业务对象
     IseMainServer *mainServer_;          // 主服务器
-    StrList argList_;                    // 命令行参数
-    std::string exeName_;                     // 可执行文件的全名(含绝对路径)
+    StrList argList_;                    // 命令行参数 (不包括程序名 argv[0])
+    std::string exeName_;                // 可执行文件的全名(含绝对路径)
     time_t appStartTime_;                // 程序启动时的时间
     bool initialized_;                   // 是否成功初始化
     bool terminated_;                    // 是否应退出的标志
