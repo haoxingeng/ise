@@ -167,7 +167,7 @@ void IseScheduleTaskMgr::execute(Thread& executorThread)
         catch (...)
         {}
 
-        sleepSec(1);
+        sleepSeconds(1);
     }
 }
 

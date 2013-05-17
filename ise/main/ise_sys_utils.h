@@ -156,7 +156,7 @@ std::string getAppSubPath(const std::string& subDir = "");
 int getLastSysError();
 THREAD_ID getCurThreadId();
 std::string sysErrorMessage(int errorCode);
-void sleepSec(double seconds, bool allowInterrupt = true);
+void sleepSeconds(double seconds, bool allowInterrupt = true);
 UINT64 getCurTicks();
 UINT64 getTickDiff(UINT64 oldTicks, UINT64 newTicks);
 

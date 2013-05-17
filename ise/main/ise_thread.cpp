@@ -115,7 +115,7 @@ void ThreadImpl::sleep(double seconds)
         onceSecs = (seconds >= SLEEP_INTERVAL ? SLEEP_INTERVAL : seconds);
         seconds -= onceSecs;
 
-        sleepSec(onceSecs, true);
+        sleepSeconds(onceSecs, true);
     }
 }
 
@@ -696,7 +696,7 @@ void ThreadList::waitForAllThreads(int maxWaitForSecs, int *killedCountPtr)
     while (waitSecs < (UINT)maxWaitForSecs)
     {
         if (items_.getCount() == 0) break;
-        sleepSec(SLEEP_INTERVAL, true);
+        sleepSeconds(SLEEP_INTERVAL, true);
         waitSecs += SLEEP_INTERVAL;
     }
 

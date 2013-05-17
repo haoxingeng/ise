@@ -1257,10 +1257,10 @@ std::string sysErrorMessage(int errorCode)
 //-----------------------------------------------------------------------------
 // 描述: 睡眠 seconds 秒，可精确到纳秒。
 // 参数:
-//   seconds       - 睡眠的秒数，可为小数，可精确到纳秒 (实际精确度取决于操作系统)
+//   seconds        - 睡眠的秒数，可为小数，可精确到纳秒 (实际精确度取决于操作系统)
 //   allowInterrupt - 是否允许信号中断
 //-----------------------------------------------------------------------------
-void sleepSec(double seconds, bool allowInterrupt)
+void sleepSeconds(double seconds, bool allowInterrupt)
 {
 #ifdef ISE_WINDOWS
     ::Sleep((UINT)(seconds * 1000));

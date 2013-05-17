@@ -174,7 +174,7 @@ public:
     // 服务器常规配置缺省值
     enum
     {
-        DEF_SERVER_TYPE                 = ST_UDP,        // 服务器默认类型
+        DEF_SERVER_TYPE                 = 0,             // 服务器默认类型
         DEF_ADJUST_THREAD_INTERVAL      = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
         DEF_ASSISTOR_THREAD_COUNT       = 0,             // 辅助线程的个数
     };

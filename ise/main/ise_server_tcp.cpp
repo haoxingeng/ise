@@ -398,11 +398,15 @@ void TcpEventLoop::clearConnections()
 
 //-----------------------------------------------------------------------------
 // 描述: 执行事件循环
+// 注意:
+//   * 只有全部连接被销毁后才可以退出循环，不然未销毁连接将对程序退出过程造成
+//     麻烦。在 Linux 下典型的错误信息是:
+//     'pure virtual method called terminate called without an active exception'.
 //-----------------------------------------------------------------------------
 void TcpEventLoop::runLoop(Thread *thread)
 {
     bool isTerminated = false;
-    while (!isTerminated)
+    while (!isTerminated || !tcpConnMap_.empty())
     {
         if (thread->isTerminated())
         {
@@ -495,7 +499,7 @@ void TcpEventLoopList::start()
 //-----------------------------------------------------------------------------
 void TcpEventLoopList::stop()
 {
-    const int MAX_WAIT_FOR_SECS = 5;    // (秒)
+    const int MAX_WAIT_FOR_SECS = 10;   // (秒)
     const double SLEEP_INTERVAL = 0.5;  // (秒)
 
     // 通知停止
@@ -512,7 +516,7 @@ void TcpEventLoopList::stop()
 
         if (runningCount == 0) break;
 
-        sleepSec(SLEEP_INTERVAL, true);
+        sleepSeconds(SLEEP_INTERVAL, true);
         waitSecs += SLEEP_INTERVAL;
     }
 
@@ -895,10 +899,14 @@ BaseTcpConnection* TcpServer::createConnection(SOCKET socketHandle)
 // 注意:
 //   1. 此回调在TCP服务器监听线程(TcpListenerThread)中执行。
 //   2. 对 connection->setEventLoop() 的调用在事件循环线程中执行。
+//   3. 为避免程序退出时能尽快清除剩余连接，此时不允许有新连接连入。
 //-----------------------------------------------------------------------------
 void TcpServer::acceptConnection(BaseTcpConnection *connection)
 {
-    eventLoopList_.registerToEventLoop(connection, -1);
+    if (!iseApp().isTerminated())
+        eventLoopList_.registerToEventLoop(connection, -1);
+    else
+        delete connection;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

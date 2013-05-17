@@ -558,7 +558,7 @@ void IseMainServer::runBackground()
         {}
 
         secondCount++;
-        sleepSec(1, true);  // 1√Î
+        sleepSeconds(1, true);  // 1√Î
     }
     catch (...)
     {}
