@@ -123,14 +123,14 @@ public:
     THREAD_ID getThreadId() const { return threadId_; }
     int isTerminated() const { return terminated_; }
     int getReturnValue() const { return returnValue_; }
-    bool isFreeOnTerminate() const { return isFreeOnTerminate_; }
+    bool isAutoDelete() const { return isAutoDelete_; }
     int getTermElapsedSecs() const;
     // 属性 (setter)
     void setThreadId(THREAD_ID value) { threadId_ = value; }
     void setExecuting(bool value) { isExecuting_ = value; }
     void setTerminated(bool value);
     void setReturnValue(int value) { returnValue_ = value; }
-    void setFreeOnTerminate(bool value) { isFreeOnTerminate_ = value; }
+    void setAutoDelete(bool value) { isAutoDelete_ = value; }
 
 protected:
     void execute();
@@ -146,7 +146,7 @@ protected:
     bool isExecuting_;            // 线程是否正在执行线程函数
     bool isRunCalled_;            // run() 函数是否已被调用过
     int termTime_;                // 调用 terminate() 时的时间戳
-    bool isFreeOnTerminate_;      // 线程退出时是否同时释放类对象
+    bool isAutoDelete_;      // 线程退出时是否同时释放类对象
     bool terminated_;             // 是否应退出的标志
     bool isSleepInterrupted_;     // 睡眠是否被中断
     int returnValue_;             // 线程返回值 (可在 execute 函数中修改此值，函数 waitFor 返回此值)
@@ -220,18 +220,17 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 // class Thread - 线程类
 
-typedef void (*ThreadExecProc)(void *param);
-
 class Thread : boost::noncopyable
 {
 public:
-    friend class ThreadImpl;
+    typedef boost::function<void (Thread& thread)> ThreadProc;
+
 public:
-    Thread() : threadImpl_(this), execProc_(NULL), threadParam_(NULL) {}
+    Thread() : threadImpl_(this) {}
     virtual ~Thread() {}
 
     // 创建一个线程并马上执行
-    static void create(ThreadExecProc execProc, void *param = NULL);
+    static Thread* create(const ThreadProc& threadProc);
 
     // 创建并执行线程。
     // 注: 此成员方法在对象声明周期中只可调用一次。
@@ -260,7 +259,7 @@ public:
     THREAD_ID getThreadId() const { return threadImpl_.getThreadId(); }
     int isTerminated() const { return threadImpl_.isTerminated(); }
     int getReturnValue() const { return threadImpl_.getReturnValue(); }
-    bool isFreeOnTerminate() const { return threadImpl_.isFreeOnTerminate(); }
+    bool isAutoDelete() const { return threadImpl_.isAutoDelete(); }
     int getTermElapsedSecs() const { return threadImpl_.getTermElapsedSecs(); }
 #ifdef ISE_WINDOWS
     int getPriority() const { return threadImpl_.getPriority(); }
@@ -272,7 +271,7 @@ public:
     // 属性 (setter)
     void setTerminated(bool value) { threadImpl_.setTerminated(value); }
     void setReturnValue(int value) { threadImpl_.setReturnValue(value); }
-    void setFreeOnTerminate(bool value) { threadImpl_.setFreeOnTerminate(value); }
+    void setAutoDelete(bool value) { threadImpl_.setAutoDelete(value); }
 #ifdef ISE_WINDOWS
     void setPriority(int value) { threadImpl_.setPriority(value); }
 #endif
@@ -283,7 +282,7 @@ public:
 
 protected:
     // 线程的执行函数，子类必须重写。
-    virtual void execute() { if (execProc_ != NULL) (*execProc_)(threadParam_); }
+    virtual void execute() { if (threadProc_) threadProc_(*this); }
 
     // 在执行完 execute() 后，永远会执行此函数。
     virtual void afterExecute() {}
@@ -307,12 +306,13 @@ private:
     LinuxThreadImpl threadImpl_;
 #endif
 
-    ThreadExecProc execProc_;
-    void *threadParam_;
+    ThreadProc threadProc_;
+
+    friend class ThreadImpl;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class ThreadList - 线程列表类
+// class ThreadList - 线程列表
 
 class ThreadList : boost::noncopyable
 {
@@ -326,7 +326,7 @@ public:
     void clear();
 
     void terminateAllThreads();
-    void waitForAllThreads(int maxWaitForSecs = 5, int *killedCountPtr = NULL);
+    void waitForAllThreads(int maxWaitSecs = TIMEOUT_INFINITE, int *killedCount = NULL);
 
     int getCount() const { return items_.getCount(); }
     Thread* getItem(int index) const { return items_[index]; }
@@ -337,6 +337,39 @@ public:
 protected:
     ObjectList<Thread> items_;
     mutable Mutex mutex_;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class ThreadPool - 线程池
+
+class ThreadPool : boost::noncopyable
+{
+public:
+    typedef boost::function<void (Thread& thread)> Task;
+
+public:
+    ThreadPool();
+    virtual ~ThreadPool();
+
+    void start(int threadCount);
+    void stop(int maxWaitSecs = TIMEOUT_INFINITE);
+
+    void addTask(const Task& task);
+    void setRepeat(bool repeat);
+
+    bool isRunning() const { return isRunning_; }
+
+private:
+    bool takeTask(Task& task);
+    void threadProc(Thread& thread);
+
+private:
+    Condition::Mutex mutex_;
+    Condition condition_;
+    std::deque<Task> tasks_;
+    ThreadList threadList_;
+    bool isRunning_;
+    bool repeat_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

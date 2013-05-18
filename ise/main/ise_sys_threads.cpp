@@ -37,7 +37,7 @@ namespace ise
 SysThread::SysThread(SysThreadMgr& threadMgr) :
     threadMgr_(threadMgr)
 {
-    setFreeOnTerminate(true);
+    setAutoDelete(true);
     threadMgr_.registerThread(this);
 }
 

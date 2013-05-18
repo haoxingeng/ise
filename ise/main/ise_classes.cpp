@@ -3601,7 +3601,7 @@ void Logger::writeStr(const char *str)
     threadId = pthread_self();
 #endif
 
-    text = formatString("[%s](%05d|%05u)<%s>\n",
+    text = formatString("[%s](%05d|%05u) %s\n",
         DateTime::currentDateTime().dateTimeString().c_str(),
         processId, threadId, str);
 

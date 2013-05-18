@@ -225,7 +225,7 @@ UdpWorkerThread::UdpWorkerThread(UdpWorkerThreadPool *threadPool) :
     ownPool_(threadPool),
     timeoutChecker_(this)
 {
-    setFreeOnTerminate(true);
+    setAutoDelete(true);
     // ∆Ù”√≥¨ ±ºÏ≤‚
     timeoutChecker_.setTimeOutSecs(iseApp().getIseOptions().getUdpWorkerThreadTimeOut());
 

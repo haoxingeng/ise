@@ -68,6 +68,7 @@ namespace ise
 
 class Buffer;
 class DateTime;
+class AutoFinalizer;
 class AutoInvoker;
 class AutoInvokable;
 class Mutex;
@@ -186,12 +187,10 @@ private:
 class AutoFinalizer : boost::noncopyable
 {
 public:
-    typedef boost::function<void (void)> Finalizer;
-public:
-    AutoFinalizer(const Finalizer& f) : f_(f) {}
+    AutoFinalizer(const Functor& f) : f_(f) {}
     ~AutoFinalizer() { f_(); }
 private:
-    Finalizer f_;
+    Functor f_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

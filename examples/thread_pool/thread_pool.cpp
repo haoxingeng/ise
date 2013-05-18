@@ -1,0 +1,49 @@
+///////////////////////////////////////////////////////////////////////////////
+
+#include "thread_pool.h"
+
+//-----------------------------------------------------------------------------
+
+IseBusiness* createIseBusinessObject()
+{
+    return new AppBusiness();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AppBusiness::initialize()
+{
+    threadPool_.addTask(boost::bind(&AppBusiness::threadPoolTask, this, _1));
+    threadPool_.setRepeat(true);
+    threadPool_.start(10);
+}
+
+//-----------------------------------------------------------------------------
+
+void AppBusiness::finalize()
+{
+    threadPool_.stop();
+}
+
+//-----------------------------------------------------------------------------
+
+void AppBusiness::initIseOptions(IseOptions& options)
+{
+    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
+    options.setIsDaemon(false);
+    options.setAllowMultiInstance(false);
+}
+
+//-----------------------------------------------------------------------------
+
+void AppBusiness::threadPoolTask(Thread& thread)
+{
+    static AtomicInt counter;
+
+    counter.increment();
+    std::string s = formatString("executing task: %u. (thread: %u)", counter.get(), thread.getThreadId());
+    logger().writeStr(s);
+    std::cout << s << std::endl;
+
+    thread.sleep(1);
+}

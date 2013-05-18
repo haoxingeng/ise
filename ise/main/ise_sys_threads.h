@@ -82,8 +82,6 @@ protected:
 
 class SysThreadMgr : boost::noncopyable
 {
-private:
-    friend class SysThread;
 public:
     SysThreadMgr() {}
     ~SysThreadMgr() {}
@@ -97,6 +95,7 @@ private:
 
 private:
     ThreadList threadList_;
+    friend class SysThread;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

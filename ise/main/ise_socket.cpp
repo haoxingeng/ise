@@ -1564,7 +1564,7 @@ UdpListenerThread::UdpListenerThread(UdpListenerThreadPool *threadPool, int inde
     threadPool_(threadPool),
     index_(index)
 {
-    setFreeOnTerminate(true);
+    setAutoDelete(true);
     udpServer_ = &(threadPool->getUdpServer());
     threadPool_->registerThread(this);
 }
@@ -1683,7 +1683,7 @@ void UdpListenerThreadPool::stopThreads()
 TcpListenerThread::TcpListenerThread(BaseTcpServer *tcpServer) :
     tcpServer_(tcpServer)
 {
-    setFreeOnTerminate(false);
+    setAutoDelete(false);
 }
 
 //-----------------------------------------------------------------------------

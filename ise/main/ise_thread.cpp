@@ -42,7 +42,7 @@ ThreadImpl::ThreadImpl(Thread *thread) :
     isExecuting_(false),
     isRunCalled_(false),
     termTime_(0),
-    isFreeOnTerminate_(false),
+    isAutoDelete_(false),
     terminated_(false),
     isSleepInterrupted_(false),
     returnValue_(0)
@@ -182,7 +182,7 @@ UINT __stdcall threadExecProc(void *param)
             ~AutoFinalizer()
             {
                 threadImpl_->setExecuting(false);
-                if (threadImpl_->isFreeOnTerminate())
+                if (threadImpl_->isAutoDelete())
                     delete threadImpl_->getThread();
             }
         } finalizer(threadImpl);
@@ -226,7 +226,7 @@ WinThreadImpl::~WinThreadImpl()
     {
         if (isExecuting_)
             terminate();
-        if (!isFreeOnTerminate_)
+        if (!isAutoDelete_)
             waitFor();
     }
 
@@ -297,7 +297,7 @@ void WinThreadImpl::kill()
 //-----------------------------------------------------------------------------
 int WinThreadImpl::waitFor()
 {
-    ISE_ASSERT(isFreeOnTerminate_ == false);
+    ISE_ASSERT(isAutoDelete_ == false);
 
     if (threadId_ != 0)
     {
@@ -359,7 +359,7 @@ void threadFinalProc(void *param)
     LinuxThreadImpl *threadImpl = (LinuxThreadImpl*)param;
 
     threadImpl->setExecuting(false);
-    if (threadImpl->isFreeOnTerminate())
+    if (threadImpl->isAutoDelete())
         delete threadImpl->getThread();
 }
 
@@ -447,7 +447,7 @@ LinuxThreadImpl::~LinuxThreadImpl()
     {
         if (isExecuting_)
             terminate();
-        if (!isFreeOnTerminate_)
+        if (!isAutoDelete_)
             waitFor();
     }
 
@@ -496,7 +496,7 @@ void LinuxThreadImpl::terminate()
 // 注意:
 //   1. 调用此函数后，线程对象即被销毁，对线程类对象的一切操作皆不可用(terminate();
 //      waitFor(); delete thread; 等)。
-//   2. 在杀死线程前，isFreeOnTerminate_ 会自动设为 true，以便对象能自动释放。
+//   2. 在杀死线程前，isAutoDelete_ 会自动设为 true，以便对象能自动释放。
 //   3. 线程被杀死后，用户所管理的某些重要资源可能未能得到释放，比如锁资源 (还未来得及解锁
 //      便被杀了)，所以重要资源的释放工作必须在 beforeKill 中进行。
 //   4. pthread 没有规定在线程收到 cancel 信号后是否进行 C++ stack unwinding，也就是说栈对象
@@ -511,7 +511,7 @@ void LinuxThreadImpl::kill()
 
         if (isExecuting_)
         {
-            setFreeOnTerminate(true);
+            setAutoDelete(true);
             pthread_cancel(pthreadId_);
             return;
         }
@@ -526,7 +526,7 @@ void LinuxThreadImpl::kill()
 //-----------------------------------------------------------------------------
 int LinuxThreadImpl::waitFor()
 {
-    ISE_ASSERT(isFreeOnTerminate_ == false);
+    ISE_ASSERT(isAutoDelete_ == false);
 
     pthread_t threadId = pthreadId_;
 
@@ -604,15 +604,15 @@ void LinuxThreadImpl::checkThreadError(int errorCode)
 //-----------------------------------------------------------------------------
 // 描述: 创建一个线程并马上执行
 //-----------------------------------------------------------------------------
-void Thread::create(ThreadExecProc execProc, void *param)
+Thread* Thread::create(const ThreadProc& threadProc)
 {
     Thread *thread = new Thread();
 
-    thread->setFreeOnTerminate(true);
-    thread->execProc_ = execProc;
-    thread->threadParam_ = param;
-
+    thread->setAutoDelete(true);
+    thread->threadProc_ = threadProc;
     thread->run();
+
+    return thread;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -678,22 +678,22 @@ void ThreadList::terminateAllThreads()
 //-----------------------------------------------------------------------------
 // 描述: 等待所有线程退出
 // 参数:
-//   maxWaitForSecs - 最长等待时间(秒) (为 -1 表示无限等待)
-//   killedCountPtr  - 传回最终强杀了多少个线程
+//   maxWaitSecs - 最长等待时间(秒) (为 -1 表示无限等待)
+//   killedCount - 传回最终强杀了多少个线程
 // 注意:
 //   此函数要求列表中各线程在退出时自动销毁自己并从列表中移除。
 //-----------------------------------------------------------------------------
-void ThreadList::waitForAllThreads(int maxWaitForSecs, int *killedCountPtr)
+void ThreadList::waitForAllThreads(int maxWaitSecs, int *killedCount)
 {
     const double SLEEP_INTERVAL = 0.1;  // (秒)
     double waitSecs = 0;
-    int killedCount = 0;
+    int killedThreadCount = 0;
 
     // 通知所有线程退出
     terminateAllThreads();
 
     // 等待线程退出
-    while (waitSecs < (UINT)maxWaitForSecs)
+    while (maxWaitSecs < 0 || waitSecs < maxWaitSecs)
     {
         if (items_.getCount() == 0) break;
         sleepSeconds(SLEEP_INTERVAL, true);
@@ -705,15 +705,124 @@ void ThreadList::waitForAllThreads(int maxWaitForSecs, int *killedCountPtr)
     {
         AutoLocker locker(mutex_);
 
-        killedCount = items_.getCount();
+        killedThreadCount = items_.getCount();
         for (int i = 0; i < items_.getCount(); i++)
             items_[i]->kill();
 
         items_.clear();
     }
 
-    if (killedCountPtr)
-        *killedCountPtr = killedCount;
+    if (killedCount)
+        *killedCount = killedThreadCount;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class ThreadPool
+
+ThreadPool::ThreadPool() :
+    condition_(mutex_),
+    isRunning_(false),
+    repeat_(false)
+{
+    // nothing
+}
+
+ThreadPool::~ThreadPool()
+{
+    stop();
+}
+
+//-----------------------------------------------------------------------------
+
+void ThreadPool::start(int threadCount)
+{
+    ISE_ASSERT(!isRunning_);
+    ISE_ASSERT(threadCount > 0);
+
+    AutoLocker locker(mutex_);
+
+    isRunning_ = true;
+    for (int i = 0; i < threadCount; ++i)
+        threadList_.add(Thread::create(boost::bind(&ThreadPool::threadProc, this, _1)));
+}
+
+//-----------------------------------------------------------------------------
+
+void ThreadPool::stop(int maxWaitSecs)
+{
+    AutoLocker locker(mutex_);
+
+    if (isRunning_)
+    {
+        isRunning_ = false;
+        condition_.notifyAll();
+
+        threadList_.terminateAllThreads();
+        threadList_.waitForAllThreads(maxWaitSecs);
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void ThreadPool::addTask(const Task& task)
+{
+    AutoLocker locker(mutex_);
+    tasks_.push_back(task);
+    condition_.notify();
+}
+
+//-----------------------------------------------------------------------------
+
+void ThreadPool::setRepeat(bool repeat)
+{
+    AutoLocker locker(mutex_);
+    repeat_ = repeat;
+}
+
+//-----------------------------------------------------------------------------
+
+bool ThreadPool::takeTask(Task& task)
+{
+    AutoLocker locker(mutex_);
+
+    while (tasks_.empty() && isRunning_)
+        condition_.wait();
+
+    if (!tasks_.empty())
+    {
+        task = tasks_.front();
+        tasks_.pop_front();
+        if (repeat_)
+        {
+            tasks_.push_back(task);
+            condition_.notify();
+        }
+
+        return true;
+    }
+    else
+        return false;
+}
+
+//-----------------------------------------------------------------------------
+
+void ThreadPool::threadProc(Thread& thread)
+{
+    AutoFinalizer autoFinalizer(boost::bind(&ThreadList::remove, &threadList_, &thread));
+
+    while (!thread.isTerminated())
+    {
+        try
+        {
+            Task task;
+            if (takeTask(task))
+                task(thread);
+        }
+        catch (Exception& e)
+        {
+            logger().writeException(e);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -41,7 +41,7 @@ AssistorThread::AssistorThread(AssistorThreadPool *threadPool, int assistorIndex
     ownPool_(threadPool),
     assistorIndex_(assistorIndex)
 {
-    setFreeOnTerminate(true);
+    setAutoDelete(true);
     ownPool_->registerThread(this);
 }
 

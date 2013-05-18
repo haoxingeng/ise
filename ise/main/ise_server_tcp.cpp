@@ -216,7 +216,7 @@ void IoBuffer::makeSpace(int moreBytes)
 TcpEventLoopThread::TcpEventLoopThread(TcpEventLoop& eventLoop) :
     eventLoop_(eventLoop)
 {
-    setFreeOnTerminate(false);
+    setAutoDelete(false);
 }
 
 //-----------------------------------------------------------------------------
@@ -965,7 +965,7 @@ void TcpConnector::start()
     if (thread_ == NULL)
     {
         thread_ = new WorkerThread(*this);
-        thread_->setFreeOnTerminate(true);
+        thread_->setAutoDelete(true);
         thread_->run();
     }
 }
