@@ -21,7 +21,7 @@
 \****************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////
-// ise_xml_doc.h
+// ise_xml.h
 // Classes:
 //   * XmlNode
 //   * XmlNodeProps
@@ -31,8 +31,8 @@
 //   * XmlDocParser
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ISE_XML_DOC_H_
-#define _ISE_XML_DOC_H_
+#ifndef _ISE_EXT_UTILS_XML_H_
+#define _ISE_EXT_UTILS_XML_H_
 
 #include "ise/main/ise_options.h"
 #include "ise/main/ise_global_defs.h"
@@ -40,9 +40,10 @@
 #include "ise/main/ise_classes.h"
 #include "ise/main/ise_sys_utils.h"
 
-using std::string;
-
 namespace ise
+{
+
+namespace utils
 {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -273,6 +274,8 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+} // namespace utils
+
 } // namespace ise
 
-#endif // _ISE_XML_DOC_H_
+#endif // _ISE_EXT_UTILS_XML_H_

@@ -21,14 +21,17 @@
 \****************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////
-// 文件名称: ise_xml_doc.cpp
+// 文件名称: ise_xml.cpp
 // 功能描述: XML文档支持
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "ise/main/ise_xml_doc.h"
+#include "ise/ext/utils/xml/ise_xml.h"
 #include "ise/main/ise_exceptions.h"
 
 namespace ise
+{
+
+namespace utils
 {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -73,7 +76,7 @@ std::string strToXml(const std::string& str)
         case 10:
         case 13:
             std::string strRep;
-            strRep = string("#") + ise::intToStr(s[i]) + ";";
+            strRep = std::string("#") + ise::intToStr(s[i]) + ";";
             s.insert(i + 1, strRep);
             s[i] = '&';
             break;
@@ -439,7 +442,7 @@ bool XmlNodeProps::propExists(const std::string& name)
     return (indexOf(name) >= 0);
 }
 
-string& XmlNodeProps::valueOf(const std::string& name)
+std::string& XmlNodeProps::valueOf(const std::string& name)
 {
     int i;
 
@@ -904,7 +907,7 @@ void XmlWriter::writeNode(XmlNode *node, int indent)
     {
         s = node->getProps()->getPropString();
         if (s.empty() || s[0] != ' ')
-            s = string(" ") + s;
+            s = std::string(" ") + s;
     }
 
     if (node->getDataString().size() > 0 && node->getChildCount() == 0)
@@ -914,7 +917,7 @@ void XmlWriter::writeNode(XmlNode *node, int indent)
     else
         s = s + ">";
 
-    s = string(indent, ' ') + "<" + node->getName() + s;
+    s = std::string(indent, ' ') + "<" + node->getName() + s;
     writeLn(s);
 
     for (int i = 0; i < node->getChildCount(); i++)
@@ -922,7 +925,7 @@ void XmlWriter::writeNode(XmlNode *node, int indent)
 
     if (node->getChildCount() > 0)
     {
-        s = string(indent, ' ') + "</" + node->getName() + ">";
+        s = std::string(indent, ' ') + "</" + node->getName() + ">";
         writeLn(s);
     }
 }
@@ -1019,5 +1022,7 @@ void XmlDocParser::splitNamePath(const std::string& namePath, StrList& result)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+} // namespace utils
 
 } // namespace ise

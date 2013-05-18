@@ -85,7 +85,7 @@ void AppBusiness::onTcpConnected(const TcpConnectionPtr& connection)
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    string msg = "Welcome to the simple echo server, type 'quit' to exit.\r\n";
+    std::string msg = "Welcome to the simple echo server, type 'quit' to exit.\r\n";
     connection->send(msg.c_str(), msg.length());
 }
 
@@ -105,7 +105,7 @@ void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pa
 {
     logger().writeStr("onTcpRecvComplete");
 
-    string msg((char*)packetBuffer, packetSize);
+    std::string msg((char*)packetBuffer, packetSize);
     msg = trimString(msg);
     if (msg == "quit")
         connection->disconnect();

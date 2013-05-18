@@ -40,6 +40,8 @@ add_library(ise ${ISE_MAIN_SRCS})
 target_link_libraries(ise pthread)
 
 add_subdirectory(${ISE_ROOT_PATH}/ise/ext/dbi/mysql ${PROJECT_BINARY_DIR}/ext/dbi/mysql)
+add_subdirectory(${ISE_ROOT_PATH}/ise/ext/utils/cipher ${PROJECT_BINARY_DIR}/ext/utils/cipher)
+add_subdirectory(${ISE_ROOT_PATH}/ise/ext/utils/xml ${PROJECT_BINARY_DIR}/ext/utils/xml)
 add_subdirectory(${ISE_ROOT_PATH}/examples ${PROJECT_BINARY_DIR}/examples)
 
 install(TARGETS ise DESTINATION lib)

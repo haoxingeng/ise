@@ -38,7 +38,7 @@ bool AppBusiness::parseArguments(int argc, char *argv[])
 
 //-----------------------------------------------------------------------------
 
-string AppBusiness::getAppHelp()
+std::string AppBusiness::getAppHelp()
 {
     return formatString("Usage: %s ip\n",
         extractFileName(getAppExeName()).c_str());
@@ -52,7 +52,7 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
     {
     case SS_AFTER_START:
         {
-            string ip = iseApp().getArgString(0);
+            std::string ip = iseApp().getArgString(0);
             int port = 10003;
 
             TcpConnector::instance().connect(InetAddress(ip, port),

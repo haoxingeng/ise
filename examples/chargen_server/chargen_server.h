@@ -30,7 +30,7 @@ public:
 private:
     void initMessage();
 private:
-    string message_;
+    std::string message_;
     UINT64 transferredBytes_;
 };
 

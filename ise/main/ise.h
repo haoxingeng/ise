@@ -38,8 +38,6 @@
 #include "ise/main/ise_socket.h"
 #include "ise/main/ise_thread.h"
 #include "ise/main/ise_sys_utils.h"
-#include "ise/main/ise_data_algo.h"
-#include "ise/main/ise_xml_doc.h"
 #include "ise/main/ise_application.h"
 #include "ise/main/ise_svr_mod.h"
 #include "ise/main/ise_scheduler.h"

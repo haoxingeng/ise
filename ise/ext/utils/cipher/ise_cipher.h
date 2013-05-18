@@ -21,11 +21,11 @@
 \****************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////
-// ise_data_algo.h
+// ise_cipher.h
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ISE_DATA_ALGO_H_
-#define _ISE_DATA_ALGO_H_
+#ifndef _ISE_EXT_UTILS_CIPHER_H_
+#define _ISE_EXT_UTILS_CIPHER_H_
 
 #include "ise/main/ise_options.h"
 #include "ise/main/ise_global_defs.h"
@@ -36,6 +36,9 @@
 #include <memory>
 
 namespace ise
+{
+
+namespace utils
 {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -561,6 +564,8 @@ protected:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+} // namespace utils
+
 } // namespace ise
 
-#endif // _ISE_DATA_ALGO_H_
+#endif // _ISE_EXT_UTILS_CIPHER_H_

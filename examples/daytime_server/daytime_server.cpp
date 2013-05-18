@@ -74,7 +74,7 @@ void AppBusiness::onTcpConnected(const TcpConnectionPtr& connection)
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    string msg = DateTime::currentDateTime().dateTimeString() + "\n";
+    std::string msg = DateTime::currentDateTime().dateTimeString() + "\n";
     connection->send(msg.c_str(), msg.length());
 }
 

@@ -14,7 +14,7 @@ ServerModule_Chargen::ServerModule_Chargen()
 
 void ServerModule_Chargen::initMessage()
 {
-    string line;
+    std::string line;
     for (int i = 33; i < 127; ++i)
         line.push_back(char(i));
     line += line;

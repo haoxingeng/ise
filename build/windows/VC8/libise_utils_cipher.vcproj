@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="libise"
-	ProjectGUID="{33766F3E-7293-4D6A-A2FD-478AF69E1E0E}"
-	RootNamespace="libise"
+	Name="libise_utils_cipher"
+	ProjectGUID="{267C98A6-E3F2-4618-AD3B-58BA0CFDB96E}"
+	RootNamespace="libise_utils_cipher"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -63,7 +63,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/libise.lib"
+				OutputFile="$(OutDir)/libise_utils_cipher.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -128,7 +128,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/libise.lib"
+				OutputFile="$(OutDir)/libise_utils_cipher.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -190,7 +190,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/libise.lib"
+				OutputFile="$(OutDir)/libise_utils_cipher.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -252,7 +252,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/libise.lib"
+				OutputFile="$(OutDir)/libise_utils_cipher.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -280,67 +280,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\ise\main\ise_application.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_assert.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_classes.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_database.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_exceptions.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_http.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_inspector.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_scheduler.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_server_assistor.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_server_tcp.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_server_udp.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_socket.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_svr_mod.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_sys_threads.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_sys_utils.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_thread.cpp"
+				RelativePath="..\..\..\ise\ext\utils\cipher\ise_cipher.cpp"
 				>
 			</File>
 		</Filter>
@@ -350,91 +290,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\..\ise\main\ise.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_application.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_assert.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_classes.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_database.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_err_msgs.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_exceptions.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_global_defs.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_http.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_inspector.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_options.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_scheduler.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_server_assistor.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_server_tcp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_server_udp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_socket.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_stldefs.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_svr_mod.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_svr_mod_msgs.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_sys_threads.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_sys_utils.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_thread.h"
+				RelativePath="..\..\..\ise\ext\utils\cipher\ise_cipher.h"
 				>
 			</File>
 		</Filter>

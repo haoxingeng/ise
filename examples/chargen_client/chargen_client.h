@@ -19,7 +19,7 @@ public:
     virtual void finalize();
 
     virtual bool parseArguments(int argc, char *argv[]);
-    virtual string getAppHelp();
+    virtual std::string getAppHelp();
     virtual void doStartupState(STARTUP_STATE state);
     virtual void initIseOptions(IseOptions& options);
 

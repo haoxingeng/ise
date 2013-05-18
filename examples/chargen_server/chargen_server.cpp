@@ -13,7 +13,7 @@ IseBusiness* createIseBusinessObject()
 
 void AppBusiness::initMessage()
 {
-    string line;
+    std::string line;
     for (int i = 33; i < 127; ++i)
         line.push_back(char(i));
     line += line;
