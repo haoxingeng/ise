@@ -40,9 +40,9 @@ namespace utils
 //-----------------------------------------------------------------------------
 // 描述: 任意字符串 -> 合法的XML字符串
 //-----------------------------------------------------------------------------
-std::string strToXml(const std::string& str)
+string strToXml(const string& str)
 {
-    std::string s = str;
+    string s = str;
 
     for (int i = (int)s.size() - 1; i >= 0; i--)
     {
@@ -75,8 +75,8 @@ std::string strToXml(const std::string& str)
 
         case 10:
         case 13:
-            std::string strRep;
-            strRep = std::string("#") + ise::intToStr(s[i]) + ";";
+            string strRep;
+            strRep = string("#") + ise::intToStr(s[i]) + ";";
             s.insert(i + 1, strRep);
             s[i] = '&';
             break;
@@ -94,9 +94,9 @@ std::string strToXml(const std::string& str)
 //   &quot; -> '"'
 //   &#XXX; -> 十进制值所对应的ASCII字符
 //-----------------------------------------------------------------------------
-std::string xmlToStr(const std::string& str)
+string xmlToStr(const string& str)
 {
-    std::string s = str;
+    string s = str;
     int i, j, h, n;
 
     i = 0;
@@ -158,13 +158,13 @@ std::string xmlToStr(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 在串s中查找 chars 中的任一字符，若找到则返回其位置(0-based)，否则返回-1。
 //-----------------------------------------------------------------------------
-int findChars(const std::string& s, const std::string& chars)
+int findChars(const string& s, const string& chars)
 {
     int result = -1;
     int len = (int)s.length();
 
     for (int i = 0; i < len; i++)
-        if (chars.find(s[i], 0) != std::string::npos)
+        if (chars.find(s[i], 0) != string::npos)
         {
             result = i;
             break;
@@ -248,7 +248,7 @@ XmlNode* XmlNode::addNode()
 //-----------------------------------------------------------------------------
 // 描述: 在当前节点下添加一个新的子节点
 //-----------------------------------------------------------------------------
-XmlNode* XmlNode::addNode(const std::string& name, const std::string& dataString)
+XmlNode* XmlNode::addNode(const string& name, const string& dataString)
 {
     XmlNode *node = addNode();
     node->setName(name);
@@ -269,7 +269,7 @@ void XmlNode::insertNode(int index, XmlNode *node)
 //-----------------------------------------------------------------------------
 // 描述: 根据子节点名称，查找子节点。若未找到则返回 NULL。
 //-----------------------------------------------------------------------------
-XmlNode* XmlNode::findChildNode(const std::string& name)
+XmlNode* XmlNode::findChildNode(const string& name)
 {
     XmlNode *result;
     int i;
@@ -286,7 +286,7 @@ XmlNode* XmlNode::findChildNode(const std::string& name)
 //-----------------------------------------------------------------------------
 // 描述: 在当前节点下查找名称为 name 的节点，返回其序号(0-based)。若未找到则返回-1。
 //-----------------------------------------------------------------------------
-int XmlNode::indexOf(const std::string& name)
+int XmlNode::indexOf(const string& name)
 {
     int result = -1;
 
@@ -351,7 +351,7 @@ void XmlNode::setParentNode(XmlNode *node)
     parentNode_ = node;
 }
 
-void XmlNode::setDataString(const std::string& value)
+void XmlNode::setDataString(const string& value)
 {
     dataString_ = xmlToStr(value);
 }
@@ -388,7 +388,7 @@ XmlNodeProps& XmlNodeProps::operator = (const XmlNodeProps& rhs)
     return *this;
 }
 
-bool XmlNodeProps::add(const std::string& name, const std::string& value)
+bool XmlNodeProps::add(const string& name, const string& value)
 {
     bool result;
 
@@ -404,7 +404,7 @@ bool XmlNodeProps::add(const std::string& name, const std::string& value)
     return result;
 }
 
-void XmlNodeProps::remove(const std::string& name)
+void XmlNodeProps::remove(const string& name)
 {
     int i;
 
@@ -423,7 +423,7 @@ void XmlNodeProps::clear()
     items_.clear();
 }
 
-int XmlNodeProps::indexOf(const std::string& name)
+int XmlNodeProps::indexOf(const string& name)
 {
     int result = -1;
 
@@ -437,12 +437,12 @@ int XmlNodeProps::indexOf(const std::string& name)
     return result;
 }
 
-bool XmlNodeProps::propExists(const std::string& name)
+bool XmlNodeProps::propExists(const string& name)
 {
     return (indexOf(name) >= 0);
 }
 
-std::string& XmlNodeProps::valueOf(const std::string& name)
+string& XmlNodeProps::valueOf(const string& name)
 {
     int i;
 
@@ -466,9 +466,9 @@ XmlNodePropItem XmlNodeProps::getItems(int index) const
     return result;
 }
 
-std::string XmlNodeProps::getPropString() const
+string XmlNodeProps::getPropString() const
 {
-    std::string result;
+    string result;
     XmlNodePropItem *item;
 
     for (int i = 0; i < items_.getCount(); i++)
@@ -481,21 +481,21 @@ std::string XmlNodeProps::getPropString() const
     return result;
 }
 
-void XmlNodeProps::setPropString(const std::string& propString)
+void XmlNodeProps::setPropString(const string& propString)
 {
     parsePropString(propString);
 }
 
-void XmlNodeProps::parsePropString(const std::string& propStr)
+void XmlNodeProps::parsePropString(const string& propStr)
 {
-    std::string s, name, value;
+    string s, name, value;
 
     clear();
     s = propStr;
     while (true)
     {
-        std::string::size_type i = s.find('=', 0);
-        if (i != std::string::npos)
+        string::size_type i = s.find('=', 0);
+        if (i != string::npos)
         {
             name = trimString(s.substr(0, i));
             s.erase(0, i + 1);
@@ -504,7 +504,7 @@ void XmlNodeProps::parsePropString(const std::string& propStr)
             {
                 s.erase(0, 1);
                 i = s.find('\"', 0);
-                if (i != std::string::npos)
+                if (i != string::npos)
                 {
                     value = xmlToStr(s.substr(0, i));
                     s.erase(0, i + 1);
@@ -577,7 +577,7 @@ bool XmlDocument::loadFromStream(Stream& stream)
 {
     try
     {
-        std::string version, encoding;
+        string version, encoding;
         XmlReader reader(this, &stream);
 
         rootNode_.clear();
@@ -593,7 +593,7 @@ bool XmlDocument::loadFromStream(Stream& stream)
     }
 }
 
-bool XmlDocument::saveToString(std::string& str)
+bool XmlDocument::saveToString(string& str)
 {
     MemoryStream stream;
     bool result = saveToStream(stream);
@@ -601,7 +601,7 @@ bool XmlDocument::saveToString(std::string& str)
     return result;
 }
 
-bool XmlDocument::loadFromString(const std::string& str)
+bool XmlDocument::loadFromString(const string& str)
 {
     MemoryStream stream;
     stream.write(str.c_str(), (int)str.size());
@@ -609,7 +609,7 @@ bool XmlDocument::loadFromString(const std::string& str)
     return loadFromStream(stream);
 }
 
-bool XmlDocument::saveToFile(const std::string& fileName)
+bool XmlDocument::saveToFile(const string& fileName)
 {
     FileStream fs;
     bool result = fs.open(fileName, FM_CREATE | FM_SHARE_DENY_WRITE);
@@ -618,7 +618,7 @@ bool XmlDocument::saveToFile(const std::string& fileName)
     return result;
 }
 
-bool XmlDocument::loadFromFile(const std::string& fileName)
+bool XmlDocument::loadFromFile(const string& fileName)
 {
     FileStream fs;
     bool result = fs.open(fileName, FM_OPEN_READ | FM_SHARE_DENY_NONE);
@@ -652,9 +652,9 @@ XmlReader::~XmlReader()
     // nothing
 }
 
-void XmlReader::readHeader(std::string& version, std::string& encoding)
+void XmlReader::readHeader(string& version, string& encoding)
 {
-    std::string s1, s2, s3;
+    string s1, s2, s3;
 
     readXmlData(s1, s2, s3);
     if (s1.find("xml", 0) != 0)
@@ -679,7 +679,7 @@ void XmlReader::readRootNode(XmlNode *node)
 //-----------------------------------------------------------------------------
 // 描述: 读取 XML 标签
 //-----------------------------------------------------------------------------
-XML_TAG_TYPES XmlReader::readXmlData(std::string& name, std::string& prop, std::string& data)
+XML_TAG_TYPES XmlReader::readXmlData(string& name, string& prop, string& data)
 {
     XML_TAG_TYPES result = XTT_START_TAG;
     enum { FIND_LEFT, FIND_RIGHT, FIND_DATA, FIND_COMMENT, DONE } state;
@@ -795,8 +795,8 @@ XML_TAG_TYPES XmlReader::readNode(XmlNode *node)
 {
     XML_TAG_TYPES result, tagTypes;
     XmlNode *childNode;
-    std::string name, prop, data;
-    std::string endName;
+    string name, prop, data;
+    string endName;
 
     result = readXmlData(name, prop, data);
 
@@ -855,9 +855,9 @@ XmlWriter::~XmlWriter()
     // nothing
 }
 
-void XmlWriter::writeHeader(const std::string& version, const std::string& encoding)
+void XmlWriter::writeHeader(const string& version, const string& encoding)
 {
-    std::string header, ver, enc;
+    string header, ver, enc;
 
     ver = formatString("version=\"%s\"", version.c_str());
     if (!encoding.empty())
@@ -886,9 +886,9 @@ void XmlWriter::flushBuffer()
     buffer_.clear();
 }
 
-void XmlWriter::writeLn(const std::string& str)
+void XmlWriter::writeLn(const string& str)
 {
-    std::string s = str;
+    string s = str;
 
     buffer_ += s;
     if (owner_->getAutoIndent())
@@ -898,7 +898,7 @@ void XmlWriter::writeLn(const std::string& str)
 
 void XmlWriter::writeNode(XmlNode *node, int indent)
 {
-    std::string s;
+    string s;
 
     if (!owner_->getAutoIndent())
         indent = 0;
@@ -907,7 +907,7 @@ void XmlWriter::writeNode(XmlNode *node, int indent)
     {
         s = node->getProps()->getPropString();
         if (s.empty() || s[0] != ' ')
-            s = std::string(" ") + s;
+            s = string(" ") + s;
     }
 
     if (node->getDataString().size() > 0 && node->getChildCount() == 0)
@@ -917,7 +917,7 @@ void XmlWriter::writeNode(XmlNode *node, int indent)
     else
         s = s + ">";
 
-    s = std::string(indent, ' ') + "<" + node->getName() + s;
+    s = string(indent, ' ') + "<" + node->getName() + s;
     writeLn(s);
 
     for (int i = 0; i < node->getChildCount(); i++)
@@ -925,7 +925,7 @@ void XmlWriter::writeNode(XmlNode *node, int indent)
 
     if (node->getChildCount() > 0)
     {
-        s = std::string(indent, ' ') + "</" + node->getName() + ">";
+        s = string(indent, ' ') + "</" + node->getName() + ">";
         writeLn(s);
     }
 }
@@ -948,7 +948,7 @@ XmlDocParser::~XmlDocParser()
 // 参数:
 //   fileName - 配置文件名(含路径)
 //-----------------------------------------------------------------------------
-bool XmlDocParser::loadFromFile(const std::string& fileName)
+bool XmlDocParser::loadFromFile(const string& fileName)
 {
     XmlDocument xmlDoc;
     bool result = xmlDoc.loadFromFile(fileName);
@@ -960,9 +960,9 @@ bool XmlDocParser::loadFromFile(const std::string& fileName)
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串
 //-----------------------------------------------------------------------------
-std::string XmlDocParser::getString(const std::string& namePath)
+string XmlDocParser::getString(const string& namePath)
 {
-    std::string result;
+    string result;
     StrList nameList;
     XmlNode *node, *resultNode;
 
@@ -975,7 +975,7 @@ std::string XmlDocParser::getString(const std::string& namePath)
 
     if (node)
     {
-        std::string strLastName = nameList[nameList.getCount() - 1];
+        string strLastName = nameList[nameList.getCount() - 1];
 
         // 名称路径中的最后一个名称既可是节点名，也可以是属性名
         resultNode = node->findChildNode(strLastName);
@@ -991,7 +991,7 @@ std::string XmlDocParser::getString(const std::string& namePath)
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串(以整型返回)
 //-----------------------------------------------------------------------------
-int XmlDocParser::getInteger(const std::string& namePath, int defaultVal)
+int XmlDocParser::getInteger(const string& namePath, int defaultVal)
 {
     return strToInt(getString(namePath), defaultVal);
 }
@@ -999,7 +999,7 @@ int XmlDocParser::getInteger(const std::string& namePath, int defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串(以浮点型返回)
 //-----------------------------------------------------------------------------
-double XmlDocParser::getFloat(const std::string& namePath, double defaultVal)
+double XmlDocParser::getFloat(const string& namePath, double defaultVal)
 {
     return strToFloat(getString(namePath), defaultVal);
 }
@@ -1007,7 +1007,7 @@ double XmlDocParser::getFloat(const std::string& namePath, double defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 根据名称路径取得配置字符串(以布尔型返回)
 //-----------------------------------------------------------------------------
-bool XmlDocParser::getBoolean(const std::string& namePath, bool defaultVal)
+bool XmlDocParser::getBoolean(const string& namePath, bool defaultVal)
 {
     return strToBool(getString(namePath), defaultVal);
 }
@@ -1015,7 +1015,7 @@ bool XmlDocParser::getBoolean(const std::string& namePath, bool defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 拆分名称路径
 //-----------------------------------------------------------------------------
-void XmlDocParser::splitNamePath(const std::string& namePath, StrList& result)
+void XmlDocParser::splitNamePath(const string& namePath, StrList& result)
 {
     const char NAME_PATH_SPLITTER = '.';
     splitString(namePath, NAME_PATH_SPLITTER, result);

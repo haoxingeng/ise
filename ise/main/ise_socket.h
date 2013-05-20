@@ -260,19 +260,19 @@ void ensureNetworkInited();
 
 // 解决跨平台问题的函数
 int iseSocketGetLastError();
-std::string iseSocketGetErrorMsg(int errorCode);
-std::string iseSocketGetLastErrMsg();
+string iseSocketGetErrorMsg(int errorCode);
+string iseSocketGetLastErrMsg();
 void iseCloseSocket(SOCKET handle);
 
 // 杂项函数
-std::string ipToString(UINT ip);
-UINT stringToIp(const std::string& str);
+string ipToString(UINT ip);
+UINT stringToIp(const string& str);
 InetAddress getSocketLocalAddr(SOCKET handle);
 InetAddress getSocketPeerAddr(SOCKET handle);
 int getFreePort(NET_PROTO_TYPE proto, int startPort, int checkTimes);
 void getLocalIpList(StrList& ipList);
-std::string getLocalIp();
-std::string lookupHostAddr(const std::string& host);
+string getLocalIp();
+string lookupHostAddr(const string& host);
 void iseThrowSocketLastError();
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -289,7 +289,7 @@ public:
 public:
     InetAddress() : ip(0), port(0) {}
     InetAddress(UINT _ip, WORD _port) : ip(_ip), port(_port) {}
-    InetAddress(const std::string& _ip, WORD _port)
+    InetAddress(const string& _ip, WORD _port)
     {
         ip = stringToIp(_ip);
         port = _port;
@@ -318,7 +318,7 @@ public:
 
     void clear() { ip = 0; port = 0; }
     bool isEmpty() const { return (ip == 0) && (port == 0); }
-    std::string getDisplayStr() const;
+    string getDisplayStr() const;
 };
 
 #pragma pack()
@@ -508,9 +508,9 @@ public:
     virtual ~BaseTcpClient();
 
     // 阻塞式连接
-    void connect(const std::string& ip, int port);
+    void connect(const string& ip, int port);
     // 异步(非阻塞式)连接 (返回 enum ASYNC_CONNECT_STATE)
-    int asyncConnect(const std::string& ip, int port, int timeoutMSecs = -1);
+    int asyncConnect(const string& ip, int port, int timeoutMSecs = -1);
     // 检查异步连接的状态 (返回 enum ASYNC_CONNECT_STATE)
     int checkAsyncConnectState(int timeoutMSecs = -1);
 

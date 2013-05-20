@@ -110,7 +110,7 @@ IoBuffer::~IoBuffer()
 //-----------------------------------------------------------------------------
 // 描述: 向缓存追加写入数据
 //-----------------------------------------------------------------------------
-void IoBuffer::append(const std::string& str)
+void IoBuffer::append(const string& str)
 {
     append(str.c_str(), (int)str.length());
 }
@@ -139,7 +139,7 @@ void IoBuffer::append(int bytes)
 {
     if (bytes > 0)
     {
-        std::string str;
+        string str;
         str.resize(bytes, 0);
         append(str);
     }
@@ -160,7 +160,7 @@ void IoBuffer::retrieve(int bytes)
 //-----------------------------------------------------------------------------
 // 描述: 从缓存读取全部可读数据并存入 str 中
 //-----------------------------------------------------------------------------
-void IoBuffer::retrieveAll(std::string& str)
+void IoBuffer::retrieveAll(string& str)
 {
     if (getReadableBytes() > 0)
         str.assign(peek(), getReadableBytes());
@@ -634,7 +634,7 @@ void TcpConnection::send(const void *buffer, size_t size, const Context& context
         postSendTask(buffer, static_cast<int>(size), context, timeout);
     else
     {
-        std::string data((const char*)buffer, size);
+        string data((const char*)buffer, size);
         getEventLoop()->delegateToLoop(
             boost::bind(&TcpConnection::postSendTask, this, data, context, timeout));
     }
@@ -663,7 +663,7 @@ void TcpConnection::recv(const PacketSplitter& packetSplitter, const Context& co
 
 //-----------------------------------------------------------------------------
 
-const std::string& TcpConnection::getConnectionName() const
+const string& TcpConnection::getConnectionName() const
 {
     if (connectionName_.empty() && isConnected())
     {
@@ -783,7 +783,7 @@ void TcpConnection::checkTimeout(UINT curTicks)
 
 //-----------------------------------------------------------------------------
 
-void TcpConnection::postSendTask(const std::string& data, const Context& context, int timeout)
+void TcpConnection::postSendTask(const string& data, const Context& context, int timeout)
 {
     postSendTask(data.c_str(), (int)data.size(), context, timeout);
 }
@@ -2418,6 +2418,14 @@ void MainTcpServer::close()
         doClose();
         isActive_ = false;
     }
+}
+
+//-----------------------------------------------------------------------------
+
+TcpServer& MainTcpServer::getTcpServer(int index)
+{
+    ISE_ASSERT(index >= 0 && index < (int)tcpServerList_.size());
+    return *tcpServerList_[index];
 }
 
 //-----------------------------------------------------------------------------

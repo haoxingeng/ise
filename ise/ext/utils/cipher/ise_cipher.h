@@ -68,7 +68,7 @@ class Cipher_Gost;
 ///////////////////////////////////////////////////////////////////////////////
 // Type Definitions
 
-typedef std::string binary;
+typedef string binary;
 
 // The format type
 enum FORMAT_TYPE

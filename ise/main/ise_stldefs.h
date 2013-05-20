@@ -38,6 +38,8 @@
 #include <deque>
 #include <algorithm>
 
+using std::string;
+
 ///////////////////////////////////////////////////////////////////////////////
 // "非标准STL" 包含文件
 
@@ -77,7 +79,7 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// std::string hasher 定义
+// string hasher 定义
 
 #ifdef ISE_USING_EXT_STL
 #ifdef ISE_LINUX
@@ -95,7 +97,7 @@ namespace EXT_STL_NAMESPACE
     }
 
     template <> struct hash<string> {
-        size_t operator()(const std::string& s) const { return stl_string_hash(s); }
+        size_t operator()(const string& s) const { return stl_string_hash(s); }
     };
 
     template <> struct hash<wstring> {

@@ -93,8 +93,8 @@ public:
 
     // UDP数据包分类
     virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex) = 0;
-    // UDP数据包分派
-    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) = 0;
+    // 收到了UDP数据包
+    virtual void onRecvedUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) = 0;
 };
 
 class TcpCallbacks
@@ -133,9 +133,9 @@ public:
     // 解释命令行参数，参数不正确则返回 false
     virtual bool parseArguments(int argc, char *argv[]) { return true; }
     // 返回程序的当前版本号
-    virtual std::string getAppVersion() { return "0.0.0.0"; }
+    virtual string getAppVersion() { return "0.0.0.0"; }
     // 返回程序的帮助信息
-    virtual std::string getAppHelp() { return ""; }
+    virtual string getAppHelp() { return ""; }
     // 处理启动状态
     virtual void doStartupState(STARTUP_STATE state) {}
     // 初始化ISE配置信息
@@ -144,8 +144,8 @@ public:
 public:  /* interface UdpCallbacks */
     // UDP数据包分类
     virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex) { groupIndex = 0; }
-    // UDP数据包分派
-    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) {}
+    // 收到了UDP数据包
+    virtual void onRecvedUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet) {}
 
 public:  /* interface TcpCallbacks */
     // 接受了一个新的TCP连接
@@ -182,7 +182,7 @@ public:
     // UDP服务器配置缺省值
     enum
     {
-        DEF_UDP_SERVER_PORT             = 9000,          // UDP服务默认端口
+        DEF_UDP_SERVER_PORT             = 8000,          // UDP服务默认端口
         DEF_UDP_LISTENER_THD_COUNT      = 1,             // 监听线程的数量
         DEF_UDP_REQ_GROUP_COUNT         = 1,             // 请求组别总数的缺省值
         DEF_UDP_REQ_QUEUE_CAPACITY      = 5000,          // 请求队列的缺省容量(即能放下多少数据包)
@@ -238,12 +238,12 @@ public:
 
     // 系统配置设置/获取-------------------------------------------------------
 
-    void setLogFileName(const std::string& value, bool logNewFileDaily = false)
+    void setLogFileName(const string& value, bool logNewFileDaily = false)
         { logFileName_ = value; logNewFileDaily_ = logNewFileDaily; }
     void setIsDaemon(bool value) { isDaemon_ = value; }
     void setAllowMultiInstance(bool value) { allowMultiInstance_ = value; }
 
-    std::string getLogFileName() { return logFileName_; }
+    string getLogFileName() { return logFileName_; }
     bool getLogNewFileDaily() { return logNewFileDaily_; }
     bool getIsDaemon() { return isDaemon_; }
     bool getAllowMultiInstance() { return allowMultiInstance_; }
@@ -270,7 +270,7 @@ public:
     // 设置UDP请求在队列中的有效等待时间，超时则不予处理(秒)
     void setUdpRequestEffWaitTime(int seconds);
     // 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
-    void setUdpWorkerThreadTimeOut(int seconds);
+    void setUdpWorkerThreadTimeout(int seconds);
     // 设置UDP请求队列中数据包数量警戒线
     void setUdpRequestQueueAlertLine(int count);
 
@@ -299,7 +299,7 @@ public:
     int getUdpRequestQueueCapacity(int groupIndex);
     void getUdpWorkerThreadCount(int groupIndex, int& minThreads, int& maxThreads);
     int getUdpRequestEffWaitTime() { return udpRequestEffWaitTime_; }
-    int getUdpWorkerThreadTimeOut() { return udpWorkerThreadTimeOut_; }
+    int getUdpWorkerThreadTimeout() { return udpWorkerThreadTimeout_; }
     int getUdpRequestQueueAlertLine() { return udpRequestQueueAlertLine_; }
 
     int getTcpServerCount() { return tcpServerCount_; }
@@ -311,10 +311,10 @@ public:
 private:
     /* ------------ 系统配置: ------------------ */
 
-    std::string logFileName_;         // 日志文件名 (含路径)
-    bool logNewFileDaily_;            // 是否每天用一个单独的文件存储日志
-    bool isDaemon_;                   // 是否后台守护程序(daemon)
-    bool allowMultiInstance_;         // 是否允许多个程序实体同时运行
+    string logFileName_;         // 日志文件名 (含路径)
+    bool logNewFileDaily_;       // 是否每天用一个单独的文件存储日志
+    bool isDaemon_;              // 是否后台守护程序(daemon)
+    bool allowMultiInstance_;    // 是否允许多个程序实体同时运行
 
     /* ------------ 服务器常规配置: ------------ */
 
@@ -338,7 +338,7 @@ private:
     // 数据包在队列中的有效等待时间，超时则不予处理(秒)
     int udpRequestEffWaitTime_;
     // 工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
-    int udpWorkerThreadTimeOut_;
+    int udpWorkerThreadTimeout_;
     // 请求队列中数据包数量警戒线，若超过警戒线则尝试增加线程
     int udpRequestQueueAlertLine_;
 
@@ -367,8 +367,8 @@ public:
     void finalize();
     void run();
 
-    MainUdpServer& getMainUdpServer() { return *udpServer_; }
-    MainTcpServer& getMainTcpServer() { return *tcpServer_; }
+    MainUdpServer& getMainUdpServer();
+    MainTcpServer& getMainTcpServer();
     AssistorServer& getAssistorServer() { return *assistorServer_; }
 private:
     void runBackground();
@@ -405,22 +405,24 @@ public:
     void finalize();
     void run();
 
-    inline IseOptions& getIseOptions() { return iseOptions_; }
-    inline IseBusiness& getIseBusiness() { return *iseBusiness_; }
-    inline IseMainServer& getMainServer() { return *mainServer_; }
-    inline IseScheduleTaskMgr& getScheduleTaskMgr() { return IseScheduleTaskMgr::instance(); }
+    IseOptions& getIseOptions() { return iseOptions_; }
+    IseBusiness& getIseBusiness() { return *iseBusiness_; }
+    IseScheduleTaskMgr& getScheduleTaskMgr() { return IseScheduleTaskMgr::instance(); }
+    IseMainServer& getMainServer() { return *mainServer_; }
+    BaseUdpServer& getUdpServer() { return getMainServer().getMainUdpServer().getUdpServer(); }
+    BaseTcpServer& getTcpServer(int index) { return getMainServer().getMainTcpServer().getTcpServer(index); }
 
-    inline void setTerminated(bool value) { terminated_ = value; }
-    inline bool isTerminated() { return terminated_; }
+    void setTerminated(bool value) { terminated_ = value; }
+    bool isTerminated() { return terminated_; }
 
     // 取得可执行文件的全名(含绝对路径)
-    std::string getExeName() { return exeName_; }
+    string getExeName() { return exeName_; }
     // 取得可执行文件所在的路径
-    std::string getExePath();
+    string getExePath();
     // 取得命令行参数个数(首个参数为程序路径文件名)
     int getArgCount() { return argList_.getCount(); }
     // 取得命令行参数字符串 (index: 0-based)
-    std::string getArgString(int index);
+    string getArgString(int index);
     // 取得程序启动时的时间
     time_t getAppStartTime() { return appStartTime_; }
 
@@ -451,7 +453,7 @@ private:
     IseBusiness *iseBusiness_;           // 业务对象
     IseMainServer *mainServer_;          // 主服务器
     StrList argList_;                    // 命令行参数 (不包括程序名 argv[0])
-    std::string exeName_;                // 可执行文件的全名(含绝对路径)
+    string exeName_;                     // 可执行文件的全名(含绝对路径)
     time_t appStartTime_;                // 程序启动时的时间
     bool initialized_;                   // 是否成功初始化
     bool terminated_;                    // 是否应退出的标志

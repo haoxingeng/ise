@@ -53,6 +53,21 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "thread_pool", "thread_pool.
 		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E} = {33766F3E-7293-4D6A-A2FD-478AF69E1E0E}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "max_connection", "max_connection.vcproj", "{A8FFF685-C01C-4CB8-95B9-49109D776070}"
+	ProjectSection(ProjectDependencies) = postProject
+		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E} = {33766F3E-7293-4D6A-A2FD-478AF69E1E0E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "udp_server", "udp_server.vcproj", "{E5B5D542-21A3-447A-810C-5F710F302798}"
+	ProjectSection(ProjectDependencies) = postProject
+		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E} = {33766F3E-7293-4D6A-A2FD-478AF69E1E0E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "udp_client", "udp_client.vcproj", "{0FD024E3-4B60-497E-B2A0-42C80B8F3635}"
+	ProjectSection(ProjectDependencies) = postProject
+		{33766F3E-7293-4D6A-A2FD-478AF69E1E0E} = {33766F3E-7293-4D6A-A2FD-478AF69E1E0E}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug MBCS|Win32 = Debug MBCS|Win32
@@ -195,6 +210,42 @@ Global
 		{4DC085B6-94F1-40EF-81A5-3847FB469E3A}.Release Unicode|Win32.Build.0 = Release|Win32
 		{4DC085B6-94F1-40EF-81A5-3847FB469E3A}.Release|Win32.ActiveCfg = Release|Win32
 		{4DC085B6-94F1-40EF-81A5-3847FB469E3A}.Release|Win32.Build.0 = Release|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Debug MBCS|Win32.ActiveCfg = Debug|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Debug MBCS|Win32.Build.0 = Debug|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Debug Unicode|Win32.ActiveCfg = Debug|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Debug Unicode|Win32.Build.0 = Debug|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Debug|Win32.Build.0 = Debug|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Release MBCS|Win32.ActiveCfg = Release|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Release MBCS|Win32.Build.0 = Release|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Release Unicode|Win32.ActiveCfg = Release|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Release Unicode|Win32.Build.0 = Release|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Release|Win32.ActiveCfg = Release|Win32
+		{A8FFF685-C01C-4CB8-95B9-49109D776070}.Release|Win32.Build.0 = Release|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Debug MBCS|Win32.ActiveCfg = Debug|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Debug MBCS|Win32.Build.0 = Debug|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Debug Unicode|Win32.ActiveCfg = Debug|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Debug Unicode|Win32.Build.0 = Debug|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Debug|Win32.Build.0 = Debug|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Release MBCS|Win32.ActiveCfg = Release|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Release MBCS|Win32.Build.0 = Release|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Release Unicode|Win32.ActiveCfg = Release|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Release Unicode|Win32.Build.0 = Release|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Release|Win32.ActiveCfg = Release|Win32
+		{E5B5D542-21A3-447A-810C-5F710F302798}.Release|Win32.Build.0 = Release|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Debug MBCS|Win32.ActiveCfg = Debug|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Debug MBCS|Win32.Build.0 = Debug|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Debug Unicode|Win32.ActiveCfg = Debug|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Debug Unicode|Win32.Build.0 = Debug|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Debug|Win32.Build.0 = Debug|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Release MBCS|Win32.ActiveCfg = Release|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Release MBCS|Win32.Build.0 = Release|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Release Unicode|Win32.ActiveCfg = Release|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Release Unicode|Win32.Build.0 = Release|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Release|Win32.ActiveCfg = Release|Win32
+		{0FD024E3-4B60-497E-B2A0-42C80B8F3635}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

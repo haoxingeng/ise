@@ -15,9 +15,9 @@ public:
     ServerModule_Inspector();
     virtual ~ServerModule_Inspector() {}
 private:
-    std::string getInfo1(const PropertyList& args, std::string& contentType);
-    std::string getInfo2(const PropertyList& args, std::string& contentType);
-    std::string getInfo3(const PropertyList& args, std::string& contentType);
+    string getInfo1(const PropertyList& args, string& contentType);
+    string getInfo2(const PropertyList& args, string& contentType);
+    string getInfo3(const PropertyList& args, string& contentType);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

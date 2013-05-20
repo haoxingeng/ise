@@ -94,7 +94,7 @@ public:
 
 private:
     AssistorServer *ownAssistorSvr_;     // 所属辅助服务器
-    ThreadList threadList_;               // 线程列表
+    ThreadList threadList_;              // 线程列表
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "chargen_client.h"
-
-//-----------------------------------------------------------------------------
+#include "echo_server.h"
 
 IseBusiness* createIseBusinessObject()
 {
@@ -20,28 +18,9 @@ void AppBusiness::initialize()
 
 void AppBusiness::finalize()
 {
-    // nothing
-}
-
-//-----------------------------------------------------------------------------
-
-bool AppBusiness::parseArguments(int argc, char *argv[])
-{
-    if (argc <= 1)
-    {
-        std::cout << getAppHelp() << std::endl;
-        return false;
-    }
-    else
-        return true;
-}
-
-//-----------------------------------------------------------------------------
-
-string AppBusiness::getAppHelp()
-{
-    return formatString("Usage: %s ip\n",
-        extractFileName(getAppExeName()).c_str());
+    const char *msg = "Echo server stoped.";
+    std::cout << msg << std::endl;
+    logger().writeStr(msg);
 }
 
 //-----------------------------------------------------------------------------
@@ -52,11 +31,17 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
     {
     case SS_AFTER_START:
         {
-            string ip = iseApp().getArgString(0);
-            int port = 10003;
+            const char *msg = "Echo server started.";
+            std::cout << std::endl << msg << std::endl;
+            logger().writeStr(msg);
+        }
+        break;
 
-            TcpConnector::instance().connect(InetAddress(ip, port),
-                boost::bind(&AppBusiness::onConnectComplete, this, _1, _2, _3, _4));
+    case SS_START_FAIL:
+        {
+            const char *msg = "Fail to start echo server.";
+            std::cout << std::endl << msg << std::endl;
+            logger().writeStr(msg);
         }
         break;
 
@@ -70,9 +55,12 @@ void AppBusiness::doStartupState(STARTUP_STATE state)
 void AppBusiness::initIseOptions(IseOptions& options)
 {
     options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
-    options.setIsDaemon(false);
-    options.setAllowMultiInstance(true);
+    options.setIsDaemon(true);
+    options.setAllowMultiInstance(false);
+
     options.setServerType(ST_TCP);
+    options.setTcpServerCount(1);
+    options.setTcpServerPort(10000);
     options.setTcpServerEventLoopCount(1);
 }
 
@@ -80,11 +68,23 @@ void AppBusiness::initIseOptions(IseOptions& options)
 
 void AppBusiness::onTcpConnected(const TcpConnectionPtr& connection)
 {
+    const int MAX_CONN_COUNT = 3;
+
     logger().writeFmt("onTcpConnected (%s) (ConnCount: %d)",
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    connection->recv();
+    int connCount = connection->getServerConnCount();
+    if (connCount > MAX_CONN_COUNT)
+    {
+        logger().writeFmt("Too many connections. (ConnCount: %d)", connCount);
+        connection->disconnect();
+    }
+    else
+    {
+        string msg = "Welcome to the simple echo server, type 'quit' to exit.\r\n";
+        connection->send(msg.c_str(), msg.length());
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -99,20 +99,23 @@ void AppBusiness::onTcpDisconnected(const TcpConnectionPtr& connection)
 void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *packetBuffer,
     int packetSize, const Context& context)
 {
-    string msg((const char*)packetBuffer, packetSize);
+    logger().writeStr("onTcpRecvComplete");
 
-    logger().writeFmt("[%s] Discarded %u bytes.",
-        connection->getConnectionName().c_str(), packetSize);
+    string msg((char*)packetBuffer, packetSize);
+    msg = trimString(msg);
+    if (msg == "quit")
+        connection->disconnect();
+    else
+        connection->send((char*)packetBuffer, packetSize);
 
-    std::cout << msg;
-
-    connection->recv();
+    logger().writeFmt("Received message: %s", msg.c_str());
 }
 
 //-----------------------------------------------------------------------------
 
-void AppBusiness::onConnectComplete(bool success,  TcpConnection *connection,
-    const InetAddress& peerAddr, const Context& context)
+void AppBusiness::onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context)
 {
-    logger().writeFmt("connect to %s %s.", peerAddr.getDisplayStr().c_str(), success? "successfully" : "failed");
+    logger().writeStr("onTcpSendComplete");
+
+    connection->recv(LINE_PACKET_SPLITTER);
 }

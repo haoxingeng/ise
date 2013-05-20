@@ -14,31 +14,31 @@ ServerModule_Inspector::ServerModule_Inspector() :
     add("test", "info3", boost::bind(&ServerModule_Inspector::getInfo3, this, _1, _2), "click this to test args.");
 }
 
-std::string ServerModule_Inspector::getInfo1(const PropertyList& args, std::string& contentType)
+string ServerModule_Inspector::getInfo1(const PropertyList& args, string& contentType)
 {
     contentType = "text/plain";
     return "this is info1.";
 }
 
-std::string ServerModule_Inspector::getInfo2(const PropertyList& args, std::string& contentType)
+string ServerModule_Inspector::getInfo2(const PropertyList& args, string& contentType)
 {
     contentType = "text/html";
     return "this is <span style=\"color:red\">info2</span>.";
 }
 
-std::string ServerModule_Inspector::getInfo3(const PropertyList& args, std::string& contentType)
+string ServerModule_Inspector::getInfo3(const PropertyList& args, string& contentType)
 {
     if (args.isEmpty())
     {
         contentType = "text/html";
-        std::string tip = "<a href=\"/test/info3?arg1=value1&arg2=value2\">click this url.</a></br>";
+        string tip = "<a href=\"/test/info3?arg1=value1&arg2=value2\">click this url.</a></br>";
         return tip;
     }
     else
     {
         contentType = "text/plain";
 
-        std::string arg1, arg2;
+        string arg1, arg2;
         args.getValue("arg1", arg1);
         args.getValue("arg2", arg2);
 

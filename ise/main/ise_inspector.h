@@ -50,19 +50,19 @@ class PredefinedInspector;
 class IseServerInspector : public IseServerModule
 {
 public:
-    typedef boost::function<std::string (const PropertyList& args, std::string& contentType)> OutputCallback;
+    typedef boost::function<string (const PropertyList& args, string& contentType)> OutputCallback;
 
     struct CommandItem
     {
     public:
-        std::string category;
-        std::string command;
+        string category;
+        string command;
         OutputCallback outputCallback;
-        std::string help;
+        string help;
     public:
         CommandItem() {}
-        CommandItem(const std::string& category, const std::string& command,
-            const OutputCallback& outputCallback, const std::string& help)
+        CommandItem(const string& category, const string& command,
+            const OutputCallback& outputCallback, const string& help)
         {
             this->category = category;
             this->command = command;
@@ -77,10 +77,10 @@ public:
     IseServerInspector(int serverPort);
 
     void add(
-        const std::string& category,
-        const std::string& command,
+        const string& category,
+        const string& command,
         const OutputCallback& outputCallback,
-        const std::string& help);
+        const string& help);
 
     void add(const CommandItems& items);
 
@@ -95,16 +95,16 @@ public:
     virtual void onTcpSendComplete(const TcpConnectionPtr& connection, const Context& context);
 
 private:
-    std::string outputHelpPage();
-    bool parseCommandUrl(const HttpRequest& request, std::string& category,
-        std::string& command, PropertyList& argList);
-    CommandItem* findCommandItem(const std::string& category, const std::string& command);
+    string outputHelpPage();
+    bool parseCommandUrl(const HttpRequest& request, string& category,
+        string& command, PropertyList& argList);
+    CommandItem* findCommandItem(const string& category, const string& command);
 
     void onHttpSession(const HttpRequest& request, HttpResponse& response);
 
 private:
-    typedef std::map<std::string, CommandItem> CommandList;    // <command, CommandItem>
-    typedef std::map<std::string, CommandList> InspectInfo;    // <category, CommandList>
+    typedef std::map<string, CommandItem> CommandList;    // <command, CommandItem>
+    typedef std::map<string, CommandList> InspectInfo;    // <category, CommandList>
 
     HttpServer httpServer_;
     int serverPort_;
@@ -123,14 +123,14 @@ public:
 private:
 
 #ifdef ISE_WINDOWS
-    static std::string getBasicInfo(const PropertyList& argList, std::string& contentType);
+    static string getBasicInfo(const PropertyList& argList, string& contentType);
 #endif
 
 #ifdef ISE_LINUX
-    static std::string getBasicInfo(const PropertyList& argList, std::string& contentType);
-    static std::string getProcStatus(const PropertyList& argList, std::string& contentType);
-    static std::string getOpenedFileCount(const PropertyList& argList, std::string& contentType);
-    static std::string getThreadCount(const PropertyList& argList, std::string& contentType);
+    static string getBasicInfo(const PropertyList& argList, string& contentType);
+    static string getProcStatus(const PropertyList& argList, string& contentType);
+    static string getOpenedFileCount(const PropertyList& argList, string& contentType);
+    static string getThreadCount(const PropertyList& argList, string& contentType);
 #endif
 };
 

@@ -40,7 +40,7 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class ThreadTimeOutChecker;
+class ThreadTimeoutChecker;
 class UdpPacket;
 class UdpRequestQueue;
 class UdpWorkerThread;
@@ -49,29 +49,29 @@ class UdpRequestGroup;
 class MainUdpServer;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class ThreadTimeOutChecker - 线程超时检测类
+// class ThreadTimeoutChecker - 线程超时检测类
 //
 // 说明:
-// 此类用于配合 UdpWorkerThread/CTcpWorkerThread，进行工作者线程的工作时间超时检测。
+// 此类用于配合 UdpWorkerThread，进行工作者线程的工作时间超时检测。
 // 当工作者线程收到一个请求后，马上进入工作状态。一般而言，工作者线程为单个请求持续工作的
 // 时间不宜太长，若太长则会导致服务器空闲工作者线程短缺，使得应付并发请求的能力下降。尤其
 // 对于UDP服务来说情况更是如此。通常情况下，线程工作超时，很少是因为程序的流程和逻辑，而
 // 是由于外部原因，比如数据库繁忙、资源死锁、网络拥堵等等。当线程工作超时后，应通知其退出，
 // 若被通知退出后若干时间内仍未退出，则强行杀死。工作者线程调度中心再适时创建新的线程。
 
-class ThreadTimeOutChecker : public AutoInvokable
+class ThreadTimeoutChecker : public AutoInvokable
 {
 public:
-    explicit ThreadTimeOutChecker(Thread *thread);
-    virtual ~ThreadTimeOutChecker() {}
+    explicit ThreadTimeoutChecker(Thread *thread);
+    virtual ~ThreadTimeoutChecker() {}
 
     // 检测线程是否已超时，若超时则通知其退出
     bool check();
 
     // 设置超时时间，若为0则表示不进行超时检测
-    void setTimeOutSecs(UINT value) { timeoutSecs_ = value; }
+    void setTimeoutSecs(UINT value) { timeoutSecs_ = value; }
     // 返回是否已开始计时
-    bool getStarted();
+    bool isStarted();
 
 protected:
     virtual void invokeInitialize() { start(); }
@@ -96,7 +96,7 @@ class UdpPacket : boost::noncopyable
 {
 public:
     UdpPacket() :
-        recvTimeStamp_(0),
+        recvTimestamp_(0),
         peerAddr_(0, 0),
         packetSize_(0),
         packetBuffer_(NULL)
@@ -105,10 +105,13 @@ public:
         { if (packetBuffer_) free(packetBuffer_); }
 
     void setPacketBuffer(void *packetBuffer, int packetSize);
-    inline void* getPacketBuffer() const { return packetBuffer_; }
+    void* getPacketBuffer() const { return packetBuffer_; }
+
+    const InetAddress& getPeerAddr() const { return peerAddr_; }
+    int getPacketSize() const { return packetSize_; }
 
 public:
-    UINT recvTimeStamp_;
+    time_t recvTimestamp_;
     InetAddress peerAddr_;
     int packetSize_;
 
@@ -149,7 +152,7 @@ private:
 //
 // 说明:
 // 1. 缺省情况下，UDP工作者线程允许进行超时检测，若某些情况下需禁用超时检测，可以:
-//    UdpWorkerThread::GetTimeOutChecker().SetTimeOutSecs(0);
+//    UdpWorkerThread::getTimeoutChecker().setTimeoutSecs(0);
 //
 // 名词解释:
 // 1. 超时线程: 因某一请求进入工作状态但长久未完成的线程。
@@ -162,9 +165,9 @@ public:
     virtual ~UdpWorkerThread();
 
     // 返回超时检测器
-    ThreadTimeOutChecker& getTimeoutChecker() { return timeoutChecker_; }
+    ThreadTimeoutChecker& getTimeoutChecker() { return timeoutChecker_; }
     // 返回该线程是否空闲状态(即在等待请求)
-    bool isIdle() { return !timeoutChecker_.getStarted(); }
+    bool isIdle() { return !timeoutChecker_.isStarted(); }
 
 protected:
     virtual void execute();
@@ -173,7 +176,7 @@ protected:
 
 private:
     UdpWorkerThreadPool *ownPool_;         // 所属线程池
-    ThreadTimeOutChecker timeoutChecker_;  // 超时检测器
+    ThreadTimeoutChecker timeoutChecker_;  // 超时检测器
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -247,7 +250,7 @@ private:
 class MainUdpServer : boost::noncopyable
 {
 public:
-    explicit MainUdpServer();
+    MainUdpServer();
     virtual ~MainUdpServer();
 
     void open();
@@ -275,7 +278,7 @@ private:
 private:
     BaseUdpServer udpServer_;
     std::vector<UdpRequestGroup*> requestGroupList_;    // 请求组别列表
-    int requestGroupCount_;                        // 请求组别总数
+    int requestGroupCount_;                             // 请求组别总数
 };
 
 ///////////////////////////////////////////////////////////////////////////////

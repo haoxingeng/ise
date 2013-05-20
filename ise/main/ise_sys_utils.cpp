@@ -37,7 +37,7 @@ namespace ise
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串是不是一个整数
 //-----------------------------------------------------------------------------
-bool isIntStr(const std::string& str)
+bool isIntStr(const string& str)
 {
     bool result;
     size_t len = str.size();
@@ -58,7 +58,7 @@ bool isIntStr(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串是不是一个整数
 //-----------------------------------------------------------------------------
-bool isInt64Str(const std::string& str)
+bool isInt64Str(const string& str)
 {
     bool result;
     size_t len = str.size();
@@ -84,7 +84,7 @@ bool isInt64Str(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串是不是一个浮点数
 //-----------------------------------------------------------------------------
-bool isFloatStr(const std::string& str)
+bool isFloatStr(const string& str)
 {
     bool result;
     size_t len = str.size();
@@ -105,7 +105,7 @@ bool isFloatStr(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 判断一个字符串可否转换成布尔型
 //-----------------------------------------------------------------------------
-bool isBoolStr(const std::string& str)
+bool isBoolStr(const string& str)
 {
     return sameText(str, TRUE_STR) || sameText(str, FALSE_STR) || isFloatStr(str);
 }
@@ -113,7 +113,7 @@ bool isBoolStr(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 字符串转换成整型(若转换失败，则返回 defaultVal)
 //-----------------------------------------------------------------------------
-int strToInt(const std::string& str, int defaultVal)
+int strToInt(const string& str, int defaultVal)
 {
     if (isIntStr(str))
         return strtol(str.c_str(), NULL, 10);
@@ -124,7 +124,7 @@ int strToInt(const std::string& str, int defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 字符串转换成64位整型(若转换失败，则返回 defaultVal)
 //-----------------------------------------------------------------------------
-INT64 strToInt64(const std::string& str, INT64 defaultVal)
+INT64 strToInt64(const string& str, INT64 defaultVal)
 {
     if (isInt64Str(str))
 #ifdef ISE_WINDOWS
@@ -140,7 +140,7 @@ INT64 strToInt64(const std::string& str, INT64 defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 整型转换成字符串
 //-----------------------------------------------------------------------------
-std::string intToStr(int value)
+string intToStr(int value)
 {
     char temp[64];
     sprintf(temp, "%d", value);
@@ -150,7 +150,7 @@ std::string intToStr(int value)
 //-----------------------------------------------------------------------------
 // 描述: 64位整型转换成字符串
 //-----------------------------------------------------------------------------
-std::string intToStr(INT64 value)
+string intToStr(INT64 value)
 {
     char temp[64];
 #ifdef ISE_WINDOWS
@@ -165,7 +165,7 @@ std::string intToStr(INT64 value)
 //-----------------------------------------------------------------------------
 // 描述: 字符串转换成浮点型(若转换失败，则返回 defaultVal)
 //-----------------------------------------------------------------------------
-double strToFloat(const std::string& str, double defaultVal)
+double strToFloat(const string& str, double defaultVal)
 {
     if (isFloatStr(str))
         return strtod(str.c_str(), NULL);
@@ -176,7 +176,7 @@ double strToFloat(const std::string& str, double defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 浮点型转换成字符串
 //-----------------------------------------------------------------------------
-std::string floatToStr(double value, const char *format)
+string floatToStr(double value, const char *format)
 {
     char temp[256];
     sprintf(temp, format, value);
@@ -186,7 +186,7 @@ std::string floatToStr(double value, const char *format)
 //-----------------------------------------------------------------------------
 // 描述: 字符串转换成布尔型
 //-----------------------------------------------------------------------------
-bool strToBool(const std::string& str, bool defaultVal)
+bool strToBool(const string& str, bool defaultVal)
 {
     if (isBoolStr(str))
     {
@@ -204,7 +204,7 @@ bool strToBool(const std::string& str, bool defaultVal)
 //-----------------------------------------------------------------------------
 // 描述: 布尔型转换成字符串
 //-----------------------------------------------------------------------------
-std::string boolToStr(bool value, bool useBoolStrs)
+string boolToStr(bool value, bool useBoolStrs)
 {
     if (useBoolStrs)
         return (value? TRUE_STR : FALSE_STR);
@@ -215,7 +215,7 @@ std::string boolToStr(bool value, bool useBoolStrs)
 //-----------------------------------------------------------------------------
 // 描述: 格式化字符串 (供formatString函数调用)
 //-----------------------------------------------------------------------------
-void formatStringV(std::string& result, const char *format, va_list argList)
+void formatStringV(string& result, const char *format, va_list argList)
 {
 #if defined(ISE_COMPILER_VC)
 
@@ -270,9 +270,9 @@ void formatStringV(std::string& result, const char *format, va_list argList)
 //   format  - 格式化字符串
 //   ...            - 格式化参数
 //-----------------------------------------------------------------------------
-std::string formatString(const char *format, ...)
+string formatString(const char *format, ...)
 {
-    std::string result;
+    string result;
 
     va_list argList;
     va_start(argList, format);
@@ -285,7 +285,7 @@ std::string formatString(const char *format, ...)
 //-----------------------------------------------------------------------------
 // 描述: 判断两个字符串是否相同 (不区分大小写)
 //-----------------------------------------------------------------------------
-bool sameText(const std::string& str1, const std::string& str2)
+bool sameText(const string& str1, const string& str2)
 {
     return compareText(str1.c_str(), str2.c_str()) == 0;
 }
@@ -309,9 +309,9 @@ int compareText(const char* str1, const char* str2)
 //-----------------------------------------------------------------------------
 // 描述: 去掉字符串头尾的空白字符 (ASCII <= 32)
 //-----------------------------------------------------------------------------
-std::string trimString(const std::string& str)
+string trimString(const string& str)
 {
-    std::string result;
+    string result;
     int i, len;
 
     len = static_cast<int>(str.size());
@@ -329,9 +329,9 @@ std::string trimString(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 字符串变大写
 //-----------------------------------------------------------------------------
-std::string upperCase(const std::string& str)
+string upperCase(const string& str)
 {
-    std::string result = str;
+    string result = str;
     int len = static_cast<int>(result.size());
     char c;
 
@@ -348,9 +348,9 @@ std::string upperCase(const std::string& str)
 //-----------------------------------------------------------------------------
 // 描述: 字符串变小写
 //-----------------------------------------------------------------------------
-std::string lowerCase(const std::string& str)
+string lowerCase(const string& str)
 {
-    std::string result = str;
+    string result = str;
     int len = static_cast<int>(result.size());
     char c;
 
@@ -375,12 +375,12 @@ std::string lowerCase(const std::string& str)
 // 返回:
 //   进行替换动作之后的字符串
 //-----------------------------------------------------------------------------
-std::string repalceString(const std::string& sourceStr, const std::string& oldPattern,
-    const std::string& newPattern, bool replaceAll, bool caseSensitive)
+string repalceString(const string& sourceStr, const string& oldPattern,
+    const string& newPattern, bool replaceAll, bool caseSensitive)
 {
-    std::string result = sourceStr;
-    std::string searchStr, patternStr;
-    std::string::size_type offset, index;
+    string result = sourceStr;
+    string searchStr, patternStr;
+    string::size_type offset, index;
     int oldPattLen, newPattLen;
 
     if (!caseSensitive)
@@ -401,7 +401,7 @@ std::string repalceString(const std::string& sourceStr, const std::string& oldPa
     while (index < searchStr.size())
     {
         offset = searchStr.find(patternStr, index);
-        if (offset == std::string::npos) break;  // 若没找到
+        if (offset == string::npos) break;  // 若没找到
 
         searchStr.replace(offset, oldPattLen, newPattern);
         result.replace(offset, oldPattLen, newPattern);
@@ -427,10 +427,10 @@ std::string repalceString(const std::string& sourceStr, const std::string& oldPa
 //   "a,b,c"     -> ["a", "b", "c"]
 //   ",a,,b,c,"  -> ["", "a", "", "b", "c", ""]
 //-----------------------------------------------------------------------------
-void splitString(const std::string& sourceStr, char splitter, StrList& strList,
+void splitString(const string& sourceStr, char splitter, StrList& strList,
     bool trimResult)
 {
-    std::string::size_type offset, index = 0;
+    string::size_type offset, index = 0;
 
     strList.clear();
     if (sourceStr.empty()) return;
@@ -438,7 +438,7 @@ void splitString(const std::string& sourceStr, char splitter, StrList& strList,
     while (true)
     {
         offset = sourceStr.find(splitter, index);
-        if (offset == std::string::npos)   // 若没找到
+        if (offset == string::npos)   // 若没找到
         {
             strList.add(sourceStr.substr(index).c_str());
             break;
@@ -464,7 +464,7 @@ void splitString(const std::string& sourceStr, char splitter, StrList& strList,
 //   splitter - 分隔符
 //   intList    - 存放分割之后的整型数列表
 //-----------------------------------------------------------------------------
-void splitStringToInt(const std::string& sourceStr, char splitter, IntegerArray& intList)
+void splitStringToInt(const string& sourceStr, char splitter, IntegerArray& intList)
 {
     StrList strList;
     splitString(sourceStr, splitter, strList, true);
@@ -486,12 +486,12 @@ void splitStringToInt(const std::string& sourceStr, char splitter, IntegerArray&
 //   " abc"              ' '         true          "abc"             ""
 //   ""                  ' '         true/false    ""                ""
 //-----------------------------------------------------------------------------
-std::string fetchStr(std::string& inputStr, char delimiter, bool del)
+string fetchStr(string& inputStr, char delimiter, bool del)
 {
-    std::string result;
+    string result;
 
-    std::string::size_type pos = inputStr.find(delimiter, 0);
-    if (pos == std::string::npos)
+    string::size_type pos = inputStr.find(delimiter, 0);
+    if (pos == string::npos)
     {
         result = inputStr;
         if (del)
@@ -510,34 +510,34 @@ std::string fetchStr(std::string& inputStr, char delimiter, bool del)
 //-----------------------------------------------------------------------------
 // 描述: 在数字中间插入逗号进行数据分组
 //-----------------------------------------------------------------------------
-std::string addThousandSep(const INT64& number)
+string addThousandSep(const INT64& number)
 {
-    std::string result = intToStr(number);
+    string result = intToStr(number);
     for (int i = (int)result.length() - 3; i > 0; i -= 3)
         result.insert(i, ",");
     return result;
 }
 
 //-----------------------------------------------------------------------------
-// Converts a std::string to a quoted string.
+// Converts a string to a quoted string.
 // For example:
 //    abc         ->     "abc"
 //    ab'c        ->     "ab'c"
 //    ab"c        ->     "ab""c"
 //    (empty)     ->     ""
 //-----------------------------------------------------------------------------
-std::string getQuotedStr(const char* str, char quoteChar)
+string getQuotedStr(const char* str, char quoteChar)
 {
-    std::string result;
-    std::string srcStr(str);
+    string result;
+    string srcStr(str);
 
     result = quoteChar;
 
-    std::string::size_type start = 0;
+    string::size_type start = 0;
     while (true)
     {
-        std::string::size_type pos = srcStr.find(quoteChar, start);
-        if (pos != std::string::npos)
+        string::size_type pos = srcStr.find(quoteChar, start);
+        if (pos != string::npos)
         {
             result += srcStr.substr(start, pos - start) + quoteChar + quoteChar;
             start = pos + 1;
@@ -555,22 +555,22 @@ std::string getQuotedStr(const char* str, char quoteChar)
 }
 
 //-----------------------------------------------------------------------------
-// Converts a quoted std::string to an unquoted string.
+// Converts a quoted string to an unquoted string.
 //
 // extractQuotedStr removes the quote characters from the beginning and end of a quoted string,
-// and reduces pairs of quote characters within the std::string to a single quote character.
+// and reduces pairs of quote characters within the string to a single quote character.
 // The @a quoteChar parameter defines what character to use as a quote character. If the first
 // character in @a str is not the value of the @a quoteChar parameter, extractQuotedStr returns
 // an empty string.
 //
-// The function copies characters from @a str to the result std::string until the second solitary
+// The function copies characters from @a str to the result string until the second solitary
 // quote character or the first null character in @a str. The @a str parameter is updated
 // to point to the first character following the quoted string. If @a str does not contain a
 // matching end quote character, the @a str parameter is updated to point to the terminating
 // null character.
 //
 // For example:
-//    str(before)    Returned std::string        str(after)
+//    str(before)    Returned string        str(after)
 //    ---------------    ---------------        ---------------
 //    "abc"               abc                    '\0'
 //    "ab""c"             ab"c                   '\0'
@@ -579,9 +579,9 @@ std::string getQuotedStr(const char* str, char quoteChar)
 //    "abc                abc                    '\0'
 //    (empty)             (empty)                '\0'
 //-----------------------------------------------------------------------------
-std::string extractQuotedStr(const char*& str, char quoteChar)
+string extractQuotedStr(const char*& str, char quoteChar)
 {
-    std::string result;
+    string result;
     const char* startPtr = str;
 
     if (str == NULL || *str != quoteChar)
@@ -648,10 +648,10 @@ std::string extractQuotedStr(const char*& str, char quoteChar)
 }
 
 //-----------------------------------------------------------------------------
-// Converts a quoted std::string to an unquoted string.
+// Converts a quoted string to an unquoted string.
 //
 // getDequotedStr removes the quote characters from the beginning and end of a quoted string, and
-// reduces pairs of quote characters within the std::string to a single quote character. The quoteChar
+// reduces pairs of quote characters within the string to a single quote character. The quoteChar
 // parameter defines what character to use as a quote character. If the @a str parameter does
 // not begin and end with the quote character, getDequotedStr returns @a str unchanged.
 //
@@ -662,12 +662,12 @@ std::string extractQuotedStr(const char*& str, char quoteChar)
 //    abc"      ->     abc"
 //    (empty)   ->    (empty)
 //-----------------------------------------------------------------------------
-std::string getDequotedStr(const char* str, char quoteChar)
+string getDequotedStr(const char* str, char quoteChar)
 {
     const char* startPtr = str;
     int strLen = (int)strlen(str);
 
-    std::string result = extractQuotedStr(str, quoteChar);
+    string result = extractQuotedStr(str, quoteChar);
 
     if ( (result.empty() || *str == '\0') &&
         strLen > 0 && (startPtr[0] != quoteChar || startPtr[strLen-1] != quoteChar) )
@@ -679,7 +679,7 @@ std::string getDequotedStr(const char* str, char quoteChar)
 //-----------------------------------------------------------------------------
 
 #ifdef ISE_WINDOWS
-static bool GetFileFindData(const std::string& fileName, WIN32_FIND_DATAA& findData)
+static bool GetFileFindData(const string& fileName, WIN32_FIND_DATAA& findData)
 {
     HANDLE findHandle = ::FindFirstFileA(fileName.c_str(), &findData);
     bool result = (findHandle != INVALID_HANDLE_VALUE);
@@ -691,7 +691,7 @@ static bool GetFileFindData(const std::string& fileName, WIN32_FIND_DATAA& findD
 //-----------------------------------------------------------------------------
 // 描述: 检查文件是否存在
 //-----------------------------------------------------------------------------
-bool fileExists(const std::string& fileName)
+bool fileExists(const string& fileName)
 {
 #ifdef ISE_WINDOWS
     DWORD fileAttr = ::GetFileAttributesA(fileName.c_str());
@@ -717,7 +717,7 @@ bool fileExists(const std::string& fileName)
 //-----------------------------------------------------------------------------
 // 描述: 检查目录是否存在
 //-----------------------------------------------------------------------------
-bool directoryExists(const std::string& dir)
+bool directoryExists(const string& dir)
 {
 #ifdef ISE_WINDOWS
     int code;
@@ -725,7 +725,7 @@ bool directoryExists(const std::string& dir)
     return (code != -1) && ((FILE_ATTRIBUTE_DIRECTORY & code) != 0);
 #endif
 #ifdef ISE_LINUX
-    std::string path = pathWithSlash(dir);
+    string path = pathWithSlash(dir);
     struct stat st;
     bool result;
 
@@ -744,7 +744,7 @@ bool directoryExists(const std::string& dir)
 //   createDir("C:\\test");
 //   createDir("/home/test");
 //-----------------------------------------------------------------------------
-bool createDir(const std::string& dir)
+bool createDir(const string& dir)
 {
 #ifdef ISE_WINDOWS
     return CreateDirectoryA(dir.c_str(), NULL) != 0;
@@ -763,7 +763,7 @@ bool createDir(const std::string& dir)
 //   true   - 成功
 //   false  - 失败
 //-----------------------------------------------------------------------------
-bool deleteDir(const std::string& dir, bool recursive)
+bool deleteDir(const string& dir, bool recursive)
 {
     if (!recursive)
     {
@@ -783,13 +783,13 @@ bool deleteDir(const std::string& dir, bool recursive)
 #endif
 
     bool result = true;
-    std::string path = pathWithSlash(dir);
+    string path = pathWithSlash(dir);
     FileFindResult fr;
     findFiles(path + ALL_FILE_WILDCHAR, FA_ANY_FILE, fr);
 
     for (int i = 0; i < (int)fr.size() && result; i++)
     {
-        std::string fullName = path + fr[i].fileName;
+        string fullName = path + fr[i].fileName;
         if (fr[i].attr & FA_DIRECTORY)
             result = deleteDir(fullName, true);
         else
@@ -804,12 +804,12 @@ bool deleteDir(const std::string& dir, bool recursive)
 //-----------------------------------------------------------------------------
 // 描述: 取得文件名中最后一个分隔符的位置(0-based)。若没有，则返回-1
 //-----------------------------------------------------------------------------
-int getLastDelimPos(const std::string& fileName, const std::string& delims)
+int getLastDelimPos(const string& fileName, const string& delims)
 {
     int result = (int)fileName.size() - 1;
 
     for (; result >= 0; result--)
-        if (delims.find(fileName[result], 0) != std::string::npos)
+        if (delims.find(fileName[result], 0) != string::npos)
             break;
 
     return result;
@@ -826,9 +826,9 @@ int getLastDelimPos(const std::string& fileName, const std::string& delims)
 //   extractFilePath("C:");                        返回: "C:\\"
 //   extractFilePath("/home/user1/data/test.c");   返回: "/home/user1/data/"
 //-----------------------------------------------------------------------------
-std::string extractFilePath(const std::string& fileName)
+string extractFilePath(const string& fileName)
 {
-    std::string delims;
+    string delims;
     delims += PATH_DELIM;
 #ifdef ISE_WINDOWS
     delims += DRIVER_DELIM;
@@ -848,9 +848,9 @@ std::string extractFilePath(const std::string& fileName)
 //   extractFileName("C:\\MyDir\\test.c");         返回: "test.c"
 //   extractFilePath("/home/user1/data/test.c");   返回: "test.c"
 //-----------------------------------------------------------------------------
-std::string extractFileName(const std::string& fileName)
+string extractFileName(const string& fileName)
 {
-    std::string delims;
+    string delims;
     delims += PATH_DELIM;
 #ifdef ISE_WINDOWS
     delims += DRIVER_DELIM;
@@ -870,9 +870,9 @@ std::string extractFileName(const std::string& fileName)
 //   extractFileExt("C:\\MyDir\\test.txt");         返回:  ".txt"
 //   extractFileExt("/home/user1/data/test.c");     返回:  ".c"
 //-----------------------------------------------------------------------------
-std::string extractFileExt(const std::string& fileName)
+string extractFileExt(const string& fileName)
 {
-    std::string delims;
+    string delims;
     delims += PATH_DELIM;
 #ifdef ISE_WINDOWS
     delims += DRIVER_DELIM;
@@ -901,17 +901,17 @@ std::string extractFileExt(const std::string& fileName)
 //   changeFileExt("test.txt", ".");               返回:  "test."
 //   changeFileExt("/home/user1/test.c", ".new");  返回:  "/home/user1/test.new"
 //-----------------------------------------------------------------------------
-std::string changeFileExt(const std::string& fileName, const std::string& ext)
+string changeFileExt(const string& fileName, const string& ext)
 {
-    std::string result(fileName);
-    std::string newExt(ext);
+    string result(fileName);
+    string newExt(ext);
 
     if (!result.empty())
     {
         if (!newExt.empty() && newExt[0] != FILE_EXT_DELIM)
             newExt = FILE_EXT_DELIM + newExt;
 
-        std::string oldExt = extractFileExt(result);
+        string oldExt = extractFileExt(result);
         if (!oldExt.empty())
             result.erase(result.length() - oldExt.length());
         result += newExt;
@@ -931,7 +931,7 @@ std::string changeFileExt(const std::string& fileName, const std::string& ext)
 //   forceDirectories("C:\\MyDir\\Test");
 //   forceDirectories("/home/user1/data");
 //-----------------------------------------------------------------------------
-bool forceDirectories(std::string dir)
+bool forceDirectories(string dir)
 {
     int len = (int)dir.length();
 
@@ -952,7 +952,7 @@ bool forceDirectories(std::string dir)
 //-----------------------------------------------------------------------------
 // 描述: 删除文件
 //-----------------------------------------------------------------------------
-bool deleteFile(const std::string& fileName)
+bool deleteFile(const string& fileName)
 {
 #ifdef ISE_WINDOWS
     DWORD fileAttr = ::GetFileAttributesA(fileName.c_str());
@@ -972,7 +972,7 @@ bool deleteFile(const std::string& fileName)
 //-----------------------------------------------------------------------------
 // 描述: 同 deleteFile()
 //-----------------------------------------------------------------------------
-bool removeFile(const std::string& fileName)
+bool removeFile(const string& fileName)
 {
     return deleteFile(fileName);
 }
@@ -980,7 +980,7 @@ bool removeFile(const std::string& fileName)
 //-----------------------------------------------------------------------------
 // 描述: 文件重命名
 //-----------------------------------------------------------------------------
-bool renameFile(const std::string& oldFileName, const std::string& newFileName)
+bool renameFile(const string& oldFileName, const string& newFileName)
 {
 #ifdef ISE_WINDOWS
     return ::MoveFileA(oldFileName.c_str(), newFileName.c_str()) != 0;
@@ -993,7 +993,7 @@ bool renameFile(const std::string& oldFileName, const std::string& newFileName)
 //-----------------------------------------------------------------------------
 // 描述: 取得文件的大小。若失败则返回-1
 //-----------------------------------------------------------------------------
-INT64 getFileSize(const std::string& fileName)
+INT64 getFileSize(const string& fileName)
 {
     INT64 result;
 
@@ -1020,7 +1020,7 @@ INT64 getFileSize(const std::string& fileName)
 //   findFiles("C:\\test\\*.*", FA_ANY_FILE & ~FA_HIDDEN, fr);
 //   findFiles("/home/*.log", FA_ANY_FILE & ~FA_SYM_LINK, fr);
 //-----------------------------------------------------------------------------
-void findFiles(const std::string& path, UINT attr, FileFindResult& findResult)
+void findFiles(const string& path, UINT attr, FileFindResult& findResult)
 {
     const UINT FA_SPECIAL = FA_HIDDEN | FA_SYS_FILE | FA_VOLUME_ID | FA_DIRECTORY;
     UINT excludeAttr = ~attr & FA_SPECIAL;
@@ -1036,7 +1036,7 @@ void findFiles(const std::string& path, UINT attr, FileFindResult& findResult)
         do
         {
             DWORD attr = findData.dwFileAttributes;
-            std::string name = findData.cFileName;
+            string name = findData.cFileName;
             bool isSpecDir = (attr & FA_DIRECTORY) && (name == "." || name == "..");
 
             if ((attr & excludeAttr) == 0 && !isSpecDir)
@@ -1057,9 +1057,9 @@ void findFiles(const std::string& path, UINT attr, FileFindResult& findResult)
 #endif
 
 #ifdef ISE_LINUX
-    std::string pathOnlyStr = extractFilePath(path);
-    std::string patternStr = extractFileName(path);
-    std::string fullName, name;
+    string pathOnlyStr = extractFilePath(path);
+    string patternStr = extractFileName(path);
+    string fullName, name;
     DIR *dirPtr;
     struct dirent dirEnt, *dirEntPtr = NULL;
     struct stat statBuf, linkStatBuf;
@@ -1125,9 +1125,9 @@ void findFiles(const std::string& path, UINT attr, FileFindResult& findResult)
 //-----------------------------------------------------------------------------
 // 描述: 补全路径字符串后面的 "\" 或 "/"
 //-----------------------------------------------------------------------------
-std::string pathWithSlash(const std::string& path)
+string pathWithSlash(const string& path)
 {
-    std::string result = trimString(path);
+    string result = trimString(path);
     int len = (int)result.size();
     if (len > 0 && result[len-1] != PATH_DELIM)
         result += PATH_DELIM;
@@ -1137,9 +1137,9 @@ std::string pathWithSlash(const std::string& path)
 //-----------------------------------------------------------------------------
 // 描述: 去掉路径字符串后面的 "\" 或 "/"
 //-----------------------------------------------------------------------------
-std::string pathWithoutSlash(const std::string& path)
+string pathWithoutSlash(const string& path)
 {
-    std::string result = trimString(path);
+    string result = trimString(path);
     int len = (int)result.size();
     if (len > 0 && result[len-1] == PATH_DELIM)
         result.resize(len - 1);
@@ -1149,19 +1149,19 @@ std::string pathWithoutSlash(const std::string& path)
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件的全名(含绝对路径)
 //-----------------------------------------------------------------------------
-std::string getAppExeName()
+string getAppExeName()
 {
 #ifdef ISE_WINDOWS
     char buffer[MAX_PATH];
     ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
-    return std::string(buffer);
+    return string(buffer);
 #endif
 #ifdef ISE_LINUX
     const int BUFFER_SIZE = 1024;
 
     int r;
     char buffer[BUFFER_SIZE];
-    std::string result;
+    string result;
 
     r = readlink("/proc/self/exe", buffer, BUFFER_SIZE);
     if (r != -1)
@@ -1182,7 +1182,7 @@ std::string getAppExeName()
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径
 //-----------------------------------------------------------------------------
-std::string getAppPath()
+string getAppPath()
 {
     return extractFilePath(getAppExeName());
 }
@@ -1190,7 +1190,7 @@ std::string getAppPath()
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径的子目录
 //-----------------------------------------------------------------------------
-std::string getAppSubPath(const std::string& subDir)
+string getAppSubPath(const string& subDir)
 {
     return pathWithSlash(getAppPath() + subDir);
 }
@@ -1230,7 +1230,7 @@ THREAD_ID getCurThreadId()
 //-----------------------------------------------------------------------------
 // 描述: 返回操作系统错误代码对应的错误信息
 //-----------------------------------------------------------------------------
-std::string sysErrorMessage(int errorCode)
+string sysErrorMessage(int errorCode)
 {
 #ifdef ISE_WINDOWS
     char *errorMsg;
@@ -1241,7 +1241,7 @@ std::string sysErrorMessage(int errorCode)
 #ifdef ISE_LINUX
     const int ERROR_MSG_SIZE = 256;
     char errorMsg[ERROR_MSG_SIZE];
-    std::string result;
+    string result;
 
     errorMsg[0] = 0;
     strerror_r(errorCode, errorMsg, ERROR_MSG_SIZE);

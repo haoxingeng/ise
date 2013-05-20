@@ -50,9 +50,9 @@ const char* Exception::what() const throw()
 //-----------------------------------------------------------------------------
 // 描述: 返回用于 Log 的字符串
 //-----------------------------------------------------------------------------
-std::string Exception::makeLogStr() const
+string Exception::makeLogStr() const
 {
-    return std::string(EXCEPTION_LOG_PREFIX) + getErrorMessage();
+    return string(EXCEPTION_LOG_PREFIX) + getErrorMessage();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -70,14 +70,14 @@ SimpleException::SimpleException(const char *errorMsg,
 
 //-----------------------------------------------------------------------------
 
-std::string SimpleException::makeLogStr() const
+string SimpleException::makeLogStr() const
 {
-    std::string result(getErrorMessage());
+    string result(getErrorMessage());
 
     if (!srcFileName_.empty() && srcLineNumber_ >= 0)
         result = result + " (" + srcFileName_ + ":" + intToStr(srcLineNumber_) + ")";
 
-    result = std::string(EXCEPTION_LOG_PREFIX) + result;
+    result = string(EXCEPTION_LOG_PREFIX) + result;
 
     return result;
 }

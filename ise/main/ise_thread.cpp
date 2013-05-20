@@ -336,7 +336,7 @@ void WinThreadImpl::checkThreadError(bool success)
 {
     if (!success)
     {
-        std::string errMsg = sysErrorMessage(GetLastError());
+        string errMsg = sysErrorMessage(GetLastError());
         logger().writeStr(errMsg.c_str());
         iseThrowThreadException(errMsg.c_str());
     }
@@ -590,7 +590,7 @@ void LinuxThreadImpl::checkThreadError(int errorCode)
 {
     if (errorCode != 0)
     {
-        std::string errMsg = sysErrorMessage(errorCode);
+        string errMsg = sysErrorMessage(errorCode);
         logger().writeStr(errMsg.c_str());
         iseThrowThreadException(errMsg.c_str());
     }
@@ -773,7 +773,7 @@ void ThreadPool::addTask(const Task& task)
 
 //-----------------------------------------------------------------------------
 
-void ThreadPool::setRepeat(bool repeat)
+void ThreadPool::setTaskRepeat(bool repeat)
 {
     AutoLocker locker(mutex_);
     repeat_ = repeat;

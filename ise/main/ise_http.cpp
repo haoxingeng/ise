@@ -33,7 +33,7 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // Misc Routines
 
-std::string getHttpProtoVerStr(HTTP_PROTO_VER version)
+string getHttpProtoVerStr(HTTP_PROTO_VER version)
 {
     switch (version)
     {
@@ -45,7 +45,7 @@ std::string getHttpProtoVerStr(HTTP_PROTO_VER version)
 
 //-----------------------------------------------------------------------------
 
-std::string getHttpMethodStr(HTTP_METHOD_TYPE httpMethod)
+string getHttpMethodStr(HTTP_METHOD_TYPE httpMethod)
 {
     switch (httpMethod)
     {
@@ -57,7 +57,7 @@ std::string getHttpMethodStr(HTTP_METHOD_TYPE httpMethod)
 
 //-----------------------------------------------------------------------------
 
-std::string getHttpStatusMessage(int statusCode)
+string getHttpStatusMessage(int statusCode)
 {
     switch (statusCode)
     {
@@ -114,7 +114,7 @@ HttpHeaderStrList::HttpHeaderStrList()
 
 //-----------------------------------------------------------------------------
 
-int HttpHeaderStrList::add(const std::string& str)
+int HttpHeaderStrList::add(const string& str)
 {
     return items_.add(str.c_str());
 }
@@ -155,7 +155,7 @@ void HttpHeaderStrList::moveToTop(const StrList& nameList)
 
 //-----------------------------------------------------------------------------
 
-int HttpHeaderStrList::indexOfName(const std::string& name) const
+int HttpHeaderStrList::indexOfName(const string& name) const
 {
     int result = -1;
 
@@ -171,13 +171,13 @@ int HttpHeaderStrList::indexOfName(const std::string& name) const
 
 //-----------------------------------------------------------------------------
 
-std::string HttpHeaderStrList::getText() const
+string HttpHeaderStrList::getText() const
 {
-    std::string result;
+    string result;
     for (int i = 0; i < items_.getCount(); i++)
     {
-        std::string name = getName(i);
-        std::string value = getValue(i);
+        string name = getName(i);
+        string value = getValue(i);
         if (!name.empty() && !value.empty())
         {
             result += makeLine(name, value);
@@ -189,33 +189,33 @@ std::string HttpHeaderStrList::getText() const
 
 //-----------------------------------------------------------------------------
 
-std::string HttpHeaderStrList::getName(int index) const
+string HttpHeaderStrList::getName(int index) const
 {
-    std::string result;
-    std::string line = items_[index];
-    std::string::size_type pos = line.find(nameValueSep_);
-    if (pos != std::string::npos && pos > 0)
+    string result;
+    string line = items_[index];
+    string::size_type pos = line.find(nameValueSep_);
+    if (pos != string::npos && pos > 0)
         result = trimString(line.substr(0, pos));
     return result;
 }
 
 //-----------------------------------------------------------------------------
 
-std::string HttpHeaderStrList::getValue(int index) const
+string HttpHeaderStrList::getValue(int index) const
 {
-    std::string result;
-    std::string line = items_[index];
-    std::string::size_type pos = line.find(nameValueSep_);
-    if (pos != std::string::npos && pos > 0)
+    string result;
+    string line = items_[index];
+    string::size_type pos = line.find(nameValueSep_);
+    if (pos != string::npos && pos > 0)
         result = trimString(line.substr(pos + 1));
     return result;
 }
 
 //-----------------------------------------------------------------------------
 
-std::string HttpHeaderStrList::getValue(const std::string& name) const
+string HttpHeaderStrList::getValue(const string& name) const
 {
-    std::string result;
+    string result;
     int index = indexOfName(name);
     if (index >= 0)
         result = getValue(index);
@@ -224,10 +224,10 @@ std::string HttpHeaderStrList::getValue(const std::string& name) const
 
 //-----------------------------------------------------------------------------
 
-void HttpHeaderStrList::setValue(const std::string& name, const std::string& value)
+void HttpHeaderStrList::setValue(const string& name, const string& value)
 {
-    std::string newName(trimString(name));
-    std::string newValue(trimString(value));
+    string newName(trimString(name));
+    string newValue(trimString(value));
 
     int index = indexOfName(newName);
     if (newValue.empty())
@@ -244,7 +244,7 @@ void HttpHeaderStrList::setValue(const std::string& name, const std::string& val
 
 //-----------------------------------------------------------------------------
 
-std::string HttpHeaderStrList::makeLine(const std::string& name, const std::string& value) const
+string HttpHeaderStrList::makeLine(const string& name, const string& value) const
 {
     return name + nameValueSep_ + " " + value;
 }
@@ -304,12 +304,12 @@ void HttpEntityHeaderInfo::parseHeaders()
     // content-range: bytes */102400
     // content-range: bytes 1-65536/*
 
-    std::string s = rawHeaders_.getValue("Content-Range");
+    string s = rawHeaders_.getValue("Content-Range");
     if (!s.empty())
     {
         fetchStr(s);
-        std::string strRange = fetchStr(s, '/');
-        std::string strLength = fetchStr(s);
+        string strRange = fetchStr(s, '/');
+        string strLength = fetchStr(s);
 
         contentRangeStart_ = strToInt64(fetchStr(strRange, '-'), 0);
         contentRangeEnd_ = strToInt64(strRange, 0);
@@ -401,7 +401,7 @@ void HttpRequestHeaderInfo::parseHeaders()
     userAgent_ = rawHeaders_.getValue("User-Agent");
 
     // strip off the 'bytes=' portion of the header
-    std::string s = rawHeaders_.getValue("Range");
+    string s = rawHeaders_.getValue("Range");
     fetchStr(s, '=');
     range_ = s;
 }
@@ -452,7 +452,7 @@ void HttpRequestHeaderInfo::buildHeaders()
 
 void HttpRequestHeaderInfo::setRange(INT64 rangeStart, INT64 rangeEnd)
 {
-    std::string range = formatString("%I64d-", rangeStart);
+    string range = formatString("%I64d-", rangeStart);
     if (rangeEnd >= 0)
         range += formatString("%I64d", rangeEnd);
     setRange(range);
@@ -497,9 +497,9 @@ void HttpResponseHeaderInfo::buildHeaders()
 
     if (hasContentRange() || hasContentRangeInstance())
     {
-        std::string cr = (hasContentRange() ?
+        string cr = (hasContentRange() ?
             formatString("%I64d-%I64d", contentRangeStart_, contentRangeEnd_) : "*");
-        std::string ci = (hasContentRangeInstance() ?
+        string ci = (hasContentRangeInstance() ?
             intToStr(contentRangeInstanceLength_) : "*");
 
         rawHeaders_.setValue("Content-Range", "bytes " + cr + "/" + ci);
@@ -537,7 +537,7 @@ void HttpRequest::clear()
 
 //-----------------------------------------------------------------------------
 
-bool HttpRequest::setRequestLine(const std::string& reqLine)
+bool HttpRequest::setRequestLine(const string& reqLine)
 {
     return parseRequestLine(reqLine, method_, url_, protocolVersion_);
 }
@@ -548,12 +548,12 @@ void HttpRequest::makeRequestHeaderBuffer(Buffer& buffer)
 {
     buildHeaders();
 
-    std::string text;
+    string text;
     text = method_ + " " + url_ + " HTTP/" + getHttpProtoVerStr(protocolVersion_) + "\r\n";
 
     for (int i = 0; i < getRawHeaders().getCount(); i++)
     {
-        std::string s = getRawHeaders()[i];
+        string s = getRawHeaders()[i];
         if (!s.empty())
             text = text + s + "\r\n";
     }
@@ -566,8 +566,8 @@ void HttpRequest::makeRequestHeaderBuffer(Buffer& buffer)
 //-----------------------------------------------------------------------------
 
 // example: "GET /images/logo.gif HTTP/1.1"
-bool HttpRequest::parseRequestLine(const std::string& reqLine, std::string& method,
-    std::string& url, HTTP_PROTO_VER& protoVer)
+bool HttpRequest::parseRequestLine(const string& reqLine, string& method,
+    string& url, HTTP_PROTO_VER& protoVer)
 {
     bool result = false;
     StrList strList;
@@ -576,13 +576,13 @@ bool HttpRequest::parseRequestLine(const std::string& reqLine, std::string& meth
     result = (strList.getCount() == 3);
     if (result)
     {
-        std::string s = strList[0];
+        string s = strList[0];
         result = (s == "HEAD" || s == "GET" || s == "POST");
     }
 
     if (result)
     {
-        std::string s = strList[2];
+        string s = strList[2];
         result = (s == "HTTP/1.0" || s == "HTTP/1.1");
     }
 
@@ -630,7 +630,7 @@ void HttpResponse::clear()
 
 bool HttpResponse::getKeepAlive() const
 {
-    std::string str = getConnection();
+    string str = getConnection();
     bool result = !str.empty() && !sameText(str, "close");
     return result;
 }
@@ -639,7 +639,7 @@ bool HttpResponse::getKeepAlive() const
 
 int HttpResponse::getStatusCode() const
 {
-    std::string s = statusLine_;
+    string s = statusLine_;
     fetchStr(s);
     s = trimString(s);
     s = fetchStr(s);
@@ -653,7 +653,7 @@ int HttpResponse::getStatusCode() const
 HTTP_PROTO_VER HttpResponse::getResponseVersion() const
 {
     // eg: HTTP/1.1 200 OK
-    std::string s = (statusLine_.length() > 8) ? statusLine_.substr(5, 3) : "";
+    string s = (statusLine_.length() > 8) ? statusLine_.substr(5, 3) : "";
 
     if (sameText(s, getHttpProtoVerStr(HPV_1_0)))
         return HPV_1_0;
@@ -692,12 +692,12 @@ void HttpResponse::makeResponseHeaderBuffer(Buffer& buffer)
 {
     buildHeaders();
 
-    std::string text;
+    string text;
     text = statusLine_ + "\r\n";
 
     for (int i = 0; i < getRawHeaders().getCount(); i++)
     {
-        std::string s = getRawHeaders()[i];
+        string s = getRawHeaders()[i];
         if (!s.empty())
             text = text + s + "\r\n";
     }
@@ -731,7 +731,7 @@ InetAddress CustomHttpClient::getInetAddrFromUrl(Url& url)
 
     if (!url.getHost().empty())
     {
-        std::string strIp = lookupHostAddr(url.getHost());
+        string strIp = lookupHostAddr(url.getHost());
         if (!strIp.empty())
         {
             inetAddr.ip = stringToIp(strIp);
@@ -744,7 +744,7 @@ InetAddress CustomHttpClient::getInetAddrFromUrl(Url& url)
 
 //-----------------------------------------------------------------------------
 
-int CustomHttpClient::beforeRequest(HTTP_METHOD_TYPE httpMethod, const std::string& urlStr,
+int CustomHttpClient::beforeRequest(HTTP_METHOD_TYPE httpMethod, const string& urlStr,
     Stream *requestContent, Stream *responseContent,
     INT64 reqStreamPos, INT64 resStreamPos)
 {
@@ -831,7 +831,7 @@ void CustomHttpClient::checkResponseHeader(char *buffer, int size, bool& finishe
         if (p[0] == '\r' && p[1] == '\n' && p[2] == '\r' && p[3] == '\n')
             finished = true;
 
-        if (!sameText(std::string(buffer, 4), "HTTP"))
+        if (!sameText(string(buffer, 4), "HTTP"))
             error = true;
     }
 }
@@ -851,7 +851,7 @@ bool CustomHttpClient::parseResponseHeader(void *buffer, int size)
 
     if (lines.getCount() > 0)
     {
-        std::string str = lines[0];
+        string str = lines[0];
         if (sameText(str.substr(0, 7), "HTTP/1."))
             response_.setStatusLine(str);
         else
@@ -924,14 +924,14 @@ HttpClient::~HttpClient()
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::get(const std::string& url, Stream *responseContent)
+int HttpClient::get(const string& url, Stream *responseContent)
 {
     return executeHttpAction(HMT_GET, url, NULL, responseContent);
 }
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::post(const std::string& url, Stream *requestContent, Stream *responseContent)
+int HttpClient::post(const string& url, Stream *requestContent, Stream *responseContent)
 {
     ISE_ASSERT(requestContent != NULL);
     return executeHttpAction(HMT_POST, url, requestContent, responseContent);
@@ -939,7 +939,7 @@ int HttpClient::post(const std::string& url, Stream *requestContent, Stream *res
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::downloadFile(const std::string& url, const std::string& localFileName)
+int HttpClient::downloadFile(const string& url, const string& localFileName)
 {
     forceDirectories(extractFilePath(localFileName));
     FileStream fs;
@@ -954,7 +954,7 @@ int HttpClient::downloadFile(const std::string& url, const std::string& localFil
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::requestFile(const std::string& url)
+int HttpClient::requestFile(const string& url)
 {
     bool canRecvContent;
     int result = executeHttpRequest(HMT_GET, url, NULL, NULL, true, canRecvContent);
@@ -972,7 +972,7 @@ int HttpClient::receiveFile(void *buffer, int size, int timeoutMSecs)
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::executeHttpAction(HTTP_METHOD_TYPE httpMethod, const std::string& url,
+int HttpClient::executeHttpAction(HTTP_METHOD_TYPE httpMethod, const string& url,
     Stream *requestContent, Stream *responseContent)
 {
     class AutoFinalizer
@@ -998,13 +998,13 @@ int HttpClient::executeHttpAction(HTTP_METHOD_TYPE httpMethod, const std::string
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::executeHttpRequest(HTTP_METHOD_TYPE httpMethod, const std::string& url,
+int HttpClient::executeHttpRequest(HTTP_METHOD_TYPE httpMethod, const string& url,
     Stream *requestContent, Stream *responseContent, bool needRecvContent,
     bool& canRecvContent)
 {
     int result = EC_HTTP_SUCCESS;
 
-    std::string newUrl(url);
+    string newUrl(url);
     INT64 reqStreamPos = (requestContent? requestContent->getPosition() : 0);
     INT64 resStreamPos = (responseContent? responseContent->getPosition() : 0);
 
@@ -1202,7 +1202,7 @@ int HttpClient::recvResponseContent()
     int result = EC_HTTP_SUCCESS;
     if (!response_.getContentStream()) return result;
 
-    if (lowerCase(response_.getTransferEncoding()).find("chunked") != std::string::npos)
+    if (lowerCase(response_.getTransferEncoding()).find("chunked") != string::npos)
     {
         while (true)
         {
@@ -1218,7 +1218,7 @@ int HttpClient::recvResponseContent()
                 if (result != EC_HTTP_SUCCESS)
                     break;
 
-                std::string crlf;
+                string crlf;
                 result = readLine(crlf, timeout);
                 if (result != EC_HTTP_SUCCESS)
                     break;
@@ -1263,7 +1263,7 @@ int HttpClient::recvResponseContent()
 
 //-----------------------------------------------------------------------------
 
-int HttpClient::readLine(std::string& line, int timeout)
+int HttpClient::readLine(string& line, int timeout)
 {
     int result = EC_HTTP_SUCCESS;
     UINT64 startTicks = getCurTicks();
@@ -1321,12 +1321,12 @@ int HttpClient::readLine(std::string& line, int timeout)
 
 int HttpClient::readChunkSize(UINT& chunkSize, int timeout)
 {
-    std::string line;
+    string line;
     int result = readLine(line, timeout);
     if (result == EC_HTTP_SUCCESS)
     {
-        std::string::size_type pos = line.find(';');
-        if (pos != std::string::npos)
+        string::size_type pos = line.find(';');
+        if (pos != string::npos)
             line = line.substr(0, pos);
         chunkSize = (UINT)strtol(line.c_str(), NULL, 16);
     }
@@ -1420,7 +1420,7 @@ void HttpServer::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pac
         {
         case RRS_RECVING_REQ_LINE:
             {
-                std::string line((const char*)packetBuffer, packetSize);
+                string line((const char*)packetBuffer, packetSize);
                 if (connContext->httpRequest.setRequestLine(line))
                 {
                     connContext->recvReqState = RRS_RECVING_REQ_HEADERS;
@@ -1433,7 +1433,7 @@ void HttpServer::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pac
 
         case RRS_RECVING_REQ_HEADERS:
             {
-                std::string line((const char*)packetBuffer, packetSize);
+                string line((const char*)packetBuffer, packetSize);
                 line = trimString(line);
 
                 if (!line.empty())

@@ -182,29 +182,29 @@ public:
     HttpHeaderStrList();
     virtual ~HttpHeaderStrList() {}
 
-    int add(const std::string& str);
+    int add(const string& str);
     void del(int index);
     void clear();
     void addStrings(const HttpHeaderStrList& strings);
     void moveToTop(const StrList& nameList);
-    int indexOfName(const std::string& name) const;
+    int indexOfName(const string& name) const;
 
     int getCount() const { return items_.getCount(); }
-    std::string getString(int index) const { return items_[index]; }
-    std::string getText() const;
-    std::string getName(int index) const;
-    std::string getValue(int index) const;
-    std::string getValue(const std::string& name) const;
-    void setValue(const std::string& name, const std::string& value);
+    string getString(int index) const { return items_[index]; }
+    string getText() const;
+    string getName(int index) const;
+    string getValue(int index) const;
+    string getValue(const string& name) const;
+    void setValue(const string& name, const string& value);
 
-    std::string operator[] (int index) const { return getString(index); }
+    string operator[] (int index) const { return getString(index); }
 
 private:
-    std::string makeLine(const std::string& name, const std::string& value) const;
+    string makeLine(const string& name, const string& value) const;
 
 private:
     StrList items_;
-    std::string nameValueSep_;
+    string nameValueSep_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -227,43 +227,43 @@ public:
     HttpHeaderStrList& getRawHeaders() { return rawHeaders_; }
     HttpHeaderStrList& getCustomHeaders() { return customHeaders_; }
 
-    const std::string& getCacheControl() const { return cacheControl_; }
-    const std::string& getConnection() const { return connection_; }
-    const std::string& getContentDisposition() const { return contentDisposition_; }
-    const std::string& getContentEncoding() const { return contentEncoding_; }
-    const std::string& getContentLanguage() const { return contentLanguage_; }
+    const string& getCacheControl() const { return cacheControl_; }
+    const string& getConnection() const { return connection_; }
+    const string& getContentDisposition() const { return contentDisposition_; }
+    const string& getContentEncoding() const { return contentEncoding_; }
+    const string& getContentLanguage() const { return contentLanguage_; }
     const INT64& getContentLength() const { return contentLength_; }
     const INT64& getContentRangeStart() const { return contentRangeStart_; }
     const INT64& getContentRangeEnd() const { return contentRangeEnd_; }
     const INT64& getContentRangeInstanceLength() const { return contentRangeInstanceLength_; }
-    const std::string& getContentType() const { return contentType_; }
-    const std::string& getContentVersion() const { return contentVersion_; }
-    const std::string& getDate() const { return date_; }
-    const std::string& getExpires() const { return expires_; }
-    const std::string& getETag() const { return eTag_; }
-    const std::string& getLastModified() const { return lastModified_; }
-    const std::string& getPragma() const { return pragma_; }
-    const std::string& getTransferEncoding() const { return transferEncoding_; }
+    const string& getContentType() const { return contentType_; }
+    const string& getContentVersion() const { return contentVersion_; }
+    const string& getDate() const { return date_; }
+    const string& getExpires() const { return expires_; }
+    const string& getETag() const { return eTag_; }
+    const string& getLastModified() const { return lastModified_; }
+    const string& getPragma() const { return pragma_; }
+    const string& getTransferEncoding() const { return transferEncoding_; }
 
     void setCustomHeaders(const HttpHeaderStrList& val) { customHeaders_ = val; }
-    void setCacheControl(const std::string& value) { cacheControl_ = value; }
-    void setConnection(const std::string& value) { connection_ = value; }
+    void setCacheControl(const string& value) { cacheControl_ = value; }
+    void setConnection(const string& value) { connection_ = value; }
     void setConnection(bool keepAlive) { connection_ = (keepAlive? "keep-alive" : "close"); }
-    void setContentDisposition(const std::string& value) { contentDisposition_ = value; }
-    void setContentEncoding(const std::string& value) { contentEncoding_ = value; }
-    void setContentLanguage(const std::string& value) { contentLanguage_ = value; }
+    void setContentDisposition(const string& value) { contentDisposition_ = value; }
+    void setContentEncoding(const string& value) { contentEncoding_ = value; }
+    void setContentLanguage(const string& value) { contentLanguage_ = value; }
     void setContentLength(INT64 value) { contentLength_ = value; }
     void setContentRangeStart(INT64 value) { contentRangeStart_ = value; }
     void setContentRangeEnd(INT64 value) { contentRangeEnd_ = value; }
     void setContentRangeInstanceLength(INT64 value) { contentRangeInstanceLength_ = value; }
-    void setContentType(const std::string& value) { contentType_ = value; }
-    void setContentVersion(const std::string& value) { contentVersion_ = value; }
-    void setDate(const std::string& value) { date_ = value; }
-    void setExpires(const std::string& value) { expires_ = value; }
-    void setETag(const std::string& value) { eTag_ = value; }
-    void setLastModified(const std::string& value) { lastModified_ = value; }
-    void setPragma(const std::string& value) { pragma_ = value; }
-    void setTransferEncoding(const std::string& value) { transferEncoding_ = value; }
+    void setContentType(const string& value) { contentType_ = value; }
+    void setContentVersion(const string& value) { contentVersion_ = value; }
+    void setDate(const string& value) { date_ = value; }
+    void setExpires(const string& value) { expires_ = value; }
+    void setETag(const string& value) { eTag_ = value; }
+    void setLastModified(const string& value) { lastModified_ = value; }
+    void setPragma(const string& value) { pragma_ = value; }
+    void setTransferEncoding(const string& value) { transferEncoding_ = value; }
 
 protected:
     void init();
@@ -271,23 +271,23 @@ protected:
 protected:
     HttpHeaderStrList rawHeaders_;
     HttpHeaderStrList customHeaders_;
-    std::string cacheControl_;
-    std::string connection_;
-    std::string contentDisposition_;
-    std::string contentEncoding_;
-    std::string contentLanguage_;
+    string cacheControl_;
+    string connection_;
+    string contentDisposition_;
+    string contentEncoding_;
+    string contentLanguage_;
     INT64 contentLength_;
     INT64 contentRangeStart_;
     INT64 contentRangeEnd_;
     INT64 contentRangeInstanceLength_;
-    std::string contentType_;
-    std::string contentVersion_;
-    std::string date_;
-    std::string expires_;
-    std::string eTag_;
-    std::string lastModified_;
-    std::string pragma_;
-    std::string transferEncoding_;
+    string contentType_;
+    string contentVersion_;
+    string date_;
+    string expires_;
+    string eTag_;
+    string lastModified_;
+    string pragma_;
+    string transferEncoding_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -302,40 +302,40 @@ public:
     virtual void parseHeaders();
     virtual void buildHeaders();
 
-    const std::string& getAccept() const { return  accept_; }
-    const std::string& getAcceptCharSet() const { return  acceptCharSet_; }
-    const std::string& getAcceptEncoding() const { return  acceptEncoding_; }
-    const std::string& getAcceptLanguage() const { return  acceptLanguage_; }
-    const std::string& getFrom() const { return  from_; }
-    const std::string& getReferer() const { return  referer_; }
-    const std::string& getUserAgent() const { return  userAgent_; }
-    const std::string& getHost() const { return  host_; }
-    const std::string& getRange() const { return  range_; }
+    const string& getAccept() const { return  accept_; }
+    const string& getAcceptCharSet() const { return  acceptCharSet_; }
+    const string& getAcceptEncoding() const { return  acceptEncoding_; }
+    const string& getAcceptLanguage() const { return  acceptLanguage_; }
+    const string& getFrom() const { return  from_; }
+    const string& getReferer() const { return  referer_; }
+    const string& getUserAgent() const { return  userAgent_; }
+    const string& getHost() const { return  host_; }
+    const string& getRange() const { return  range_; }
 
-    void setAccept(const std::string& value) { accept_ = value; }
-    void setAcceptCharSet(const std::string& value) { acceptCharSet_ = value; }
-    void setAcceptEncoding(const std::string& value) { acceptEncoding_ = value; }
-    void setAcceptLanguage(const std::string& value) { acceptLanguage_ = value; }
-    void setFrom(const std::string& value) { from_ = value; }
-    void setReferer(const std::string& value) { referer_ = value; }
-    void setUserAgent(const std::string& value) { userAgent_ = value; }
-    void setHost(const std::string& value) { host_ = value; }
-    void setRange(const std::string& value) { range_ = value; }
+    void setAccept(const string& value) { accept_ = value; }
+    void setAcceptCharSet(const string& value) { acceptCharSet_ = value; }
+    void setAcceptEncoding(const string& value) { acceptEncoding_ = value; }
+    void setAcceptLanguage(const string& value) { acceptLanguage_ = value; }
+    void setFrom(const string& value) { from_ = value; }
+    void setReferer(const string& value) { referer_ = value; }
+    void setUserAgent(const string& value) { userAgent_ = value; }
+    void setHost(const string& value) { host_ = value; }
+    void setRange(const string& value) { range_ = value; }
     void setRange(INT64 rangeStart, INT64 rangeEnd = -1);
 
 protected:
     void init();
 
 protected:
-    std::string accept_;
-    std::string acceptCharSet_;
-    std::string acceptEncoding_;
-    std::string acceptLanguage_;
-    std::string from_;
-    std::string referer_;
-    std::string userAgent_;
-    std::string host_;
-    std::string range_;
+    string accept_;
+    string acceptCharSet_;
+    string acceptEncoding_;
+    string acceptLanguage_;
+    string from_;
+    string referer_;
+    string userAgent_;
+    string host_;
+    string range_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -350,21 +350,21 @@ public:
     virtual void parseHeaders();
     virtual void buildHeaders();
 
-    const std::string& getAcceptRanges() const { return  acceptRanges_; }
-    const std::string& getLocation() const { return  location_; }
-    const std::string& getServer() const { return  server_; }
+    const string& getAcceptRanges() const { return  acceptRanges_; }
+    const string& getLocation() const { return  location_; }
+    const string& getServer() const { return  server_; }
 
-    void setAcceptRanges(const std::string& value) { acceptRanges_ = value; }
-    void setLocation(const std::string& value) { location_ = value; }
-    void setServer(const std::string& value) { server_ = value; }
+    void setAcceptRanges(const string& value) { acceptRanges_ = value; }
+    void setLocation(const string& value) { location_ = value; }
+    void setServer(const string& value) { server_ = value; }
 
 protected:
     void init();
 
 protected:
-    std::string acceptRanges_;
-    std::string location_;
-    std::string server_;
+    string acceptRanges_;
+    string location_;
+    string server_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -378,28 +378,28 @@ public:
     virtual void clear();
 
     HTTP_PROTO_VER getProtocolVersion() const { return protocolVersion_; }
-    const std::string& getUrl() const { return url_; }
-    const std::string& getMethod() const { return method_; }
+    const string& getUrl() const { return url_; }
+    const string& getMethod() const { return method_; }
     Stream* getContentStream() const { return contentStream_; }
 
     void setProtocolVersion(HTTP_PROTO_VER value) { protocolVersion_ = value; }
-    void setUrl(const std::string& value) { url_ = value; }
-    void setMethod(const std::string& value) { method_ = value; }
+    void setUrl(const string& value) { url_ = value; }
+    void setMethod(const string& value) { method_ = value; }
     void setContentStream(Stream *value) { contentStream_ = value; }
-    bool setRequestLine(const std::string& reqLine);
+    bool setRequestLine(const string& reqLine);
 
     void makeRequestHeaderBuffer(Buffer& buffer);
 
-    static bool parseRequestLine(const std::string& reqLine, std::string& method,
-        std::string& url, HTTP_PROTO_VER& protoVer);
+    static bool parseRequestLine(const string& reqLine, string& method,
+        string& url, HTTP_PROTO_VER& protoVer);
 
 protected:
     void init();
 
 protected:
     HTTP_PROTO_VER protocolVersion_;
-    std::string url_;
-    std::string method_;
+    string url_;
+    string method_;
     Stream *contentStream_;
 };
 
@@ -415,12 +415,12 @@ public:
     virtual void clear();
 
     bool getKeepAlive() const;
-    const std::string& getStatusLine() const { return statusLine_; }
+    const string& getStatusLine() const { return statusLine_; }
     int getStatusCode() const;
     HTTP_PROTO_VER getResponseVersion() const;
     Stream* getContentStream() const { return contentStream_; }
 
-    void setStatusLine(const std::string& value) { statusLine_ = value; }
+    void setStatusLine(const string& value) { statusLine_ = value; }
     void setStatusCode(int statusCode);
     void setContentStream(Stream *stream, bool ownsObject = false);
 
@@ -430,7 +430,7 @@ protected:
     void init();
 
 protected:
-    std::string statusLine_;
+    string statusLine_;
     Stream *contentStream_;
     bool ownsContentStream_;
 };
@@ -478,7 +478,7 @@ public:
     /// The http client options
     HttpClientOptions& options() { return options_; }
     /// Returns the status line of the response.
-    std::string getStatusLine() { return response_.getStatusLine(); }
+    string getStatusLine() { return response_.getStatusLine(); }
     /// Returns the status code of the response.
     int getStatusCode() { return response_.getStatusCode(); }
     /// Indicates if the http client can handle redirections.
@@ -493,7 +493,7 @@ public:
 
 protected:
     InetAddress getInetAddrFromUrl(Url& url);
-    int beforeRequest(HTTP_METHOD_TYPE httpMethod, const std::string& urlStr, Stream *requestContent,
+    int beforeRequest(HTTP_METHOD_TYPE httpMethod, const string& urlStr, Stream *requestContent,
         Stream *responseContent, INT64 reqStreamPos, INT64 resStreamPos);
     void checkResponseHeader(char *buffer, int size, bool& finished, bool& error);
     bool parseResponseHeader(void *buffer, int size);
@@ -523,21 +523,21 @@ public:
     virtual ~HttpClient();
 
     /// Sends a "GET" request to http server, and receives the response content. Returns the error code (EC_HTTP_XXX).
-    int get(const std::string& url, Stream *responseContent);
+    int get(const string& url, Stream *responseContent);
     /// Sends a "POST" request to http server with the specified request content, and receives the response content. Returns the error code (EC_HTTP_XXX).
-    int post(const std::string& url, Stream *requestContent, Stream *responseContent);
+    int post(const string& url, Stream *requestContent, Stream *responseContent);
 
     /// Downloads the entire file from the specified url. Returns the error code (EC_HTTP_XXX).
-    int downloadFile(const std::string& url, const std::string& localFileName);
+    int downloadFile(const string& url, const string& localFileName);
     /// Sends the "GET" request to http server, and receives the response text and headers. Returns the error code (EC_HTTP_XXX).
-    int requestFile(const std::string& url);
+    int requestFile(const string& url);
     /// Try to receive the response content from http server, returns the total number of bytes received actually, -1 if error.
     int receiveFile(void *buffer, int size, int timeoutMSecs = -1);
 
 protected:
-    int executeHttpAction(HTTP_METHOD_TYPE httpMethod, const std::string& url,
+    int executeHttpAction(HTTP_METHOD_TYPE httpMethod, const string& url,
         Stream *requestContent, Stream *responseContent);
-    int executeHttpRequest(HTTP_METHOD_TYPE httpMethod, const std::string& url,
+    int executeHttpRequest(HTTP_METHOD_TYPE httpMethod, const string& url,
         Stream *requestContent, Stream *responseContent,
         bool needRecvContent, bool& canRecvContent);
 
@@ -548,7 +548,7 @@ protected:
     int recvResponseContent();
 
 private:
-    int readLine(std::string& line, int timeout);
+    int readLine(string& line, int timeout);
     int readChunkSize(UINT& chunkSize, int timeout);
     int readStream(Stream& stream, int bytes, int timeout);
 };

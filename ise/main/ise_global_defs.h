@@ -100,7 +100,7 @@ typedef pid_t THREAD_ID;
 
 typedef void* POINTER;
 
-typedef std::vector<std::string> StringArray;
+typedef std::vector<string> StringArray;
 typedef std::vector<int> IntegerArray;
 typedef std::vector<bool> BooleanArray;
 typedef std::set<int> IntegerSet;

@@ -97,7 +97,7 @@ void AppBusiness::onTcpSendComplete(const TcpConnectionPtr& connection, const Co
 
 void AppBusiness::onHttpSession(const HttpRequest& request, HttpResponse& response)
 {
-    std::string content = "this is a simple http server.";
+    string content = "this is a simple http server.";
 
     response.setStatusCode(200);
     response.getContentStream()->write(content.c_str(), content.length());

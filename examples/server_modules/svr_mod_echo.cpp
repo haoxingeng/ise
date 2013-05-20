@@ -10,7 +10,7 @@ void ServerModule_Echo::onTcpConnected(const TcpConnectionPtr& connection)
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    std::string msg = "Welcome to the simple echo server, type 'quit' to exit.\r\n";
+    string msg = "Welcome to the simple echo server, type 'quit' to exit.\r\n";
     connection->send(msg.c_str(), msg.length());
 }
 
@@ -28,7 +28,7 @@ void ServerModule_Echo::onTcpRecvComplete(const TcpConnectionPtr& connection, vo
 {
     logger().writeStr("onTcpRecvComplete");
 
-    std::string msg((char*)packetBuffer, packetSize);
+    string msg((char*)packetBuffer, packetSize);
     msg = trimString(msg);
     if (msg == "quit")
         connection->disconnect();

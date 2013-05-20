@@ -202,12 +202,12 @@ public:
     int getWritableBytes() const { return (int)buffer_.size() - writerIndex_; }
     int getUselessBytes() const { return readerIndex_; }
 
-    void append(const std::string& str);
+    void append(const string& str);
     void append(const void *data, int bytes);
     void append(int bytes);
 
     void retrieve(int bytes);
-    void retrieveAll(std::string& str);
+    void retrieveAll(string& str);
     void retrieveAll();
 
     void swap(IoBuffer& rhs);
@@ -245,7 +245,7 @@ class TcpEventLoop : boost::noncopyable
 {
 public:
     typedef std::vector<Functor> Functors;
-    typedef std::map<std::string, TcpConnectionPtr> TcpConnectionMap;  // <connectionName, TcpConnectionPtr>
+    typedef std::map<string, TcpConnectionPtr> TcpConnectionMap;  // <connectionName, TcpConnectionPtr>
 
     struct FunctorList
     {
@@ -387,7 +387,7 @@ public:
 
     bool isFromClient() const { return (tcpServer_ == NULL);}
     bool isFromServer() const { return (tcpServer_ != NULL);}
-    const std::string& getConnectionName() const;
+    const string& getConnectionName() const;
     int getServerIndex() const;
     int getServerPort() const;
     int getServerConnCount() const;
@@ -401,7 +401,7 @@ protected:
 protected:
     void errorOccurred();
     void checkTimeout(UINT curTicks);
-    void postSendTask(const std::string& data, const Context& context, int timeout);
+    void postSendTask(const string& data, const Context& context, int timeout);
 
     void setEventLoop(TcpEventLoop *eventLoop);
     TcpEventLoop* getEventLoop() { return eventLoop_; }
@@ -412,7 +412,7 @@ private:
 protected:
     TcpServer *tcpServer_;                // 所属 TcpServer
     TcpEventLoop *eventLoop_;             // 所属 TcpEventLoop
-    mutable std::string connectionName_;  // 连接名称
+    mutable string connectionName_;       // 连接名称
     IoBuffer sendBuffer_;                 // 数据发送缓存
     IoBuffer recvBuffer_;                 // 数据接收缓存
     SendTaskQueue sendTaskQueue_;         // 发送任务队列
@@ -876,6 +876,7 @@ public:
     void open();
     void close();
 
+    TcpServer& getTcpServer(int index);
     TcpEventLoopList& getTcpClientEventLoopList();
 
 private:

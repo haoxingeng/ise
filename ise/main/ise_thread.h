@@ -146,7 +146,7 @@ protected:
     bool isExecuting_;            // 线程是否正在执行线程函数
     bool isRunCalled_;            // run() 函数是否已被调用过
     int termTime_;                // 调用 terminate() 时的时间戳
-    bool isAutoDelete_;      // 线程退出时是否同时释放类对象
+    bool isAutoDelete_;           // 线程退出时是否同时释放类对象
     bool terminated_;             // 是否应退出的标志
     bool isSleepInterrupted_;     // 睡眠是否被中断
     int returnValue_;             // 线程返回值 (可在 execute 函数中修改此值，函数 waitFor 返回此值)
@@ -355,7 +355,7 @@ public:
     void stop(int maxWaitSecs = TIMEOUT_INFINITE);
 
     void addTask(const Task& task);
-    void setRepeat(bool repeat);
+    void setTaskRepeat(bool repeat);
 
     bool isRunning() const { return isRunning_; }
 

@@ -424,7 +424,7 @@ const DWORD GOST_DATA[4][256] = {{
 
 //-----------------------------------------------------------------------------
 
-std::string GetCipherModeStr(CIPHER_MODE mode)
+string GetCipherModeStr(CIPHER_MODE mode)
 {
     switch (mode)
     {

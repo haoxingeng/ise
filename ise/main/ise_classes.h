@@ -121,9 +121,9 @@ public:
     int getPosition() const { return position_; }
 
     bool loadFromStream(Stream& stream);
-    bool loadFromFile(const std::string& fileName);
+    bool loadFromFile(const string& fileName);
     bool saveToStream(Stream& stream);
-    bool saveToFile(const std::string& fileName);
+    bool saveToFile(const string& fileName);
 private:
     inline void init() { buffer_ = NULL; size_ = 0; position_ = 0; }
     void assign(const Buffer& src);
@@ -143,7 +143,7 @@ public:
     DateTime() { time_ = 0; }
     DateTime(const DateTime& src) { time_ = src.time_; }
     explicit DateTime(time_t src) { time_ = src; }
-    explicit DateTime(const std::string& src) { *this = src; }
+    explicit DateTime(const string& src) { *this = src; }
 
     static DateTime currentDateTime();
 
@@ -151,7 +151,7 @@ public:
         { time_ = rhs.time_; return *this; }
     DateTime& operator = (const time_t rhs)
         { time_ = rhs; return *this; }
-    DateTime& operator = (const std::string& dateTimeStr);
+    DateTime& operator = (const string& dateTimeStr);
 
     DateTime operator + (const DateTime& rhs) const { return DateTime(time_ + rhs.time_); }
     DateTime operator + (time_t rhs) const { return DateTime(time_ + rhs); }
@@ -173,9 +173,9 @@ public:
         int *hour, int *minute, int *second,
         int *weekDay = NULL, int *yearDay = NULL) const;
 
-    std::string dateString(const std::string& dateSep = "-") const;
-    std::string dateTimeString(const std::string& dateSep = "-",
-        const std::string& dateTimeSep = " ", const std::string& timeSep = ":") const;
+    string dateString(const string& dateSep = "-") const;
+    string dateTimeString(const string& dateSep = "-",
+        const string& dateTimeSep = " ", const string& timeSep = ":") const;
 
 private:
     time_t time_;     // (从1970-01-01 00:00:00 算起的秒数，UTC时间)
@@ -608,9 +608,9 @@ public:
     virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin);
     virtual void setSize(INT64 size);
     bool loadFromStream(Stream& stream);
-    bool loadFromFile(const std::string& fileName);
+    bool loadFromFile(const string& fileName);
     bool saveToStream(Stream& stream);
-    bool saveToFile(const std::string& fileName);
+    bool saveToFile(const string& fileName);
     void clear();
     char* getMemory() { return memory_; }
 
@@ -675,10 +675,10 @@ class FileStream :
 {
 public:
     FileStream();
-    FileStream(const std::string& fileName, UINT openMode, UINT rights = DEFAULT_FILE_ACCESS_RIGHTS);
+    FileStream(const string& fileName, UINT openMode, UINT rights = DEFAULT_FILE_ACCESS_RIGHTS);
     virtual ~FileStream();
 
-    bool open(const std::string& fileName, UINT openMode,
+    bool open(const string& fileName, UINT openMode,
         UINT rights = DEFAULT_FILE_ACCESS_RIGHTS, FileException* exception = NULL);
     void close();
 
@@ -687,21 +687,21 @@ public:
     virtual INT64 seek(INT64 offset, SEEK_ORIGIN seekOrigin);
     virtual void setSize(INT64 size);
 
-    std::string getFileName() const { return fileName_; }
+    string getFileName() const { return fileName_; }
     HANDLE getHandle() const { return handle_; }
     bool isOpen() const;
 
 private:
     void init();
-    HANDLE fileCreate(const std::string& fileName, UINT rights);
-    HANDLE fileOpen(const std::string& fileName, UINT openMode);
+    HANDLE fileCreate(const string& fileName, UINT rights);
+    HANDLE fileOpen(const string& fileName, UINT openMode);
     void fileClose(HANDLE handle);
     int fileRead(HANDLE handle, void *buffer, int count);
     int fileWrite(HANDLE handle, const void *buffer, int count);
     INT64 fileSeek(HANDLE handle, INT64 offset, SEEK_ORIGIN seekOrigin);
 
 private:
-    std::string fileName_;
+    string fileName_;
     HANDLE handle_;
 };
 
@@ -774,11 +774,11 @@ public:
 
     struct PropertyItem
     {
-        std::string name, value;
+        string name, value;
     public:
         PropertyItem(const PropertyItem& src) :
             name(src.name), value(src.value) {}
-        PropertyItem(const std::string& _name, const std::string& _value) :
+        PropertyItem(const string& _name, const string& _value) :
             name(_name), value(_value) {}
     };
 
@@ -787,29 +787,29 @@ public:
     PropertyList(const PropertyList& src);
     virtual ~PropertyList();
 
-    void add(const std::string& name, const std::string& value);
-    bool remove(const std::string& name);
+    void add(const string& name, const string& value);
+    bool remove(const string& name);
     void clear();
-    int indexOf(const std::string& name) const;
-    bool nameExists(const std::string& name) const;
-    bool getValue(const std::string& name, std::string& value) const;
+    int indexOf(const string& name) const;
+    bool nameExists(const string& name) const;
+    bool getValue(const string& name, string& value) const;
     int getCount() const { return items_.getCount(); }
     bool isEmpty() const { return (getCount() <= 0); }
     const PropertyItem& getItem(int index) const;
-    std::string getPropString() const;
-    void setPropString(const std::string& propString);
+    string getPropString() const;
+    void setPropString(const string& propString);
 
     PropertyList& operator = (const PropertyList& rhs);
-    std::string& operator[] (const std::string& name);
+    string& operator[] (const string& name);
 
 private:
     void assign(const PropertyList& src);
-    PropertyItem* find(const std::string& name);
+    PropertyItem* find(const string& name);
     static bool isReservedChar(char ch);
-    static bool hasReservedChar(const std::string& str);
+    static bool hasReservedChar(const string& str);
     static char* scanStr(char *str, char ch);
-    static std::string makeQuotedStr(const std::string& str);
-    static std::string extractQuotedStr(char*& strPtr);
+    static string makeQuotedStr(const string& str);
+    static string extractQuotedStr(char*& strPtr);
 
 private:
     PointerList items_;                        // (PropertyItem* [])
@@ -872,34 +872,34 @@ public:
     bool isEmpty() const { return (getCount() <= 0); }
     char getDelimiter() const;
     void setDelimiter(char value);
-    std::string getLineBreak() const;
+    string getLineBreak() const;
     void setLineBreak(const char* value);
     char getQuoteChar() const;
     void setQuoteChar(char value);
     char getNameValueSeparator() const;
     void setNameValueSeparator(char value);
-    std::string combineNameValue(const char* name, const char* value) const;
-    std::string getName(int index) const;
-    std::string getValue(const char* name) const;
-    std::string getValue(int index) const;
+    string combineNameValue(const char* name, const char* value) const;
+    string getName(int index) const;
+    string getValue(const char* name) const;
+    string getValue(int index) const;
     void setValue(const char* name, const char* value);
     void setValue(int index, const char* value);
     virtual POINTER getData(int index) const { return NULL; }
     virtual void setData(int index, POINTER data) {}
-    virtual std::string getText() const;
+    virtual string getText() const;
     virtual void setText(const char* value);
-    std::string getCommaText() const;
+    string getCommaText() const;
     void setCommaText(const char* value);
-    std::string getDelimitedText() const;
+    string getDelimitedText() const;
     void setDelimitedText(const char* value);
-    virtual const std::string& getString(int index) const = 0;
+    virtual const string& getString(int index) const = 0;
     virtual void setString(int index, const char* value);
 
     void beginUpdate();
     void endUpdate();
 
     Strings& operator = (const Strings& rhs);
-    const std::string& operator[] (int index) const { return getString(index); }
+    const string& operator[] (int index) const { return getString(index); }
 
 protected:
     virtual void setUpdateState(bool isUpdating) {}
@@ -909,7 +909,7 @@ protected:
     void init();
     void error(const char* msg, int data) const;
     int getUpdateCount() const { return updateCount_; }
-    std::string extractName(const char* str) const;
+    string extractName(const char* str) const;
 
 private:
     void assign(const Strings& src);
@@ -917,7 +917,7 @@ private:
 protected:
     UINT defined_;
     char delimiter_;
-    std::string lineBreak_;
+    string lineBreak_;
     char quoteChar_;
     char nameValueSeparator_;
     int updateCount_;
@@ -950,7 +950,7 @@ public:
 
     virtual int add(const char* str);
     virtual int add(const char* str, POINTER data);
-    int add(const std::string& str) { return add(str.c_str()); }
+    int add(const string& str) { return add(str.c_str()); }
     virtual void clear();
     virtual void del(int index);
     virtual void exchange(int index1, int index2);
@@ -963,7 +963,7 @@ public:
     virtual int getCount() const { return count_; }
     virtual POINTER getData(int index) const;
     virtual void setData(int index, POINTER data);
-    virtual const std::string& getString(int index) const;
+    virtual const string& getString(int index) const;
     virtual void setString(int index, const char* value);
 
     virtual bool find(const char* str, int& index) const;
@@ -988,14 +988,14 @@ protected: // virtual
     virtual void onChanging() {}
     /// Occurs immediately after the list of strings changes.
     virtual void onChanged() {}
-    /// Internal method used to insert a std::string to the list.
+    /// Internal method used to insert a string to the list.
     virtual void insertItem(int index, const char* str, POINTER data);
 
 private:
     void init();
     void assign(const StrList& src);
     void internalClear();
-    std::string& stringObjectNeeded(int index) const;
+    string& stringObjectNeeded(int index) const;
     void exchangeItems(int index1, int index2);
     void grow();
     void quickSort(int l, int r, StringListCompareProc compareProc);
@@ -1003,7 +1003,7 @@ private:
 private:
     struct StringItem
     {
-        std::string *str;
+        string *str;
         POINTER data;
     };
 
@@ -1038,47 +1038,47 @@ public:
     };
 
 public:
-    Url(const std::string& url = "");
+    Url(const string& url = "");
     Url(const Url& src);
     virtual ~Url() {}
 
     void clear();
     Url& operator = (const Url& rhs);
 
-    std::string getUrl() const;
-    std::string getUrl(UINT parts);
-    void setUrl(const std::string& value);
+    string getUrl() const;
+    string getUrl(UINT parts);
+    void setUrl(const string& value);
 
-    const std::string& getProtocol() const { return protocol_; }
-    const std::string& getHost() const { return host_; }
-    const std::string& getPort() const { return port_; }
-    const std::string& getPath() const { return path_; }
-    const std::string& getFileName() const { return fileName_; }
-    const std::string& getBookmark() const { return bookmark_; }
-    const std::string& getUserName() const { return userName_; }
-    const std::string& getPassword() const { return password_; }
-    const std::string& getParams() const { return params_; }
+    const string& getProtocol() const { return protocol_; }
+    const string& getHost() const { return host_; }
+    const string& getPort() const { return port_; }
+    const string& getPath() const { return path_; }
+    const string& getFileName() const { return fileName_; }
+    const string& getBookmark() const { return bookmark_; }
+    const string& getUserName() const { return userName_; }
+    const string& getPassword() const { return password_; }
+    const string& getParams() const { return params_; }
 
-    void setProtocol(const std::string& value) { protocol_ = value; }
-    void setHost(const std::string& value) { host_ = value; }
-    void setPort(const std::string& value) { port_ = value; }
-    void setPath(const std::string& value) { path_ = value; }
-    void setFileName(const std::string& value) { fileName_ = value; }
-    void setBookmark(const std::string& value) { bookmark_ = value; }
-    void setUserName(const std::string& value) { userName_ = value; }
-    void setPassword(const std::string& value) { password_ = value; }
-    void setParams(const std::string& value) { params_ = value; }
+    void setProtocol(const string& value) { protocol_ = value; }
+    void setHost(const string& value) { host_ = value; }
+    void setPort(const string& value) { port_ = value; }
+    void setPath(const string& value) { path_ = value; }
+    void setFileName(const string& value) { fileName_ = value; }
+    void setBookmark(const string& value) { bookmark_ = value; }
+    void setUserName(const string& value) { userName_ = value; }
+    void setPassword(const string& value) { password_ = value; }
+    void setParams(const string& value) { params_ = value; }
 
 private:
-    std::string protocol_;
-    std::string host_;
-    std::string port_;
-    std::string path_;
-    std::string fileName_;
-    std::string bookmark_;
-    std::string userName_;
-    std::string password_;
-    std::string params_;
+    string protocol_;
+    string host_;
+    string port_;
+    string path_;
+    string fileName_;
+    string bookmark_;
+    string userName_;
+    string password_;
+    string params_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1115,8 +1115,8 @@ protected:
     void readINT16(INT16& value) { readBuffer(&value, sizeof(INT16)); }
     void readINT32(INT32& value) { readBuffer(&value, sizeof(INT32)); }
     void readINT64(INT64& value) { readBuffer(&value, sizeof(INT64)); }
-    void readString(std::string& str);
-    void readBlob(std::string& str);
+    void readString(string& str);
+    void readBlob(string& str);
     void readBlob(Stream& stream);
     void readBlob(Buffer& buffer);
     INT8 readINT8() { INT8 v; readINT8(v); return v; }
@@ -1124,7 +1124,7 @@ protected:
     INT32 readINT32() { INT32 v; readINT32(v); return v; }
     INT64 readINT64() { INT64 v; readINT64(v); return v; }
     bool readBool() { INT8 v; readINT8(v); return (v? true : false); }
-    std::string readString() { std::string v; readString(v); return v; }
+    string readString() { string v; readString(v); return v; }
 
     void writeBuffer(const void *buffer, int bytes);
     void writeINT8(const INT8& value) { writeBuffer(&value, sizeof(INT8)); }
@@ -1132,12 +1132,12 @@ protected:
     void writeINT32(const INT32& value) { writeBuffer(&value, sizeof(INT32)); }
     void writeINT64(const INT64& value) { writeBuffer(&value, sizeof(INT64)); }
     void writeBool(bool value) { writeINT8(value ? 1 : 0); }
-    void writeString(const std::string& str);
+    void writeString(const string& str);
     void writeBlob(void *buffer, int bytes);
     void writeBlob(const Buffer& buffer);
 
-    void fixStrLength(std::string& str, int length);
-    void truncString(std::string& str, int maxLength);
+    void fixStrLength(string& str, int length);
+    void truncString(string& str, int maxLength);
 
 protected:
     virtual void doPack() {}
@@ -1439,10 +1439,10 @@ public:
     ~Logger() {}
     static Logger& instance();
 
-    void setFileName(const std::string& fileName, bool isNewFileDaily = false);
+    void setFileName(const string& fileName, bool isNewFileDaily = false);
 
     void writeStr(const char *str);
-    void writeStr(const std::string& str) { writeStr(str.c_str()); }
+    void writeStr(const string& str) { writeStr(str.c_str()); }
     void writeFmt(const char *format, ...);
     void writeException(const Exception& e);
 
@@ -1450,13 +1450,13 @@ private:
     Logger();
 
 private:
-    std::string getLogFileName();
-    bool openFile(FileStream& fileStream, const std::string& fileName);
-    void writeToFile(const std::string& str);
+    string getLogFileName();
+    bool openFile(FileStream& fileStream, const string& fileName);
+    void writeToFile(const string& str);
 
 private:
-    std::string fileName_;       // 日志文件名
-    bool isNewFileDaily_;        // 是否每天用一个单独的文件存储日志
+    string fileName_;       // 日志文件名
+    bool isNewFileDaily_;   // 是否每天用一个单独的文件存储日志
     Mutex mutex_;
 };
 

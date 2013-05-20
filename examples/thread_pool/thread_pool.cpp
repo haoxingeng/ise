@@ -14,7 +14,7 @@ IseBusiness* createIseBusinessObject()
 void AppBusiness::initialize()
 {
     threadPool_.addTask(boost::bind(&AppBusiness::threadPoolTask, this, _1));
-    threadPool_.setRepeat(true);
+    threadPool_.setTaskRepeat(true);
     threadPool_.start(10);
 }
 
@@ -41,7 +41,7 @@ void AppBusiness::threadPoolTask(Thread& thread)
     static AtomicInt counter;
 
     counter.increment();
-    std::string s = formatString("executing task: %u. (thread: %u)", counter.get(), thread.getThreadId());
+    string s = formatString("executing task: %u. (thread: %u)", counter.get(), thread.getThreadId());
     logger().writeStr(s);
     std::cout << s << std::endl;
 

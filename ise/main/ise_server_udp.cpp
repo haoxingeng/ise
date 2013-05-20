@@ -35,9 +35,9 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class ThreadTimeOutChecker
+// class ThreadTimeoutChecker
 
-ThreadTimeOutChecker::ThreadTimeOutChecker(Thread *thread) :
+ThreadTimeoutChecker::ThreadTimeoutChecker(Thread *thread) :
     thread_(thread),
     startTime_(0),
     started_(false),
@@ -49,13 +49,13 @@ ThreadTimeOutChecker::ThreadTimeOutChecker(Thread *thread) :
 //-----------------------------------------------------------------------------
 // 描述: 检测线程是否已超时，若超时则通知其退出
 //-----------------------------------------------------------------------------
-bool ThreadTimeOutChecker::check()
+bool ThreadTimeoutChecker::check()
 {
     bool result = false;
 
     if (started_ && timeoutSecs_ > 0)
     {
-        if ((UINT)time(NULL) - startTime_ >= timeoutSecs_)
+        if (static_cast<UINT>(time(NULL) - startTime_) >= timeoutSecs_)
         {
             if (!thread_->isTerminated()) thread_->terminate();
             result = true;
@@ -68,10 +68,9 @@ bool ThreadTimeOutChecker::check()
 //-----------------------------------------------------------------------------
 // 描述: 返回是否已开始计时
 //-----------------------------------------------------------------------------
-bool ThreadTimeOutChecker::getStarted()
+bool ThreadTimeoutChecker::isStarted()
 {
     AutoLocker locker(mutex_);
-
     return started_;
 }
 
@@ -96,7 +95,7 @@ void UdpPacket::setPacketBuffer(void *packetBuffer, int packetSize)
 //-----------------------------------------------------------------------------
 // 描述: 开始计时
 //-----------------------------------------------------------------------------
-void ThreadTimeOutChecker::start()
+void ThreadTimeoutChecker::start()
 {
     AutoLocker locker(mutex_);
 
@@ -107,10 +106,9 @@ void ThreadTimeOutChecker::start()
 //-----------------------------------------------------------------------------
 // 描述: 停止计时
 //-----------------------------------------------------------------------------
-void ThreadTimeOutChecker::stop()
+void ThreadTimeoutChecker::stop()
 {
     AutoLocker locker(mutex_);
-
     started_ = false;
 }
 
@@ -178,7 +176,7 @@ UdpPacket* UdpRequestQueue::extractPacket()
         packetList_.pop_front();
         packetCount_--;
 
-        if (time(NULL) - (UINT)p->recvTimeStamp_ <= (UINT)effWaitTime_)
+        if (static_cast<UINT>(time(NULL) - p->recvTimestamp_) <= (UINT)effWaitTime_)
         {
             result = p;
             break;
@@ -200,7 +198,7 @@ void UdpRequestQueue::clear()
     AutoLocker locker(mutex_);
     UdpPacket *p;
 
-    for (UINT i = 0; i < packetList_.size(); i++)
+    for (size_t i = 0; i < packetList_.size(); ++i)
     {
         p = packetList_[i];
         delete p;
@@ -227,7 +225,7 @@ UdpWorkerThread::UdpWorkerThread(UdpWorkerThreadPool *threadPool) :
 {
     setAutoDelete(true);
     // 启用超时检测
-    timeoutChecker_.setTimeOutSecs(iseApp().getIseOptions().getUdpWorkerThreadTimeOut());
+    timeoutChecker_.setTimeoutSecs(iseApp().getIseOptions().getUdpWorkerThreadTimeout());
 
     ownPool_->registerThread(this);
 }
@@ -258,7 +256,7 @@ void UdpWorkerThread::execute()
 
             // 分派数据包
             if (!isTerminated())
-                iseApp().getIseBusiness().dispatchUdpPacket(*this, groupIndex, *packet);
+                iseApp().getIseBusiness().onRecvedUdpPacket(*this, groupIndex, *packet);
         }
     }
     catch (Exception&)
@@ -510,7 +508,7 @@ void MainUdpServer::close()
 //-----------------------------------------------------------------------------
 void MainUdpServer::adjustWorkerThreadCount()
 {
-    for (UINT i = 0; i < requestGroupList_.size(); i++)
+    for (size_t i = 0; i < requestGroupList_.size(); ++i)
         requestGroupList_[i]->getThreadPool().AdjustThreadCount();
 }
 
@@ -519,7 +517,7 @@ void MainUdpServer::adjustWorkerThreadCount()
 //-----------------------------------------------------------------------------
 void MainUdpServer::terminateAllWorkerThreads()
 {
-    for (UINT i = 0; i < requestGroupList_.size(); i++)
+    for (size_t i = 0; i < requestGroupList_.size(); ++i)
         requestGroupList_[i]->getThreadPool().terminateAllThreads();
 }
 
@@ -528,7 +526,7 @@ void MainUdpServer::terminateAllWorkerThreads()
 //-----------------------------------------------------------------------------
 void MainUdpServer::waitForAllWorkerThreads()
 {
-    for (UINT i = 0; i < requestGroupList_.size(); i++)
+    for (size_t i = 0; i < requestGroupList_.size(); ++i)
         requestGroupList_[i]->getThreadPool().waitForAllThreads();
 }
 
@@ -561,7 +559,7 @@ void MainUdpServer::initRequestGroupList()
 //-----------------------------------------------------------------------------
 void MainUdpServer::clearRequestGroupList()
 {
-    for (UINT i = 0; i < requestGroupList_.size(); i++)
+    for (size_t i = 0; i < requestGroupList_.size(); ++i)
         delete requestGroupList_[i];
     requestGroupList_.clear();
 }
@@ -582,7 +580,7 @@ void MainUdpServer::onRecvData(void *packetBuffer, int packetSize, const InetAdd
         UdpPacket *p = new UdpPacket();
         if (p)
         {
-            p->recvTimeStamp_ = (UINT)time(NULL);
+            p->recvTimestamp_ = time(NULL);
             p->peerAddr_ = peerAddr;
             p->packetSize_ = packetSize;
             p->setPacketBuffer(packetBuffer, packetSize);

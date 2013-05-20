@@ -84,7 +84,7 @@ void MySqlConnection::doConnect()
     }
 
     // for MYSQL 5.0.7 or higher
-    std::string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
+    string strInitialCharSet = database_->getDbOptions()->getInitialCharSet();
     if (!strInitialCharSet.empty())
         mysql_set_character_set(&connObject_, strInitialCharSet.c_str());
 
@@ -117,9 +117,9 @@ void MySqlField::setData(void *dataPtr, int dataSize)
 //-----------------------------------------------------------------------------
 // 描述: 以字符串型返回字段值
 //-----------------------------------------------------------------------------
-std::string MySqlField::asString() const
+string MySqlField::asString() const
 {
-    std::string result;
+    string result;
 
     if (dataPtr_ && dataSize_ > 0)
         result.assign(dataPtr_, dataSize_);
@@ -285,7 +285,7 @@ MySqlQuery::~MySqlQuery()
 //-----------------------------------------------------------------------------
 // 描述: 转换字符串使之在SQL中合法
 //-----------------------------------------------------------------------------
-std::string MySqlQuery::escapeString(const std::string& str)
+string MySqlQuery::escapeString(const string& str)
 {
     if (str.empty()) return "";
 
@@ -375,14 +375,14 @@ void MySqlQuery::doExecute(DbDataSet *resultDataSet)
             }
 
             // 否则抛出异常
-            std::string sql(sql_);
+            string sql(sql_);
             if (sql.length() > 1024*2)
             {
                 sql.resize(100);
                 sql += "...";
             }
 
-            std::string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
+            string errMsg = formatString("%s; Error: %s", sql.c_str(), mysql_error(&getConnObject()));
             iseThrowDbException(errMsg.c_str());
         }
         else break;

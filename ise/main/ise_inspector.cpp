@@ -51,8 +51,8 @@ IseServerInspector::IseServerInspector(int serverPort) :
 
 //-----------------------------------------------------------------------------
 
-void IseServerInspector::add(const std::string& category, const std::string& command,
-    const OutputCallback& outputCallback, const std::string& help)
+void IseServerInspector::add(const string& category, const string& command,
+    const OutputCallback& outputCallback, const string& help)
 {
     AutoLocker locker(mutex_);
 
@@ -110,26 +110,26 @@ void IseServerInspector::onTcpSendComplete(const TcpConnectionPtr& connection, c
 
 //-----------------------------------------------------------------------------
 
-std::string IseServerInspector::outputHelpPage()
+string IseServerInspector::outputHelpPage()
 {
-    std::string result;
+    string result;
 
     for (InspectInfo::iterator i = inspectInfo_.begin(); i != inspectInfo_.end(); ++i)
     {
-        std::string category = i->first;
+        string category = i->first;
         CommandList& commandList = i->second;
 
         for (CommandList::iterator j = commandList.begin(); j != commandList.end(); ++j)
         {
-            std::string command = j->first;
+            string command = j->first;
             CommandItem& commandItem = j->second;
 
-            std::string help;
+            string help;
             if (!commandItem.help.empty())
                 help = formatString("<span style=\"color:#cfcfcf\">(%s)</span>", commandItem.help.c_str());
 
-            std::string path = formatString("/%s/%s", category.c_str(), command.c_str());
-            std::string line = formatString("<a href=\"%s\">[%s]</a> %s",
+            string path = formatString("/%s/%s", category.c_str(), command.c_str());
+            string line = formatString("<a href=\"%s\">[%s]</a> %s",
                 path.c_str(), path.c_str(), help.c_str());
             if (!result.empty()) result += "</br>";
             result += line;
@@ -145,19 +145,19 @@ std::string IseServerInspector::outputHelpPage()
 
 // Example: /category/command?arg1=value&arg2=value
 bool IseServerInspector::parseCommandUrl(const HttpRequest& request,
-    std::string& category, std::string& command, PropertyList& argList)
+    string& category, string& command, PropertyList& argList)
 {
     bool result = false;
-    std::string url = request.getUrl();
-    std::string argStr;
+    string url = request.getUrl();
+    string argStr;
     StrList strList;
 
     if (!url.empty() && url[0] == '/')
         url.erase(0, 1);
 
     // find the splitter char ('?')
-    std::string::size_type argPos = url.find('?');
-    bool hasArgs = (argPos != std::string::npos);
+    string::size_type argPos = url.find('?');
+    bool hasArgs = (argPos != string::npos);
     if (hasArgs)
     {
         argStr = url.substr(argPos + 1);
@@ -195,7 +195,7 @@ bool IseServerInspector::parseCommandUrl(const HttpRequest& request,
 //-----------------------------------------------------------------------------
 
 IseServerInspector::CommandItem* IseServerInspector::findCommandItem(
-    const std::string& category, const std::string& command)
+    const string& category, const string& command)
 {
     CommandItem *result = NULL;
 
@@ -225,7 +225,7 @@ void IseServerInspector::onHttpSession(const HttpRequest& request, HttpResponse&
     if (request.getUrl() == "/")
     {
         AutoLocker locker(mutex_);
-        std::string s = outputHelpPage();
+        string s = outputHelpPage();
 
         response.setStatusCode(200);
         response.setContentType("text/html");
@@ -234,15 +234,15 @@ void IseServerInspector::onHttpSession(const HttpRequest& request, HttpResponse&
     else
     {
         AutoLocker locker(mutex_);
-        std::string category, command;
+        string category, command;
         CommandItem *commandItem;
         PropertyList argList;
 
         if (parseCommandUrl(request, category, command, argList) &&
             (commandItem = findCommandItem(category, command)))
         {
-            std::string contentType = response.getContentType();
-            std::string s = commandItem->outputCallback(argList, contentType);
+            string contentType = response.getContentType();
+            string s = commandItem->outputCallback(argList, contentType);
 
             response.setStatusCode(200);
             response.setContentType(contentType);
@@ -250,7 +250,7 @@ void IseServerInspector::onHttpSession(const HttpRequest& request, HttpResponse&
         }
         else
         {
-            std::string s = "Not Found";
+            string s = "Not Found";
             response.setStatusCode(404);
             response.getContentStream()->write(s.c_str(), static_cast<int>(s.length()));
         }
@@ -267,7 +267,7 @@ IseServerInspector::CommandItems PredefinedInspector::getItems() const
     typedef IseServerInspector::CommandItem CommandItem;
     typedef IseServerInspector::CommandItems CommandItems;
 
-    std::string category("process");
+    string category("process");
     CommandItems items;
 
     items.push_back(CommandItem(category, "basic_info", PredefinedInspector::getBasicInfo, "show the basic info."));
@@ -275,8 +275,8 @@ IseServerInspector::CommandItems PredefinedInspector::getItems() const
     return items;
 }
 
-std::string PredefinedInspector::getBasicInfo(const PropertyList& argList,
-    std::string& contentType)
+string PredefinedInspector::getBasicInfo(const PropertyList& argList,
+    string& contentType)
 {
     contentType = "text/plain";
 
@@ -308,7 +308,7 @@ IseServerInspector::CommandItems PredefinedInspector::getItems() const
     typedef IseServerInspector::CommandItem CommandItem;
     typedef IseServerInspector::CommandItems CommandItems;
 
-    std::string category("proc");
+    string category("proc");
     CommandItems items;
 
     items.push_back(CommandItem(category, "basic_info", PredefinedInspector::getBasicInfo, "show the basic info."));
@@ -319,8 +319,8 @@ IseServerInspector::CommandItems PredefinedInspector::getItems() const
     return items;
 }
 
-std::string PredefinedInspector::getBasicInfo(const PropertyList& argList,
-    std::string& contentType)
+string PredefinedInspector::getBasicInfo(const PropertyList& argList,
+    string& contentType)
 {
     contentType = "text/plain";
 
@@ -331,8 +331,8 @@ std::string PredefinedInspector::getBasicInfo(const PropertyList& argList,
     return strList.getText();
 }
 
-std::string PredefinedInspector::getProcStatus(const PropertyList& argList,
-    std::string& contentType)
+string PredefinedInspector::getProcStatus(const PropertyList& argList,
+    string& contentType)
 {
     contentType = "text/plain";
 
@@ -343,8 +343,8 @@ std::string PredefinedInspector::getProcStatus(const PropertyList& argList,
         return "";
 }
 
-std::string PredefinedInspector::getOpenedFileCount(const PropertyList& argList,
-    std::string& contentType)
+string PredefinedInspector::getOpenedFileCount(const PropertyList& argList,
+    string& contentType)
 {
     contentType = "text/plain";
 
@@ -353,7 +353,7 @@ std::string PredefinedInspector::getOpenedFileCount(const PropertyList& argList,
     findFiles("/proc/self/fd/*", FA_ANY_FILE, findResult);
     for (size_t i = 0; i < findResult.size(); ++i)
     {
-        const std::string& name = findResult[i].fileName;
+        const string& name = findResult[i].fileName;
         if (isInt64Str(name))
             ++count;
     }
@@ -361,8 +361,8 @@ std::string PredefinedInspector::getOpenedFileCount(const PropertyList& argList,
     return intToStr(count);
 }
 
-std::string PredefinedInspector::getThreadCount(const PropertyList& argList,
-    std::string& contentType)
+string PredefinedInspector::getThreadCount(const PropertyList& argList,
+    string& contentType)
 {
     contentType = "text/plain";
 
@@ -371,7 +371,7 @@ std::string PredefinedInspector::getThreadCount(const PropertyList& argList,
     findFiles("/proc/self/task/*", FA_ANY_FILE, findResult);
     for (size_t i = 0; i < findResult.size(); ++i)
     {
-        const std::string& name = findResult[i].fileName;
+        const string& name = findResult[i].fileName;
         if (isInt64Str(name))
             ++count;
     }

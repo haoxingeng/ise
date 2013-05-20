@@ -81,7 +81,7 @@ class StrList;
 struct FileFindItem
 {
     INT64 fileSize;         // 文件大小
-    std::string fileName;   // 文件名(不含路径)
+    string fileName;   // 文件名(不含路径)
     UINT attr;              // 文件属性
 };
 
@@ -93,69 +93,69 @@ typedef std::vector<FileFindItem> FileFindResult;
 //-----------------------------------------------------------------------------
 //-- 字符串函数:
 
-bool isIntStr(const std::string& str);
-bool isInt64Str(const std::string& str);
-bool isFloatStr(const std::string& str);
-bool isBoolStr(const std::string& str);
+bool isIntStr(const string& str);
+bool isInt64Str(const string& str);
+bool isFloatStr(const string& str);
+bool isBoolStr(const string& str);
 
-int strToInt(const std::string& str, int defaultVal = 0);
-INT64 strToInt64(const std::string& str, INT64 defaultVal = 0);
-std::string intToStr(int value);
-std::string intToStr(INT64 value);
-double strToFloat(const std::string& str, double defaultVal = 0);
-std::string floatToStr(double value, const char *format = "%f");
-bool strToBool(const std::string& str, bool defaultVal = false);
-std::string boolToStr(bool value, bool useBoolStrs = false);
+int strToInt(const string& str, int defaultVal = 0);
+INT64 strToInt64(const string& str, INT64 defaultVal = 0);
+string intToStr(int value);
+string intToStr(INT64 value);
+double strToFloat(const string& str, double defaultVal = 0);
+string floatToStr(double value, const char *format = "%f");
+bool strToBool(const string& str, bool defaultVal = false);
+string boolToStr(bool value, bool useBoolStrs = false);
 
-void formatStringV(std::string& result, const char *format, va_list argList);
-std::string formatString(const char *format, ...);
+void formatStringV(string& result, const char *format, va_list argList);
+string formatString(const char *format, ...);
 
-bool sameText(const std::string& str1, const std::string& str2);
+bool sameText(const string& str1, const string& str2);
 int compareText(const char* str1, const char* str2);
-std::string trimString(const std::string& str);
-std::string upperCase(const std::string& str);
-std::string lowerCase(const std::string& str);
-std::string repalceString(const std::string& sourceStr, const std::string& oldPattern,
-    const std::string& newPattern, bool replaceAll = false, bool caseSensitive = true);
-void splitString(const std::string& sourceStr, char splitter, StrList& strList,
+string trimString(const string& str);
+string upperCase(const string& str);
+string lowerCase(const string& str);
+string repalceString(const string& sourceStr, const string& oldPattern,
+    const string& newPattern, bool replaceAll = false, bool caseSensitive = true);
+void splitString(const string& sourceStr, char splitter, StrList& strList,
     bool trimResult = false);
-void splitStringToInt(const std::string& sourceStr, char splitter, IntegerArray& intList);
-std::string fetchStr(std::string& inputStr, char delimiter = ' ', bool del = true);
-std::string addThousandSep(const INT64& number);
+void splitStringToInt(const string& sourceStr, char splitter, IntegerArray& intList);
+string fetchStr(string& inputStr, char delimiter = ' ', bool del = true);
+string addThousandSep(const INT64& number);
 
-std::string getQuotedStr(const char* str, char quoteChar = '"');
-std::string extractQuotedStr(const char*& str, char quoteChar = '"');
-std::string getDequotedStr(const char* str, char quoteChar = '"');
+string getQuotedStr(const char* str, char quoteChar = '"');
+string extractQuotedStr(const char*& str, char quoteChar = '"');
+string getDequotedStr(const char* str, char quoteChar = '"');
 
 //-----------------------------------------------------------------------------
 //-- 文件和目录:
 
-bool fileExists(const std::string& fileName);
-bool directoryExists(const std::string& dir);
-bool createDir(const std::string& dir);
-bool deleteDir(const std::string& dir, bool recursive = false);
-std::string extractFilePath(const std::string& fileName);
-std::string extractFileName(const std::string& fileName);
-std::string extractFileExt(const std::string& fileName);
-std::string changeFileExt(const std::string& fileName, const std::string& ext);
-bool forceDirectories(std::string dir);
-bool deleteFile(const std::string& fileName);
-bool removeFile(const std::string& fileName);
-bool renameFile(const std::string& oldFileName, const std::string& newFileName);
-INT64 getFileSize(const std::string& fileName);
-void findFiles(const std::string& path, UINT attr, FileFindResult& findResult);
-std::string pathWithSlash(const std::string& path);
-std::string pathWithoutSlash(const std::string& path);
-std::string getAppExeName();
-std::string getAppPath();
-std::string getAppSubPath(const std::string& subDir = "");
+bool fileExists(const string& fileName);
+bool directoryExists(const string& dir);
+bool createDir(const string& dir);
+bool deleteDir(const string& dir, bool recursive = false);
+string extractFilePath(const string& fileName);
+string extractFileName(const string& fileName);
+string extractFileExt(const string& fileName);
+string changeFileExt(const string& fileName, const string& ext);
+bool forceDirectories(string dir);
+bool deleteFile(const string& fileName);
+bool removeFile(const string& fileName);
+bool renameFile(const string& oldFileName, const string& newFileName);
+INT64 getFileSize(const string& fileName);
+void findFiles(const string& path, UINT attr, FileFindResult& findResult);
+string pathWithSlash(const string& path);
+string pathWithoutSlash(const string& path);
+string getAppExeName();
+string getAppPath();
+string getAppSubPath(const string& subDir = "");
 
 //-----------------------------------------------------------------------------
 //-- 系统相关:
 
 int getLastSysError();
 THREAD_ID getCurThreadId();
-std::string sysErrorMessage(int errorCode);
+string sysErrorMessage(int errorCode);
 void sleepSeconds(double seconds, bool allowInterrupt = true);
 UINT64 getCurTicks();
 UINT64 getTickDiff(UINT64 oldTicks, UINT64 newTicks);

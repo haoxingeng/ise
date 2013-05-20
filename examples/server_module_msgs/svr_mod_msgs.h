@@ -16,9 +16,9 @@ const UINT SMMC_MY_MESSAGE = SMMC_BASE + 1;
 struct MyMessage: public BaseSvrModMessage
 {
 public:
-    std::string msg;
+    string msg;
 public:
-    void init(UINT messageCode, const std::string& msg)
+    void init(UINT messageCode, const string& msg)
     {
         this->messageCode = messageCode;
         this->msg = msg;

@@ -50,8 +50,8 @@ DbConnParams::DbConnParams(const DbConnParams& src)
     port_ = src.port_;
 }
 
-DbConnParams::DbConnParams(const std::string& hostName, const std::string& userName,
-    const std::string& password, const std::string& dbName, int port)
+DbConnParams::DbConnParams(const string& hostName, const string& userName,
+    const string& password, const string& dbName, int port)
 {
     hostName_ = hostName;
     userName_ = userName;
@@ -74,13 +74,13 @@ void DbOptions::setMaxDbConnections(int value)
     maxDbConnections_ = value;
 }
 
-void DbOptions::setInitialSqlCmd(const std::string& value)
+void DbOptions::setInitialSqlCmd(const string& value)
 {
     initialSqlCmdList_.clear();
     initialSqlCmdList_.add(value.c_str());
 }
 
-void DbOptions::setInitialCharSet(const std::string& value)
+void DbOptions::setInitialCharSet(const string& value)
 {
     initialCharSet_ = value;
 }
@@ -282,7 +282,7 @@ void DbConnectionPool::clearPool()
 ///////////////////////////////////////////////////////////////////////////////
 // class DbFieldDef
 
-DbFieldDef::DbFieldDef(const std::string& name, int type)
+DbFieldDef::DbFieldDef(const string& name, int type)
 {
     name_ = name;
     type_ = type;
@@ -329,7 +329,7 @@ void DbFieldDefList::clear()
 //-----------------------------------------------------------------------------
 // 描述: 返回字段名对应的字段序号(0-based)，若未找到则返回-1.
 //-----------------------------------------------------------------------------
-int DbFieldDefList::indexOfName(const std::string& name)
+int DbFieldDefList::indexOfName(const string& name)
 {
     int index = -1;
 
@@ -465,7 +465,7 @@ DbParamList::~DbParamList()
 //-----------------------------------------------------------------------------
 // 描述: 根据名称返回对应的参数对象，若无则返回NULL
 //-----------------------------------------------------------------------------
-DbParam* DbParamList::paramByName(const std::string& name)
+DbParam* DbParamList::paramByName(const string& name)
 {
     DbParam *result = findParam(name);
     if (!result)
@@ -505,7 +505,7 @@ void DbParamList::clear()
 //-----------------------------------------------------------------------------
 // 描述: 根据参数名称在列表中查找参数对象
 //-----------------------------------------------------------------------------
-DbParam* DbParamList::findParam(const std::string& name)
+DbParam* DbParamList::findParam(const string& name)
 {
     DbParam *result = NULL;
 
@@ -543,7 +543,7 @@ DbParam* DbParamList::findParam(int number)
 //-----------------------------------------------------------------------------
 // 描述: 创建一个参数对象并返回
 //-----------------------------------------------------------------------------
-DbParam* DbParamList::createParam(const std::string& name, int number)
+DbParam* DbParamList::createParam(const string& name, int number)
 {
     DbParam *result = dbQuery_->getDatabase()->createDbParam();
 
@@ -625,7 +625,7 @@ DbField* DbDataSet::getFields(int index)
 // 参数:
 //   name - 字段名
 //-----------------------------------------------------------------------------
-DbField* DbDataSet::getFields(const std::string& name)
+DbField* DbDataSet::getFields(const string& name)
 {
     int index = dbFieldDefList_.indexOfName(name);
 
@@ -635,9 +635,9 @@ DbField* DbDataSet::getFields(const std::string& name)
     {
         StrList fieldNames;
         dbFieldDefList_.getFieldNameList(fieldNames);
-        std::string fieldNameList = fieldNames.getCommaText();
+        string fieldNameList = fieldNames.getCommaText();
 
-        std::string errMsg = formatString(SEM_FIELD_NAME_ERROR, name.c_str(), fieldNameList.c_str());
+        string errMsg = formatString(SEM_FIELD_NAME_ERROR, name.c_str(), fieldNameList.c_str());
         iseThrowDbException(errMsg.c_str());
     }
 
@@ -666,7 +666,7 @@ DbQuery::~DbQuery()
 //-----------------------------------------------------------------------------
 // 描述: 设置SQL语句
 //-----------------------------------------------------------------------------
-void DbQuery::setSql(const std::string& sql)
+void DbQuery::setSql(const string& sql)
 {
     sql_ = sql;
     dbParamList_->clear();
@@ -680,7 +680,7 @@ void DbQuery::setSql(const std::string& sql)
 //   缺省情况下此功能不可用，子类若要启用此功能，可调用：
 //   return dbParamList_->ParamByName(name);
 //-----------------------------------------------------------------------------
-DbParam* DbQuery::paramByName(const std::string& name)
+DbParam* DbQuery::paramByName(const string& name)
 {
     iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
     return NULL;
@@ -737,7 +737,7 @@ DbDataSet* DbQuery::query()
 //-----------------------------------------------------------------------------
 // 描述: 转换字符串使之在SQL中合法 (str 中可含 '\0' 字符)
 //-----------------------------------------------------------------------------
-std::string DbQuery::escapeString(const std::string& str)
+string DbQuery::escapeString(const string& str)
 {
     iseThrowDbException(SEM_FEATURE_NOT_SUPPORTED);
     return "";

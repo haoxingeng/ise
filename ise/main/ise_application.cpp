@@ -196,7 +196,7 @@ IseOptions::IseOptions()
         setUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
     }
     setUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
-    setUdpWorkerThreadTimeOut(DEF_UDP_WORKER_THD_TIMEOUT);
+    setUdpWorkerThreadTimeout(DEF_UDP_WORKER_THD_TIMEOUT);
     setUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
 
     setTcpServerCount(DEF_TCP_SERVER_COUNT);
@@ -313,10 +313,10 @@ void IseOptions::setUdpRequestEffWaitTime(int seconds)
 //-----------------------------------------------------------------------------
 // 描述: 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
 //-----------------------------------------------------------------------------
-void IseOptions::setUdpWorkerThreadTimeOut(int seconds)
+void IseOptions::setUdpWorkerThreadTimeout(int seconds)
 {
     seconds = ise::max(seconds, 0);
-    udpWorkerThreadTimeOut_ = seconds;
+    udpWorkerThreadTimeout_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
@@ -528,6 +528,22 @@ void IseMainServer::run()
 }
 
 //-----------------------------------------------------------------------------
+
+MainUdpServer& IseMainServer::getMainUdpServer()
+{
+    ISE_ASSERT(udpServer_ != NULL);
+    return *udpServer_;
+}
+
+//-----------------------------------------------------------------------------
+
+MainTcpServer& IseMainServer::getMainTcpServer()
+{
+    ISE_ASSERT(tcpServer_ != NULL);
+    return *tcpServer_;
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 服务器开始运行后，主线程进行后台守护工作
 //-----------------------------------------------------------------------------
 void IseMainServer::runBackground()
@@ -680,7 +696,7 @@ void IseApplication::run()
 //-----------------------------------------------------------------------------
 // 描述: 取得可执行文件所在的路径
 //-----------------------------------------------------------------------------
-std::string IseApplication::getExePath()
+string IseApplication::getExePath()
 {
     return extractFilePath(exeName_);
 }
@@ -688,7 +704,7 @@ std::string IseApplication::getExePath()
 //-----------------------------------------------------------------------------
 // 描述: 取得命令行参数字符串 (index: 0-based)
 //-----------------------------------------------------------------------------
-std::string IseApplication::getArgString(int index)
+string IseApplication::getArgString(int index)
 {
     if (index >= 0 && index < (int)argList_.getCount())
         return argList_[index];
@@ -718,16 +734,16 @@ bool IseApplication::processStandardArgs(bool isInitializing)
     {
         if (getArgCount() == 1)
         {
-            std::string arg = getArgString(0);
+            string arg = getArgString(0);
             if (arg == "--version")
             {
-                std::string version = iseBusiness_->getAppVersion();
+                string version = iseBusiness_->getAppVersion();
                 printf("%s\n", version.c_str());
                 return true;
             }
             if (arg == "--help")
             {
-                std::string help = iseBusiness_->getAppHelp();
+                string help = iseBusiness_->getAppHelp();
                 printf("%s\n", help.c_str());
                 return true;
             }

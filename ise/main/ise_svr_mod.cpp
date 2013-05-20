@@ -127,16 +127,16 @@ void IseSvrModBusiness::classifyUdpPacket(void *packetBuffer, int packetSize, in
 }
 
 //-----------------------------------------------------------------------------
-// 描述: UDP数据包分派
+// 描述: 收到了UDP数据包
 //-----------------------------------------------------------------------------
-void IseSvrModBusiness::dispatchUdpPacket(UdpWorkerThread& workerThread,
+void IseSvrModBusiness::onRecvedUdpPacket(UdpWorkerThread& workerThread,
     int groupIndex, UdpPacket& packet)
 {
     UdpGroupIndexMap::iterator iter = udpGroupIndexMap_.find(groupIndex);
     if (iter != udpGroupIndexMap_.end())
     {
         int modIndex = iter->second;
-        serverModuleMgr_.getItem(modIndex).dispatchUdpPacket(workerThread, packet);
+        serverModuleMgr_.getItem(modIndex).onRecvedUdpPacket(workerThread, packet);
     }
 }
 

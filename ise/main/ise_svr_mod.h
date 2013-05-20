@@ -74,8 +74,8 @@ public:
     // 取得该模块中某TCP服务器的配置
     virtual void getTcpServerOptions(int serverIndex, TcpServerOptions& options) {}
 
-    // UDP数据包分派
-    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, UdpPacket& packet) {}
+    // 收到了UDP数据包
+    virtual void onRecvedUdpPacket(UdpWorkerThread& workerThread, UdpPacket& packet) {}
 
     // 接受了一个新的TCP连接
     virtual void onTcpConnected(const TcpConnectionPtr& connection) {}
@@ -142,7 +142,7 @@ public:
     virtual void finalize();
 
     virtual void classifyUdpPacket(void *packetBuffer, int packetSize, int& groupIndex);
-    virtual void dispatchUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet);
+    virtual void onRecvedUdpPacket(UdpWorkerThread& workerThread, int groupIndex, UdpPacket& packet);
 
     virtual void onTcpConnected(const TcpConnectionPtr& connection);
     virtual void onTcpDisconnected(const TcpConnectionPtr& connection);
