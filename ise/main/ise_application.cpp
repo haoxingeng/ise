@@ -642,7 +642,7 @@ void IseApplication::initialize()
 
         networkInitialize();
         initExeName();
-        iseBusiness_->doStartupState(SS_BEFORE_START);
+        iseBusiness_->beforeInit();
         iseBusiness_->initIseOptions(iseOptions_);
         processStandardArgs(true);
         checkMultiInstance();
@@ -653,14 +653,14 @@ void IseApplication::initialize()
         createMainServer();
         iseBusiness_->initialize();
         mainServer_->initialize();
-        iseBusiness_->doStartupState(SS_AFTER_START);
+        iseBusiness_->afterInit();
         if (iseOptions_.getIsDaemon()) closeTerminal();
         initialized_ = true;
     }
-    catch (Exception&)
+    catch (Exception& e)
     {
         openTerminal();
-        iseBusiness_->doStartupState(SS_START_FAIL);
+        iseBusiness_->onInitFailed(e);
         doFinalize();
         throw;
     }

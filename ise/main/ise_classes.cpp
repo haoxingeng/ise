@@ -537,7 +537,7 @@ void Semaphore::doDestroySem()
 Condition::Mutex::Mutex()
 {
 #ifdef ISE_WINDOWS
-    mutex_ = ::CreateMutexA(NULL, FALSE, NULL);  
+    mutex_ = ::CreateMutexA(NULL, FALSE, NULL);
     if (mutex_ == NULL)
         iseThrowException(SEM_FAIL_TO_CREATE_MUTEX);
 #endif

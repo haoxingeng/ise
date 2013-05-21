@@ -46,23 +46,13 @@ string AppBusiness::getAppHelp()
 
 //-----------------------------------------------------------------------------
 
-void AppBusiness::doStartupState(STARTUP_STATE state)
+void AppBusiness::afterInit()
 {
-    switch (state)
-    {
-    case SS_AFTER_START:
-        {
-            string ip = iseApp().getArgString(0);
-            int port = 10003;
+    string ip = iseApp().getArgString(0);
+    int port = 10003;
 
-            TcpConnector::instance().connect(InetAddress(ip, port),
-                boost::bind(&AppBusiness::onConnectComplete, this, _1, _2, _3, _4));
-        }
-        break;
-
-    default:
-        break;
-    }
+    TcpConnector::instance().connect(InetAddress(ip, port),
+        boost::bind(&AppBusiness::onConnectComplete, this, _1, _2, _3, _4));
 }
 
 //-----------------------------------------------------------------------------

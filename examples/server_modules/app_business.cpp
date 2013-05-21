@@ -26,36 +26,27 @@ void AppBusiness::finalize()
 {
     IseSvrModBusiness::finalize();
 
-    const char *msg = "4in1-server stoped.";
+    string msg = formatString("%s stoped.", getAppExeName(false).c_str());
     std::cout << msg << std::endl;
     logger().writeStr(msg);
 }
 
 //-----------------------------------------------------------------------------
 
-void AppBusiness::doStartupState(STARTUP_STATE state)
+void AppBusiness::afterInit()
 {
-    switch (state)
-    {
-    case SS_AFTER_START:
-        {
-            const char *msg = "4in1-server started.";
-            std::cout << std::endl << msg << std::endl;
-            logger().writeStr(msg);
-        }
-        break;
+    string msg = formatString("%s started.", getAppExeName(false).c_str());
+    std::cout << std::endl << msg << std::endl;
+    logger().writeStr(msg);
+}
 
-    case SS_START_FAIL:
-        {
-            const char *msg = "Fail to start 4in1-server.";
-            std::cout << std::endl << msg << std::endl;
-            logger().writeStr(msg);
-        }
-        break;
+//-----------------------------------------------------------------------------
 
-    default:
-        break;
-    }
+void AppBusiness::onInitFailed(Exception& e)
+{
+    string msg = formatString("fail to start %s.", getAppExeName(false).c_str());
+    std::cout << std::endl << msg << std::endl;
+    logger().writeStr(msg);
 }
 
 //-----------------------------------------------------------------------------
@@ -72,8 +63,8 @@ void AppBusiness::initIseOptions(IseOptions& options)
 
 void AppBusiness::createServerModules(IseServerModuleList& svrModList)
 {
-	svrModList.push_back(new ServerModule_Echo());
-	svrModList.push_back(new ServerModule_Discard());
-	svrModList.push_back(new ServerModule_Daytime());
-	svrModList.push_back(new ServerModule_Chargen());
+    svrModList.push_back(new ServerModule_Echo());
+    svrModList.push_back(new ServerModule_Discard());
+    svrModList.push_back(new ServerModule_Daytime());
+    svrModList.push_back(new ServerModule_Chargen());
 }

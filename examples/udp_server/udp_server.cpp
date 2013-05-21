@@ -21,36 +21,27 @@ void AppBusiness::initialize()
 
 void AppBusiness::finalize()
 {
-    const char *msg = "Udp server stoped.";
+    string msg = formatString("%s stoped.", getAppExeName(false).c_str());
     std::cout << msg << std::endl;
     logger().writeStr(msg);
 }
 
 //-----------------------------------------------------------------------------
 
-void AppBusiness::doStartupState(STARTUP_STATE state)
+void AppBusiness::afterInit()
 {
-    switch (state)
-    {
-    case SS_AFTER_START:
-        {
-            const char *msg = "Udp server started.";
-            std::cout << std::endl << msg << std::endl;
-            logger().writeStr(msg);
-        }
-        break;
+    string msg = formatString("%s started.", getAppExeName(false).c_str());
+    std::cout << std::endl << msg << std::endl;
+    logger().writeStr(msg);
+}
 
-    case SS_START_FAIL:
-        {
-            const char *msg = "Fail to start udp server.";
-            std::cout << std::endl << msg << std::endl;
-            logger().writeStr(msg);
-        }
-        break;
+//-----------------------------------------------------------------------------
 
-    default:
-        break;
-    }
+void AppBusiness::onInitFailed(Exception& e)
+{
+    string msg = formatString("fail to start %s.", getAppExeName(false).c_str());
+    std::cout << std::endl << msg << std::endl;
+    logger().writeStr(msg);
 }
 
 //-----------------------------------------------------------------------------
@@ -79,7 +70,7 @@ void AppBusiness::onRecvedUdpPacket(UdpWorkerThread& workerThread, int groupInde
     }
 
     UINT actionCode = ((UdpPacketHeader*)packetBuffer)->actionCode;
-    
+
     switch (actionCode)
     {
     case AC_HELLO_WORLD:

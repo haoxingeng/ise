@@ -18,7 +18,8 @@ public:
     virtual void initialize();
     virtual void finalize();
 
-    virtual void doStartupState(STARTUP_STATE state);
+    virtual void afterInit();
+    virtual void onInitFailed(Exception& e);
     virtual void initIseOptions(IseOptions& options);
 
     virtual void onTcpConnected(const TcpConnectionPtr& connection);

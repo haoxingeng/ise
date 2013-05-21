@@ -1147,14 +1147,17 @@ string pathWithoutSlash(const string& path)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 取得可执行文件的全名(含绝对路径)
+// 描述: 取得可执行文件的名称
 //-----------------------------------------------------------------------------
-string getAppExeName()
+string getAppExeName(bool includePath)
 {
 #ifdef ISE_WINDOWS
     char buffer[MAX_PATH];
     ::GetModuleFileNameA(NULL, buffer, MAX_PATH);
-    return string(buffer);
+    string result = string(buffer);
+    if (!includePath)
+        result = extractFileName(result);
+    return result;
 #endif
 #ifdef ISE_LINUX
     const int BUFFER_SIZE = 1024;
@@ -1166,9 +1169,12 @@ string getAppExeName()
     r = readlink("/proc/self/exe", buffer, BUFFER_SIZE);
     if (r != -1)
     {
-        if (r >= BUFFER_SIZE) r = BUFFER_SIZE - 1;
+        if (r >= BUFFER_SIZE)
+            r = BUFFER_SIZE - 1;
         buffer[r] = 0;
         result = buffer;
+        if (!includePath)
+            result = extractFileName(result);
     }
     else
     {
@@ -1184,7 +1190,7 @@ string getAppExeName()
 //-----------------------------------------------------------------------------
 string getAppPath()
 {
-    return extractFilePath(getAppExeName());
+    return extractFilePath(getAppExeName(true));
 }
 
 //-----------------------------------------------------------------------------

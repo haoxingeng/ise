@@ -146,7 +146,7 @@ INT64 getFileSize(const string& fileName);
 void findFiles(const string& path, UINT attr, FileFindResult& findResult);
 string pathWithSlash(const string& path);
 string pathWithoutSlash(const string& path);
-string getAppExeName();
+string getAppExeName(bool includePath = true);
 string getAppPath();
 string getAppSubPath(const string& subDir = "");
 

@@ -65,14 +65,6 @@ class IseApplication;
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
 
-// 启动状态
-enum STARTUP_STATE
-{
-    SS_BEFORE_START,     // 启动之前
-    SS_AFTER_START,      // 启动之后
-    SS_START_FAIL        // 启动失败
-};
-
 // 服务器类型(可多选或不选)
 enum SERVER_TYPE
 {
@@ -136,10 +128,15 @@ public:
     virtual string getAppVersion() { return "0.0.0.0"; }
     // 返回程序的帮助信息
     virtual string getAppHelp() { return ""; }
-    // 处理启动状态
-    virtual void doStartupState(STARTUP_STATE state) {}
     // 初始化ISE配置信息
     virtual void initIseOptions(IseOptions& options) {}
+
+    // 初始化之前
+    virtual void beforeInit() {}
+    // 初始化成功之后
+    virtual void afterInit() {}
+    // 初始化失败 (不应抛出异常)
+    virtual void onInitFailed(Exception& e) {}
 
 public:  /* interface UdpCallbacks */
     // UDP数据包分类

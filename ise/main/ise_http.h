@@ -609,8 +609,8 @@ private:
     public:
         ConnContext()
         {
-            recvReqState = static_cast<RecvReqState>(0); 
-            sendResState = static_cast<SendResState>(0); 
+            recvReqState = static_cast<RecvReqState>(0);
+            sendResState = static_cast<SendResState>(0);
             httpRequest.setContentStream(&reqContentStream);
             httpResponse.setContentStream(&resContentStream, false);
         }

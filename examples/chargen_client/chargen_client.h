@@ -20,7 +20,7 @@ public:
 
     virtual bool parseArguments(int argc, char *argv[]);
     virtual string getAppHelp();
-    virtual void doStartupState(STARTUP_STATE state);
+    virtual void afterInit();
     virtual void initIseOptions(IseOptions& options);
 
     virtual void onTcpConnected(const TcpConnectionPtr& connection);

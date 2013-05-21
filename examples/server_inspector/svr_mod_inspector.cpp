@@ -43,7 +43,7 @@ string ServerModule_Inspector::getInfo3(const PropertyList& args, string& conten
         args.getValue("arg2", arg2);
 
         return formatString(
-            "arg1: %s, arg2: %s", 
+            "arg1: %s, arg2: %s",
             arg1.c_str(),
             arg2.c_str()
             );

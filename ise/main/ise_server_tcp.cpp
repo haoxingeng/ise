@@ -1064,7 +1064,7 @@ void TcpConnector::getPendingFdsFromTaskList(int& fromIndex, FdList& fds)
 
 //-----------------------------------------------------------------------------
 
-void TcpConnector::checkAsyncConnectState(const FdList& fds, 
+void TcpConnector::checkAsyncConnectState(const FdList& fds,
     FdList& connectedFds, FdList& failedFds)
 {
     const int WAIT_TIME = 1;  // ms
@@ -1275,7 +1275,7 @@ void WinTcpConnection::tryRecv()
 {
     if (isRecving_) return;
 
-    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize(); 
+    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize();
     const int MAX_RECV_SIZE = 1024*16;
 
     if (recvTaskQueue_.empty() && recvBuffer_.getReadableBytes() >= MAX_BUFFER_SIZE)
@@ -2021,7 +2021,7 @@ void LinuxTcpConnection::trySend()
 //-----------------------------------------------------------------------------
 void LinuxTcpConnection::tryRecv()
 {
-    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize(); 
+    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize();
     if (recvTaskQueue_.empty() && recvBuffer_.getReadableBytes() >= MAX_BUFFER_SIZE)
     {
         setRecvEnabled(false);
