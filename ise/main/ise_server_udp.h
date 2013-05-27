@@ -142,7 +142,7 @@ private:
     PacketList packetList_;        // 数据包列表
     int packetCount_;              // 队列中数据包的个数(为了快速访问)
     int capacity_;                 // 队列的最大容量
-    int effWaitTime_;              // 数据包有效等待时间(秒)
+    int maxWaitTime_;              // 数据包最大等待时间(秒)
     Condition::Mutex mutex_;
     Condition condition_;
 };

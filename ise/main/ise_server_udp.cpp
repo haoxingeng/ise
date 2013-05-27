@@ -128,7 +128,7 @@ UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup) :
     ownGroup_ = ownGroup;
     groupIndex = ownGroup->getGroupIndex();
     capacity_ = iseApp().getIseOptions().getUdpRequestQueueCapacity(groupIndex);
-    effWaitTime_ = iseApp().getIseOptions().getUdpRequestEffWaitTime();
+    maxWaitTime_ = iseApp().getIseOptions().getUdpRequestMaxWaitTime();
     packetCount_ = 0;
 }
 
@@ -176,7 +176,7 @@ UdpPacket* UdpRequestQueue::extractPacket()
         packetList_.pop_front();
         packetCount_--;
 
-        if (static_cast<UINT>(time(NULL) - p->recvTimestamp_) <= (UINT)effWaitTime_)
+        if (static_cast<UINT>(time(NULL) - p->recvTimestamp_) <= (UINT)maxWaitTime_)
         {
             result = p;
             break;

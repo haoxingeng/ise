@@ -128,6 +128,7 @@ public:
     virtual string getAppVersion() { return "0.0.0.0"; }
     // 返回程序的帮助信息
     virtual string getAppHelp() { return ""; }
+
     // 初始化ISE配置信息
     virtual void initIseOptions(IseOptions& options) {}
 
@@ -172,7 +173,6 @@ public:
     enum
     {
         DEF_SERVER_TYPE                 = 0,             // 服务器默认类型
-        DEF_ADJUST_THREAD_INTERVAL      = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
         DEF_ASSISTOR_THREAD_COUNT       = 0,             // 辅助线程的个数
     };
 
@@ -180,7 +180,7 @@ public:
     enum
     {
         DEF_UDP_SERVER_PORT             = 8000,          // UDP服务默认端口
-        DEF_UDP_LISTENER_THD_COUNT      = 1,             // 监听线程的数量
+        DEF_UDP_LISTENER_THREAD_COUNT   = 1,             // 监听线程的数量
         DEF_UDP_REQ_GROUP_COUNT         = 1,             // 请求组别总数的缺省值
         DEF_UDP_REQ_QUEUE_CAPACITY      = 5000,          // 请求队列的缺省容量(即能放下多少数据包)
         DEF_UDP_WORKER_THREADS_MIN      = 1,             // 每个组别中工作者线程的缺省最少个数
@@ -188,6 +188,7 @@ public:
         DEF_UDP_REQ_EFF_WAIT_TIME       = 10,            // 请求在队列中的有效等待时间缺省值(秒)
         DEF_UDP_WORKER_THD_TIMEOUT      = 60,            // 工作者线程的工作超时时间缺省值(秒)
         DEF_UDP_QUEUE_ALERT_LINE        = 500,           // 队列中数据包数量警戒线缺省值，若超过警戒线则尝试增加线程
+        DEF_UDP_ADJUST_THREAD_INTERVAL  = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
     };
 
     // TCP服务器配置缺省值
@@ -249,8 +250,6 @@ public:
 
     // 设置服务器类型(ST_UDP | ST_TCP)
     void setServerType(UINT serverType);
-    // 设置后台调整工作者线程数量的时间间隔(秒)
-    void setAdjustThreadInterval(int seconds);
     // 设置辅助线程的数量
     void setAssistorThreadCount(int count);
 
@@ -262,14 +261,16 @@ public:
     void setUdpRequestGroupCount(int count);
     // 设置UDP请求队列的最大容量 (即可容纳多少个数据包)
     void setUdpRequestQueueCapacity(int groupIndex, int capacity);
-    // 设置UDP工作者线程个数的上下限
-    void setUdpWorkerThreadCount(int groupIndex, int minThreads, int maxThreads);
-    // 设置UDP请求在队列中的有效等待时间，超时则不予处理(秒)
-    void setUdpRequestEffWaitTime(int seconds);
-    // 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
-    void setUdpWorkerThreadTimeout(int seconds);
+    // 设置UDP请求在队列中的最长等待时间，超时则不予处理(秒)
+    void setUdpRequestMaxWaitTime(int seconds);
     // 设置UDP请求队列中数据包数量警戒线
     void setUdpRequestQueueAlertLine(int count);
+    // 设置UDP工作者线程个数的上下限
+    void setUdpWorkerThreadCount(int groupIndex, int minThreads, int maxThreads);
+    // 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
+    void setUdpWorkerThreadTimeout(int seconds);
+    // 设置后台调整工作者线程数量的时间间隔(秒)
+    void setUdpAdjustThreadInterval(int seconds);
 
     // 设置TCP服务器的总数
     void setTcpServerCount(int count);
@@ -287,7 +288,6 @@ public:
     // 服务器配置获取----------------------------------------------------------
 
     UINT getServerType() { return serverType_; }
-    int getAdjustThreadInterval() { return adjustThreadInterval_; }
     int getAssistorThreadCount() { return assistorThreadCount_; }
 
     int getUdpServerPort() { return udpServerPort_; }
@@ -295,9 +295,10 @@ public:
     int getUdpRequestGroupCount() { return udpRequestGroupCount_; }
     int getUdpRequestQueueCapacity(int groupIndex);
     void getUdpWorkerThreadCount(int groupIndex, int& minThreads, int& maxThreads);
-    int getUdpRequestEffWaitTime() { return udpRequestEffWaitTime_; }
-    int getUdpWorkerThreadTimeout() { return udpWorkerThreadTimeout_; }
+    int getUdpRequestMaxWaitTime() { return udpRequestMaxWaitTime_; }
     int getUdpRequestQueueAlertLine() { return udpRequestQueueAlertLine_; }
+    int getUdpWorkerThreadTimeout() { return udpWorkerThreadTimeout_; }
+    int getUdpAdjustThreadInterval() { return udpAdjustThreadInterval_; }
 
     int getTcpServerCount() { return tcpServerCount_; }
     int getTcpServerPort(int serverIndex);
@@ -317,8 +318,6 @@ private:
 
     // 服务器类型 (ST_UDP | ST_TCP)
     UINT serverType_;
-    // 后台调整工作者线程数量的时间间隔(秒)
-    int adjustThreadInterval_;
     // 辅助线程的个数
     int assistorThreadCount_;
 
@@ -332,12 +331,14 @@ private:
     int udpRequestGroupCount_;
     // 每个组别内的配置
     UdpRequestGroupOptions udpRequestGroupOpts_;
-    // 数据包在队列中的有效等待时间，超时则不予处理(秒)
-    int udpRequestEffWaitTime_;
+    // 数据包在队列中的最长等待时间，超时则不予处理(秒)
+    int udpRequestMaxWaitTime_;
     // 工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
     int udpWorkerThreadTimeout_;
     // 请求队列中数据包数量警戒线，若超过警戒线则尝试增加线程
     int udpRequestQueueAlertLine_;
+    // 后台调整UDP工作者线程数量的时间间隔(秒)
+    int udpAdjustThreadInterval_;
 
     /* ------------ TCP服务器配置: ------------ */
 

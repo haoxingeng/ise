@@ -22,9 +22,7 @@ void AppBusiness::initialize()
 
 void AppBusiness::initIseOptions(IseOptions& options)
 {
-    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
     options.setIsDaemon(false);
-    options.setAllowMultiInstance(true);
     options.setAssistorThreadCount(1);
 }
 
@@ -37,8 +35,8 @@ void AppBusiness::assistorThreadExecute(AssistorThread& assistorThread, int assi
     case 0:
         {
             // send request packet
-            HelloWorldPacket reqPacket;
-            reqPacket.initPacket("Hello World!");
+            HelloPacket reqPacket;
+            reqPacket.initPacket("Hello!");
             udpClient_->sendBuffer(reqPacket.getBuffer(), reqPacket.getSize(), serverAddr_);
 
             // receive ack packet

@@ -35,7 +35,7 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// 预定义数据包分界器
+// 预定义分包器
 
 void bytePacketSplitter(const char *data, int bytes, int& retrieveBytes)
 {

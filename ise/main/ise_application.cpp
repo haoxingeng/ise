@@ -178,26 +178,25 @@ void outOfMemoryHandler()
 
 IseOptions::IseOptions()
 {
-    logFileName_ = "";
-    logNewFileDaily_ = false;
-    isDaemon_ = false;
-    allowMultiInstance_ = false;
+    setLogFileName(getAppSubPath("log") + changeFileExt(getAppExeName(false), ".log"), false);
+    setIsDaemon(true);
+    setAllowMultiInstance(false);
 
     setServerType(DEF_SERVER_TYPE);
-    setAdjustThreadInterval(DEF_ADJUST_THREAD_INTERVAL);
     setAssistorThreadCount(DEF_ASSISTOR_THREAD_COUNT);
 
     setUdpServerPort(DEF_UDP_SERVER_PORT);
-    setUdpListenerThreadCount(DEF_UDP_LISTENER_THD_COUNT);
+    setUdpListenerThreadCount(DEF_UDP_LISTENER_THREAD_COUNT);
     setUdpRequestGroupCount(DEF_UDP_REQ_GROUP_COUNT);
     for (int i = 0; i < DEF_UDP_REQ_GROUP_COUNT; i++)
     {
         setUdpRequestQueueCapacity(i, DEF_UDP_REQ_QUEUE_CAPACITY);
         setUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
     }
-    setUdpRequestEffWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
+    setUdpRequestMaxWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
     setUdpWorkerThreadTimeout(DEF_UDP_WORKER_THD_TIMEOUT);
     setUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
+    setUdpAdjustThreadInterval(DEF_UDP_ADJUST_THREAD_INTERVAL);
 
     setTcpServerCount(DEF_TCP_SERVER_COUNT);
     for (int i = 0; i < DEF_TCP_SERVER_COUNT; i++)
@@ -218,15 +217,6 @@ IseOptions::IseOptions()
 void IseOptions::setServerType(UINT serverType)
 {
     serverType_ = serverType;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 设置后台维护工作者线程数量的时间间隔(秒)
-//-----------------------------------------------------------------------------
-void IseOptions::setAdjustThreadInterval(int seconds)
-{
-    if (seconds <= 0) seconds = DEF_ADJUST_THREAD_INTERVAL;
-    adjustThreadInterval_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
@@ -282,6 +272,26 @@ void IseOptions::setUdpRequestQueueCapacity(int groupIndex, int capacity)
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 设置UDP请求在队列中的有效等待时间，超时则不予处理
+// 参数:
+//   nMSecs - 等待秒数
+//-----------------------------------------------------------------------------
+void IseOptions::setUdpRequestMaxWaitTime(int seconds)
+{
+    if (seconds <= 0) seconds = DEF_UDP_REQ_EFF_WAIT_TIME;
+    udpRequestMaxWaitTime_ = seconds;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 设置请求队列中数据包数量警戒线
+//-----------------------------------------------------------------------------
+void IseOptions::setUdpRequestQueueAlertLine(int count)
+{
+    count = ise::max(count, 1);
+    udpRequestQueueAlertLine_ = count;
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 设置UDP工作者线程个数的上下限
 // 参数:
 //   groupIndex - 组别号 (0-based)
@@ -300,17 +310,6 @@ void IseOptions::setUdpWorkerThreadCount(int groupIndex, int minThreads, int max
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置UDP请求在队列中的有效等待时间，超时则不予处理
-// 参数:
-//   nMSecs - 等待秒数
-//-----------------------------------------------------------------------------
-void IseOptions::setUdpRequestEffWaitTime(int seconds)
-{
-    if (seconds <= 0) seconds = DEF_UDP_REQ_EFF_WAIT_TIME;
-    udpRequestEffWaitTime_ = seconds;
-}
-
-//-----------------------------------------------------------------------------
 // 描述: 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpWorkerThreadTimeout(int seconds)
@@ -320,12 +319,12 @@ void IseOptions::setUdpWorkerThreadTimeout(int seconds)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置请求队列中数据包数量警戒线
+// 描述: 设置后台维护UDP工作者线程数量的时间间隔(秒)
 //-----------------------------------------------------------------------------
-void IseOptions::setUdpRequestQueueAlertLine(int count)
+void IseOptions::setUdpAdjustThreadInterval(int seconds)
 {
-    count = ise::max(count, 1);
-    udpRequestQueueAlertLine_ = count;
+    if (seconds <= 0) seconds = DEF_UDP_ADJUST_THREAD_INTERVAL;
+    udpAdjustThreadInterval_ = seconds;
 }
 
 //-----------------------------------------------------------------------------
@@ -548,7 +547,7 @@ MainTcpServer& IseMainServer::getMainTcpServer()
 //-----------------------------------------------------------------------------
 void IseMainServer::runBackground()
 {
-    int adjustThreadInterval = iseApp().getIseOptions().getAdjustThreadInterval();
+    int adjustThreadInterval = iseApp().getIseOptions().getUdpAdjustThreadInterval();
     int secondCount = 0;
 
     while (!iseApp().isTerminated())

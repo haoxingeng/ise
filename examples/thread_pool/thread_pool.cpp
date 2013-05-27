@@ -29,9 +29,7 @@ void AppBusiness::finalize()
 
 void AppBusiness::initIseOptions(IseOptions& options)
 {
-    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
     options.setIsDaemon(false);
-    options.setAllowMultiInstance(false);
 }
 
 //-----------------------------------------------------------------------------

@@ -48,10 +48,6 @@ void AppBusiness::onInitFailed(Exception& e)
 
 void AppBusiness::initIseOptions(IseOptions& options)
 {
-    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
-    options.setIsDaemon(true);
-    options.setAllowMultiInstance(false);
-
     options.setServerType(ST_UDP);
     options.setUdpServerPort(8000);
 }
@@ -73,9 +69,9 @@ void AppBusiness::onRecvedUdpPacket(UdpWorkerThread& workerThread, int groupInde
 
     switch (actionCode)
     {
-    case AC_HELLO_WORLD:
+    case AC_HELLO:
         {
-            HelloWorldPacket reqPacket;
+            HelloPacket reqPacket;
             if (reqPacket.unpack(packetBuffer, packetSize))
             {
                 logger().writeFmt("Received packet from <%s>: %s.",

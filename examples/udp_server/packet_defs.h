@@ -10,8 +10,8 @@ using namespace ise;
 ///////////////////////////////////////////////////////////////////////////////
 // Action Codes:
 
-const UINT AC_HELLO_WORLD = 100;
-const UINT AC_ACK         = 200;
+const UINT AC_HELLO = 100;
+const UINT AC_ACK   = 200;
 
 ///////////////////////////////////////////////////////////////////////////////
 // UDP Packet Header
@@ -47,9 +47,9 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// HelloWorldPacket
+// HelloPacket
 
-class HelloWorldPacket : public BaseUdpPacket
+class HelloPacket : public BaseUdpPacket
 {
 public:
     string message;
@@ -69,7 +69,7 @@ protected:
 public:
     void initPacket(const string& message)
     {
-        header.init(AC_HELLO_WORLD);
+        header.init(AC_HELLO);
         this->message = message;
         pack();
     }

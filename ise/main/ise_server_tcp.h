@@ -136,7 +136,7 @@ class MainTcpServer;
 
 typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;
 
-// 数据包分界器
+// 分包器
 typedef boost::function<void (
     const char *data,   // 缓存中可用数据的首字节指针
     int bytes,          // 缓存中可用数据的字节数
@@ -144,20 +144,20 @@ typedef boost::function<void (
 )> PacketSplitter;
 
 ///////////////////////////////////////////////////////////////////////////////
-// 预定义数据包分界器
+// 预定义分包器
 
 void bytePacketSplitter(const char *data, int bytes, int& retrieveBytes);
 void linePacketSplitter(const char *data, int bytes, int& retrieveBytes);
 void nullTerminatedPacketSplitter(const char *data, int bytes, int& retrieveBytes);
 void anyPacketSplitter(const char *data, int bytes, int& retrieveBytes);
 
-// 每次接收一个字节的数据包分界器
+// 每次接收一个字节的分包器
 const PacketSplitter BYTE_PACKET_SPLITTER = &ise::bytePacketSplitter;
-// 以 '\r'或'\n' 或其组合为分界字符的数据包分界器
+// 以 '\r'或'\n' 或其组合为分界字符的分包器
 const PacketSplitter LINE_PACKET_SPLITTER = &ise::linePacketSplitter;
-// 以 '\0' 为分界字符的数据包分界器
+// 以 '\0' 为分界字符的分包器
 const PacketSplitter NULL_TERMINATED_PACKET_SPLITTER = &ise::nullTerminatedPacketSplitter;
-// 无论收到多少字节都立即获取的数据包分界器
+// 无论收到多少字节都立即获取的分包器
 const PacketSplitter ANY_PACKET_SPLITTER = &ise::anyPacketSplitter;
 
 ///////////////////////////////////////////////////////////////////////////////

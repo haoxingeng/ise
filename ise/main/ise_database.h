@@ -444,10 +444,10 @@ protected:
 // 示例:
 //      int main()
 //      {
-//          DbQueryWrapper qry( MyDatabase.CreateDbQuery() );
-//          qry->SetSql("select * from users");
+//          DbQueryWrapper query( MyDatabase.createDbQuery() );
+//          query->setSql("select * from users");
 //          /* ... */
-//          // 栈对象 qry 会自动销毁，与此同时被包装的堆对象也自动释放。
+//          // 栈对象 query 会自动销毁，与此同时被包装的堆对象也自动释放。
 //      }
 
 class DbQueryWrapper
@@ -456,7 +456,7 @@ public:
     DbQueryWrapper(DbQuery *dbQuery) : dbQuery_(dbQuery) {}
     virtual ~DbQueryWrapper() { delete dbQuery_; }
 
-    DbQuery* operator -> () { return dbQuery_; }
+    DbQuery* operator-> () { return dbQuery_; }
 
 private:
     DbQuery *dbQuery_;
@@ -471,14 +471,14 @@ private:
 // 示例:
 //      int main()
 //      {
-//          DbQueryWrapper qry( MyDatabase.CreateDbQuery() );
+//          DbQueryWrapper query( MyDatabase.CreateDbQuery() );
 //          DbDataSetWrapper ds;
 //
-//          qry->SetSql("select * from users");
-//          ds = qry->Query();
+//          query->setSql("select * from users");
+//          ds = query->query();
 //          /* ... */
 //
-//          // 栈对象 qry 和 ds 会自动销毁，与此同时被包装的堆对象也自动释放。
+//          // 栈对象 query 和 ds 会自动销毁，与此同时被包装的堆对象也自动释放。
 //      }
 
 class DbDataSetWrapper
@@ -489,12 +489,12 @@ public:
 
     DbDataSetWrapper& operator = (DbDataSet *dataSet)
     {
-        if (dbDataSet_) delete dbDataSet_;
+        delete dbDataSet_;
         dbDataSet_ = dataSet;
         return *this;
     }
 
-    DbDataSet* operator -> () { return dbDataSet_; }
+    DbDataSet* operator-> () { return dbDataSet_; }
 
 private:
     DbDataSet *dbDataSet_;

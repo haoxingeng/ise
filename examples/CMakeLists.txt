@@ -1,3 +1,4 @@
+add_subdirectory(hello_world)
 add_subdirectory(chargen_client)
 add_subdirectory(chargen_server)
 add_subdirectory(daytime_server)

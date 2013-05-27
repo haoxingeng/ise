@@ -50,9 +50,6 @@ void AppBusiness::onInitFailed(Exception& e)
 
 void AppBusiness::initIseOptions(IseOptions& options)
 {
-    options.setLogFileName(getAppSubPath("log") + changeFileExt(extractFileName(getAppExeName()), ".log"), true);
-    options.setIsDaemon(true);
-    options.setAllowMultiInstance(false);
     options.setServerType(ST_TCP);
 }
 
