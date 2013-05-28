@@ -367,14 +367,18 @@ public:
 
     MainUdpServer& getMainUdpServer();
     MainTcpServer& getMainTcpServer();
-    AssistorServer& getAssistorServer() { return *assistorServer_; }
+    AssistorServer& getAssistorServer();
+    ScheduleTaskMgr& getScheduleTaskMgr();
+    TcpConnector& getTcpConnector();
 private:
     void runBackground();
 private:
-    MainUdpServer *udpServer_;        // UDP服务器
-    MainTcpServer *tcpServer_;        // TCP服务器
-    AssistorServer *assistorServer_;  // 辅助服务器
-    SysThreadMgr *sysThreadMgr_;      // 系统线程管理器
+    MainUdpServer *udpServer_;            // UDP服务器
+    MainTcpServer *tcpServer_;            // TCP服务器
+    AssistorServer *assistorServer_;      // 辅助服务器
+    ScheduleTaskMgr *scheduleTaskMgr_;    // 定时任务管理器
+    TcpConnector *tcpConnector_;          // TCP连接器
+    SysThreadMgr *sysThreadMgr_;          // 系统线程管理器
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -393,8 +397,6 @@ private:
 class IseApplication : boost::noncopyable
 {
 public:
-    friend void userSignalHandler(int sigNo);
-
     virtual ~IseApplication();
     static IseApplication& instance();
 
@@ -403,12 +405,13 @@ public:
     void finalize();
     void run();
 
-    IseOptions& getIseOptions() { return iseOptions_; }
-    IseBusiness& getIseBusiness() { return *iseBusiness_; }
-    IseScheduleTaskMgr& getScheduleTaskMgr() { return IseScheduleTaskMgr::instance(); }
-    IseMainServer& getMainServer() { return *mainServer_; }
-    BaseUdpServer& getUdpServer() { return getMainServer().getMainUdpServer().getUdpServer(); }
-    BaseTcpServer& getTcpServer(int index) { return getMainServer().getMainTcpServer().getTcpServer(index); }
+    IseOptions& iseOptions() { return iseOptions_; }
+    IseBusiness& iseBusiness() { return *iseBusiness_; }
+    IseMainServer& mainServer() { return *mainServer_; }
+    BaseUdpServer& udpServer() { return mainServer_->getMainUdpServer().getUdpServer(); }
+    BaseTcpServer& tcpServer(int index) { return mainServer_->getMainTcpServer().getTcpServer(index); }
+    ScheduleTaskMgr& scheduleTaskMgr() { return mainServer_->getScheduleTaskMgr(); }
+    TcpConnector& tcpConnector() { return mainServer_->getTcpConnector(); }
 
     void setTerminated(bool value) { terminated_ = value; }
     bool isTerminated() { return terminated_; }
@@ -435,9 +438,9 @@ private:
     void checkMultiInstance();
     void applyIseOptions();
     void createMainServer();
-    void freeMainServer();
+    void deleteMainServer();
     void createIseBusiness();
-    void freeIseBusiness();
+    void deleteIseBusiness();
     void initExeName();
     void initDaemon();
     void initSignals();
@@ -456,6 +459,8 @@ private:
     bool initialized_;                   // 是否成功初始化
     bool terminated_;                    // 是否应退出的标志
     CallbackList<UserSignalHandlerCallback> onUserSignal_;  // 用户信号处理回调
+
+    friend void userSignalHandler(int sigNo);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

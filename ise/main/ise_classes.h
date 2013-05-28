@@ -1431,14 +1431,73 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class Logger - 日志类
+// class Singleton - 全局单例类
 
-class Logger : boost::noncopyable
+#ifdef ISE_WINDOWS
+
+template<typename T>
+class Singleton : boost::noncopyable
 {
 public:
-    ~Logger() {}
-    static Logger& instance();
+    static T& instance()
+    {
+        // DCL with volatile
+        if (instance_ == NULL)
+        {
+            AutoLocker locker(mutex_);
+            if (instance_ == NULL)
+                instance_ = new T();
+            return *instance_;
+        }
+        return *instance_;
+    }
+protected:
+    Singleton() {}
+    ~Singleton() {}
+private:
+    static T* volatile instance_;
+    static Mutex mutex_;
+};
 
+template<typename T> T* volatile Singleton<T>::instance_ = NULL;
+template<typename T> Mutex Singleton<T>::mutex_;
+
+#endif
+#ifdef ISE_LINUX
+
+template<typename T>
+class Singleton : boost::noncopyable
+{
+public:
+    static T& instance()
+    {
+        pthread_once(&once_, &Singleton::init);
+        return *instance_;
+    }
+protected:
+    Singleton() {}
+    ~Singleton() {}
+private:
+    static void init()
+    {
+        instance_ = new T();
+    }
+private:
+    static T* instance_;
+    static pthread_once_t once_;
+};
+
+template<typename T> T* Singleton<T>::instance_ = NULL;
+template<typename T> pthread_once_t Singleton<T>::once_ = PTHREAD_ONCE_INIT;
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+// class Logger - 日志类
+
+class Logger : public Singleton<Logger>
+{
+public:
     void setFileName(const string& fileName, bool isNewFileDaily = false);
 
     void writeStr(const char *str);
@@ -1458,6 +1517,8 @@ private:
     string fileName_;       // 日志文件名
     bool isNewFileDaily_;   // 是否每天用一个单独的文件存储日志
     Mutex mutex_;
+
+    friend class Singleton<Logger>;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

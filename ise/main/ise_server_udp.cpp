@@ -127,8 +127,8 @@ UdpRequestQueue::UdpRequestQueue(UdpRequestGroup *ownGroup) :
 
     ownGroup_ = ownGroup;
     groupIndex = ownGroup->getGroupIndex();
-    capacity_ = iseApp().getIseOptions().getUdpRequestQueueCapacity(groupIndex);
-    maxWaitTime_ = iseApp().getIseOptions().getUdpRequestMaxWaitTime();
+    capacity_ = iseApp().iseOptions().getUdpRequestQueueCapacity(groupIndex);
+    maxWaitTime_ = iseApp().iseOptions().getUdpRequestMaxWaitTime();
     packetCount_ = 0;
 }
 
@@ -225,7 +225,7 @@ UdpWorkerThread::UdpWorkerThread(UdpWorkerThreadPool *threadPool) :
 {
     setAutoDelete(true);
     // 启用超时检测
-    timeoutChecker_.setTimeoutSecs(iseApp().getIseOptions().getUdpWorkerThreadTimeout());
+    timeoutChecker_.setTimeoutSecs(iseApp().iseOptions().getUdpWorkerThreadTimeout());
 
     ownPool_->registerThread(this);
 }
@@ -256,7 +256,7 @@ void UdpWorkerThread::execute()
 
             // 分派数据包
             if (!isTerminated())
-                iseApp().getIseBusiness().onRecvedUdpPacket(*this, groupIndex, *packet);
+                iseApp().iseBusiness().onRecvedUdpPacket(*this, groupIndex, *packet);
         }
     }
     catch (Exception&)
@@ -319,10 +319,10 @@ void UdpWorkerThreadPool::AdjustThreadCount()
     int packetAlertLine;
 
     // 取得线程数量上下限
-    iseApp().getIseOptions().getUdpWorkerThreadCount(
+    iseApp().iseOptions().getUdpWorkerThreadCount(
         ownGroup_->getGroupIndex(), minThreads, maxThreads);
     // 取得请求队列中数据包数量警戒线
-    packetAlertLine = iseApp().getIseOptions().getUdpRequestQueueAlertLine();
+    packetAlertLine = iseApp().iseOptions().getUdpRequestQueueAlertLine();
 
     // 检测线程是否工作超时
     checkThreadTimeout();
@@ -545,7 +545,7 @@ void MainUdpServer::initRequestGroupList()
 {
     clearRequestGroupList();
 
-    requestGroupCount_ = iseApp().getIseOptions().getUdpRequestGroupCount();
+    requestGroupCount_ = iseApp().iseOptions().getUdpRequestGroupCount();
     for (int groupIndex = 0; groupIndex < requestGroupCount_; groupIndex++)
     {
         UdpRequestGroup *p;
@@ -572,7 +572,7 @@ void MainUdpServer::onRecvData(void *packetBuffer, int packetSize, const InetAdd
     int groupIndex;
 
     // 先进行数据包分类，得到组别号
-    iseApp().getIseBusiness().classifyUdpPacket(packetBuffer, packetSize, groupIndex);
+    iseApp().iseBusiness().classifyUdpPacket(packetBuffer, packetSize, groupIndex);
 
     // 如果组别号合法
     if (groupIndex >= 0 && groupIndex < requestGroupCount_)

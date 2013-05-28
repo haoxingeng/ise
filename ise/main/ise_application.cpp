@@ -441,6 +441,8 @@ IseMainServer::IseMainServer() :
     udpServer_(NULL),
     tcpServer_(NULL),
     assistorServer_(NULL),
+    scheduleTaskMgr_(NULL),
+    tcpConnector_(NULL),
     sysThreadMgr_(NULL)
 {
     // nothing
@@ -458,16 +460,16 @@ IseMainServer::~IseMainServer()
 void IseMainServer::initialize()
 {
     // 初始化 UDP 服务器
-    if (iseApp().getIseOptions().getServerType() & ST_UDP)
+    if (iseApp().iseOptions().getServerType() & ST_UDP)
     {
         udpServer_ = new MainUdpServer();
-        udpServer_->setLocalPort(static_cast<WORD>(iseApp().getIseOptions().getUdpServerPort()));
-        udpServer_->setListenerThreadCount(iseApp().getIseOptions().getUdpListenerThreadCount());
+        udpServer_->setLocalPort(static_cast<WORD>(iseApp().iseOptions().getUdpServerPort()));
+        udpServer_->setListenerThreadCount(iseApp().iseOptions().getUdpListenerThreadCount());
         udpServer_->open();
     }
 
     // 初始化 TCP 服务器
-    if (iseApp().getIseOptions().getServerType() & ST_TCP)
+    if (iseApp().iseOptions().getServerType() & ST_TCP)
     {
         tcpServer_ = new MainTcpServer();
         tcpServer_->open();
@@ -476,6 +478,12 @@ void IseMainServer::initialize()
     // 初始化辅助服务器
     assistorServer_ = new AssistorServer();
     assistorServer_->open();
+
+    // 定时任务管理器
+    scheduleTaskMgr_ = new ScheduleTaskMgr();
+
+    // TCP连接器
+    tcpConnector_ = new TcpConnector();
 
     // 初始化系统线程管理器
     sysThreadMgr_ = new SysThreadMgr();
@@ -507,6 +515,18 @@ void IseMainServer::finalize()
         tcpServer_->close();
         delete tcpServer_;
         tcpServer_ = NULL;
+    }
+
+    if (scheduleTaskMgr_)
+    {
+        delete scheduleTaskMgr_;
+        scheduleTaskMgr_ = NULL;
+    }
+
+    if (tcpConnector_)
+    {
+        delete tcpConnector_;
+        tcpConnector_ = NULL;
     }
 
     if (sysThreadMgr_)
@@ -543,11 +563,35 @@ MainTcpServer& IseMainServer::getMainTcpServer()
 }
 
 //-----------------------------------------------------------------------------
+
+AssistorServer& IseMainServer::getAssistorServer()
+{
+    ISE_ASSERT(assistorServer_ != NULL);
+    return *assistorServer_;
+}
+
+//-----------------------------------------------------------------------------
+
+ScheduleTaskMgr& IseMainServer::getScheduleTaskMgr()
+{
+    ISE_ASSERT(scheduleTaskMgr_ != NULL);
+    return *scheduleTaskMgr_;
+}
+
+//-----------------------------------------------------------------------------
+
+TcpConnector& IseMainServer::getTcpConnector()
+{
+    ISE_ASSERT(tcpConnector_ != NULL);
+    return *tcpConnector_;
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 服务器开始运行后，主线程进行后台守护工作
 //-----------------------------------------------------------------------------
 void IseMainServer::runBackground()
 {
-    int adjustThreadInterval = iseApp().getIseOptions().getUdpAdjustThreadInterval();
+    int adjustThreadInterval = iseApp().iseOptions().getUdpAdjustThreadInterval();
     int secondCount = 0;
 
     while (!iseApp().isTerminated())
@@ -794,13 +838,13 @@ void IseApplication::applyIseOptions()
 void IseApplication::createMainServer()
 {
     if (!mainServer_)
-        mainServer_ = new IseMainServer;
+        mainServer_ = new IseMainServer();
 }
 
 //-----------------------------------------------------------------------------
 // 描述: 释放主服务器
 //-----------------------------------------------------------------------------
-void IseApplication::freeMainServer()
+void IseApplication::deleteMainServer()
 {
     delete mainServer_;
     mainServer_ = NULL;
@@ -821,7 +865,7 @@ void IseApplication::createIseBusiness()
 //-----------------------------------------------------------------------------
 // 描述: 释放 IseBusiness 对象
 //-----------------------------------------------------------------------------
-void IseApplication::freeIseBusiness()
+void IseApplication::deleteIseBusiness()
 {
     delete iseBusiness_;
     iseBusiness_ = NULL;
@@ -1022,8 +1066,8 @@ void IseApplication::doFinalize()
 {
     try { if (mainServer_) mainServer_->finalize(); } catch (...) {}
     try { iseBusiness_->finalize(); } catch (...) {}
-    try { freeMainServer(); } catch (...) {}
-    try { freeIseBusiness(); } catch (...) {}
+    try { deleteMainServer(); } catch (...) {}
+    try { deleteIseBusiness(); } catch (...) {}
     try { networkFinalize(); } catch (...) {}
 }
 

@@ -362,7 +362,7 @@ void TcpEventLoop::addConnection(TcpConnection *connection)
     tcpConnMap_[connection->getConnectionName()] = connPtr;
 
     registerConnection(connection);
-    delegateToLoop(boost::bind(&IseBusiness::onTcpConnected, &iseApp().getIseBusiness(), connPtr));
+    delegateToLoop(boost::bind(&IseBusiness::onTcpConnected, &iseApp().iseBusiness(), connPtr));
 }
 
 //-----------------------------------------------------------------------------
@@ -734,7 +734,7 @@ void TcpConnection::errorOccurred()
 
     getEventLoop()->executeInLoop(boost::bind(
         &IseBusiness::onTcpDisconnected,
-        &iseApp().getIseBusiness(), shared_from_this()));
+        &iseApp().iseBusiness(), shared_from_this()));
 
     // setEventLoop(NULL) 可使 shared_ptr<TcpConnection> 减少引用计数，进而销毁对象
     getEventLoop()->addFinalizer(boost::bind(
@@ -843,7 +843,7 @@ bool TcpClient::registerToEventLoop(int index)
 
     if (connection_ != NULL)
     {
-        TcpEventLoopList& eventLoopList = iseApp().getMainServer().getMainTcpServer().getTcpClientEventLoopList();
+        TcpEventLoopList& eventLoopList = iseApp().mainServer().getMainTcpServer().getTcpClientEventLoopList();
         result = eventLoopList.registerToEventLoop(connection_, index);
         if (result)
             connection_ = NULL;
@@ -923,14 +923,6 @@ TcpConnector::~TcpConnector()
 {
     stop();
     clear();
-}
-
-//-----------------------------------------------------------------------------
-
-TcpConnector& TcpConnector::instance()
-{
-    static TcpConnector obj;
-    return obj;
 }
 
 //-----------------------------------------------------------------------------
@@ -1275,7 +1267,7 @@ void WinTcpConnection::tryRecv()
 {
     if (isRecving_) return;
 
-    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize();
+    const int MAX_BUFFER_SIZE = iseApp().iseOptions().getTcpMaxRecvBufferSize();
     const int MAX_RECV_SIZE = 1024*16;
 
     if (recvTaskQueue_.empty() && recvBuffer_.getReadableBytes() >= MAX_BUFFER_SIZE)
@@ -1345,7 +1337,7 @@ void WinTcpConnection::onSendCallback(const IocpTaskData& taskData)
         if (bytesSent_ >= task.bytes)
         {
             bytesSent_ -= task.bytes;
-            iseApp().getIseBusiness().onTcpSendComplete(shared_from_this(), task.context);
+            iseApp().iseBusiness().onTcpSendComplete(shared_from_this(), task.context);
             sendTaskQueue_.pop_front();
         }
         else
@@ -1391,7 +1383,7 @@ void WinTcpConnection::onRecvCallback(const IocpTaskData& taskData)
             if (packetSize > 0)
             {
                 bytesRecved_ -= packetSize;
-                iseApp().getIseBusiness().onTcpRecvComplete(shared_from_this(),
+                iseApp().iseBusiness().onTcpRecvComplete(shared_from_this(),
                     (void*)buffer, packetSize, task.context);
                 recvTaskQueue_.pop_front();
                 recvBuffer_.retrieve(packetSize);
@@ -2007,7 +1999,7 @@ void LinuxTcpConnection::trySend()
             if (bytesSent_ >= task.bytes)
             {
                 bytesSent_ -= task.bytes;
-                iseApp().getIseBusiness().onTcpSendComplete(shared_from_this(), task.context);
+                iseApp().iseBusiness().onTcpSendComplete(shared_from_this(), task.context);
                 sendTaskQueue_.pop_front();
             }
             else
@@ -2021,7 +2013,7 @@ void LinuxTcpConnection::trySend()
 //-----------------------------------------------------------------------------
 void LinuxTcpConnection::tryRecv()
 {
-    const int MAX_BUFFER_SIZE = iseApp().getIseOptions().getTcpMaxRecvBufferSize();
+    const int MAX_BUFFER_SIZE = iseApp().iseOptions().getTcpMaxRecvBufferSize();
     if (recvTaskQueue_.empty() && recvBuffer_.getReadableBytes() >= MAX_BUFFER_SIZE)
     {
         setRecvEnabled(false);
@@ -2067,7 +2059,7 @@ bool LinuxTcpConnection::tryRetrievePacket()
         task.packetSplitter(buffer, readableBytes, packetSize);
         if (packetSize > 0)
         {
-            iseApp().getIseBusiness().onTcpRecvComplete(shared_from_this(),
+            iseApp().iseBusiness().onTcpRecvComplete(shared_from_this(),
                 (void*)buffer, packetSize, task.context);
             recvTaskQueue_.pop_front();
             recvBuffer_.retrieve(packetSize);
@@ -2438,7 +2430,7 @@ TcpEventLoopList& MainTcpServer::getTcpClientEventLoopList()
 
     if (!tcpClientEventLoopList_)
     {
-        int eventLoopCount = iseApp().getIseOptions().getTcpClientEventLoopCount();
+        int eventLoopCount = iseApp().iseOptions().getTcpClientEventLoopCount();
         tcpClientEventLoopList_.reset(new TcpEventLoopList(eventLoopCount));
         if (isActive_)
             tcpClientEventLoopList_->start();
@@ -2452,15 +2444,15 @@ TcpEventLoopList& MainTcpServer::getTcpClientEventLoopList()
 //-----------------------------------------------------------------------------
 void MainTcpServer::createTcpServerList()
 {
-    int serverCount = iseApp().getIseOptions().getTcpServerCount();
+    int serverCount = iseApp().iseOptions().getTcpServerCount();
     ISE_ASSERT(serverCount >= 0);
 
     tcpServerList_.resize(serverCount);
     for (int i = 0; i < serverCount; i++)
     {
-        TcpServer *tcpServer = new TcpServer(iseApp().getIseOptions().getTcpServerEventLoopCount(i));
+        TcpServer *tcpServer = new TcpServer(iseApp().iseOptions().getTcpServerEventLoopCount(i));
         tcpServer->setContext(i);
-        tcpServer->setLocalPort(static_cast<WORD>(iseApp().getIseOptions().getTcpServerPort(i)));
+        tcpServer->setLocalPort(static_cast<WORD>(iseApp().iseOptions().getTcpServerPort(i)));
 
         tcpServerList_[i] = tcpServer;
     }

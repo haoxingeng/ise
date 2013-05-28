@@ -163,7 +163,7 @@ const PacketSplitter ANY_PACKET_SPLITTER = &ise::anyPacketSplitter;
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpInspectInfo
 
-class TcpInspectInfo : boost::noncopyable
+class TcpInspectInfo : public Singleton<TcpInspectInfo>
 {
 public:
     AtomicInt tcpConnCreateCount;    // TcpConnection 对象的创建次数
@@ -171,12 +171,6 @@ public:
     AtomicInt errorOccurredCount;    // TcpConnection::errorOccurred() 的调用次数
     AtomicInt addConnCount;          // TcpEventLoop::addConnection() 的调用次数
     AtomicInt removeConnCount;       // TcpEventLoop::removeConnection() 的调用次数
-public:
-    static TcpInspectInfo& instance()
-    {
-        static TcpInspectInfo obj;
-        return obj;
-    }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -503,16 +497,13 @@ private:
     friend class WorkerThread;
 
 public:
+    TcpConnector();
     ~TcpConnector();
-    static TcpConnector& instance();
 
     void connect(const InetAddress& peerAddr,
         const CompleteCallback& completeCallback,
         const Context& context = EMPTY_CONTEXT);
     void clear();
-
-private:
-    TcpConnector();
 
 private:
     void start();

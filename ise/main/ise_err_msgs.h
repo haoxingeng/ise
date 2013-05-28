@@ -82,6 +82,7 @@ const char* const SEM_CREATE_EPOLL_ERROR          = "Fail to create epoll object
 const char* const SEM_EPOLL_WAIT_ERROR            = "epoll_wait error.";
 const char* const SEM_EPOLL_CTRL_ERROR            = "epoll_ctl error (op: %d).";
 const char* const SEM_THREAD_KILLED               = "Killed %d %s thread.";
+const char* const SEM_WAIT_FOR_THREADS            = "Waiting %s threads to exit...";
 const char* const SEM_IOCP_ERROR                  = "IOCP Error #%d";
 const char* const SEM_INVALID_OP_FOR_IOCP         = "Invalid operation for IOCP.";
 const char* const SEM_EVENT_LOOP_NOT_SPECIFIED    = "Event loop not specified.";

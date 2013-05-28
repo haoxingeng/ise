@@ -57,7 +57,7 @@ void SysDaemonThread::execute()
     {
         try
         {
-            iseApp().getIseBusiness().daemonThreadExecute(*this, secondCount);
+            iseApp().iseBusiness().daemonThreadExecute(*this, secondCount);
         }
         catch (Exception& e)
         {
@@ -74,7 +74,7 @@ void SysDaemonThread::execute()
 
 void SysSchedulerThread::execute()
 {
-    iseApp().getScheduleTaskMgr().execute(*this);
+    iseApp().scheduleTaskMgr().execute(*this);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -80,7 +80,7 @@ void AppBusiness::onRecvedUdpPacket(UdpWorkerThread& workerThread, int groupInde
 
                 AckPacket ackPacket;
                 ackPacket.initPacket(reqPacket.header.seqNumber, 12345);
-                iseApp().getUdpServer().sendBuffer(ackPacket.getBuffer(), ackPacket.getSize(), packet.getPeerAddr());
+                iseApp().udpServer().sendBuffer(ackPacket.getBuffer(), ackPacket.getSize(), packet.getPeerAddr());
             }
             break;
         }

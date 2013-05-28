@@ -36,7 +36,7 @@ namespace ise
 
 void IseServerModule::broadcastMessage(BaseSvrModMessage& message)
 {
-    (static_cast<IseSvrModBusiness*>(&iseApp().getIseBusiness()))->broadcastMessage(message);
+    (static_cast<IseSvrModBusiness*>(&iseApp().iseBusiness()))->broadcastMessage(message);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -352,7 +352,7 @@ void IseSvrModBusiness::initTcpServerIndexMap()
 //-----------------------------------------------------------------------------
 void IseSvrModBusiness::updateIseOptions()
 {
-    IseOptions& options = iseApp().getIseOptions();
+    IseOptions& options = iseApp().iseOptions();
 
     // 设置UDP请求组别的总数量
     options.setUdpRequestGroupCount(getUdpGroupCount());

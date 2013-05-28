@@ -32,9 +32,9 @@ namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IseScheduleTask
+// class ScheduleTask
 
-IseScheduleTask::IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
+ScheduleTask::ScheduleTask(UINT taskId, SCHEDULE_TASK_TYPE taskType,
     UINT afterSeconds, const SchTaskTriggerCallback& onTrigger,
     const Context& context) :
         taskId_(taskId),
@@ -50,7 +50,7 @@ IseScheduleTask::IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
 //-----------------------------------------------------------------------------
 // 描述: 尝试处理此任务 (每秒执行一次)
 //-----------------------------------------------------------------------------
-void IseScheduleTask::process()
+void ScheduleTask::process()
 {
     int curYear, curMonth, curDay, curHour, curMinute, curSecond, curWeekDay, curYearDay;
     DateTime::currentDateTime().decodeDateTime(&curYear, &curMonth, &curDay,
@@ -129,32 +129,19 @@ void IseScheduleTask::process()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IseScheduleTaskMgr
+// class ScheduleTaskMgr
 
-IseScheduleTaskMgr::IseScheduleTaskMgr() :
+ScheduleTaskMgr::ScheduleTaskMgr() :
     taskList_(false, true),
     taskIdAlloc_(1)
 {
     // nothing
 }
 
-IseScheduleTaskMgr::~IseScheduleTaskMgr()
-{
-    // nothing
-}
-
-//-----------------------------------------------------------------------------
-
-IseScheduleTaskMgr& IseScheduleTaskMgr::instance()
-{
-    static IseScheduleTaskMgr obj;
-    return obj;
-}
-
 //-----------------------------------------------------------------------------
 // 描述: 由系统定时任务线程执行
 //-----------------------------------------------------------------------------
-void IseScheduleTaskMgr::execute(Thread& executorThread)
+void ScheduleTaskMgr::execute(Thread& executorThread)
 {
     while (!executorThread.isTerminated())
     {
@@ -174,13 +161,13 @@ void IseScheduleTaskMgr::execute(Thread& executorThread)
 //-----------------------------------------------------------------------------
 // 描述: 添加一个任务
 //-----------------------------------------------------------------------------
-UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
+UINT ScheduleTaskMgr::addTask(SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
     const SchTaskTriggerCallback& onTrigger, const Context& context)
 {
     AutoLocker locker(mutex_);
 
     UINT result = static_cast<UINT>(taskIdAlloc_.allocId());
-    IseScheduleTask *task = new IseScheduleTask(result, taskType,
+    ScheduleTask *task = new ScheduleTask(result, taskType,
         afterSeconds, onTrigger, context);
     taskList_.add(task);
 
@@ -190,7 +177,7 @@ UINT IseScheduleTaskMgr::addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeco
 //-----------------------------------------------------------------------------
 // 描述: 删除一个任务
 //-----------------------------------------------------------------------------
-bool IseScheduleTaskMgr::removeTask(UINT taskId)
+bool ScheduleTaskMgr::removeTask(UINT taskId)
 {
     AutoLocker locker(mutex_);
     bool result = false;
@@ -211,7 +198,7 @@ bool IseScheduleTaskMgr::removeTask(UINT taskId)
 //-----------------------------------------------------------------------------
 // 描述: 清空全部任务
 //-----------------------------------------------------------------------------
-void IseScheduleTaskMgr::clear()
+void ScheduleTaskMgr::clear()
 {
     AutoLocker locker(mutex_);
     taskList_.clear();

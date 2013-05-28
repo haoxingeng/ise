@@ -38,13 +38,13 @@ namespace ise
 ///////////////////////////////////////////////////////////////////////////////
 // 提前声明
 
-class IseScheduleTask;
-class IseScheduleTaskMgr;
+class ScheduleTask;
+class ScheduleTaskMgr;
 
 ///////////////////////////////////////////////////////////////////////////////
 // 类型定义
 
-enum ISE_SCHEDULE_TASK_TYPE
+enum SCHEDULE_TASK_TYPE
 {
     STT_EVERY_HOUR,
     STT_EVERY_DAY,
@@ -63,25 +63,25 @@ const int SECONDS_PER_HOUR   = 60*60;
 const int SECONDS_PER_DAY    = 60*60*24;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IseScheduleTask
+// class ScheduleTask
 
-class IseScheduleTask : boost::noncopyable
+class ScheduleTask : boost::noncopyable
 {
 public:
-    IseScheduleTask(UINT taskId, ISE_SCHEDULE_TASK_TYPE taskType,
+    ScheduleTask(UINT taskId, SCHEDULE_TASK_TYPE taskType,
         UINT afterSeconds, const SchTaskTriggerCallback& onTrigger,
         const Context& context);
-    ~IseScheduleTask() {}
+    ~ScheduleTask() {}
 
     void process();
 
     UINT getTaskId() const { return taskId_; }
-    ISE_SCHEDULE_TASK_TYPE getTaskType() const { return taskType_; }
+    SCHEDULE_TASK_TYPE getTaskType() const { return taskType_; }
     UINT getAfterSeconds() const { return afterSeconds_; }
 
 private:
     UINT taskId_;                         // 任务ID
-    ISE_SCHEDULE_TASK_TYPE taskType_;     // 任务类型
+    SCHEDULE_TASK_TYPE taskType_;     // 任务类型
     UINT afterSeconds_;                   // 按任务类型到达指定时间点后延后多少秒触发事件
     time_t lastTriggerTime_;              // 此任务上次触发事件的时间
     Context context_;                     // 自定义上下文
@@ -89,26 +89,24 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IseScheduleTaskMgr
+// class ScheduleTaskMgr
 
-class IseScheduleTaskMgr : boost::noncopyable
+class ScheduleTaskMgr : boost::noncopyable
 {
-private:
-    IseScheduleTaskMgr();
 public:
-    ~IseScheduleTaskMgr();
-    static IseScheduleTaskMgr& instance();
+    ScheduleTaskMgr();
+    ~ScheduleTaskMgr() {}
 
     void execute(Thread& executorThread);
 
-    UINT addTask(ISE_SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
+    UINT addTask(SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
         const SchTaskTriggerCallback& onTrigger,
         const Context& context = EMPTY_CONTEXT);
     bool removeTask(UINT taskId);
     void clear();
 
 private:
-    typedef ObjectList<IseScheduleTask> IseScheduleTaskList;
+    typedef ObjectList<ScheduleTask> IseScheduleTaskList;
 
     IseScheduleTaskList taskList_;
     SeqNumberAlloc taskIdAlloc_;

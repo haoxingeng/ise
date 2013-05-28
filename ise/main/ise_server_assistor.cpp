@@ -109,13 +109,10 @@ void AssistorThreadPool::terminateAllThreads()
 //-----------------------------------------------------------------------------
 void AssistorThreadPool::waitForAllThreads()
 {
-    const int MAX_WAIT_FOR_SECS = 5;
-    int killedCount = 0;
+    if (threadList_.getCount() > 0)
+        logger().writeFmt(SEM_WAIT_FOR_THREADS, "assistor");
 
-    threadList_.waitForAllThreads(MAX_WAIT_FOR_SECS, &killedCount);
-
-    if (killedCount > 0)
-        logger().writeFmt(SEM_THREAD_KILLED, killedCount, "assistor");
+    threadList_.waitForAllThreads(TIMEOUT_INFINITE);
 }
 
 //-----------------------------------------------------------------------------
@@ -158,7 +155,7 @@ void AssistorServer::open()
 {
     if (!isActive_)
     {
-        int count = iseApp().getIseOptions().getAssistorThreadCount();
+        int count = iseApp().iseOptions().getAssistorThreadCount();
 
         for (int i = 0; i < count; i++)
         {
@@ -190,7 +187,7 @@ void AssistorServer::close()
 //-----------------------------------------------------------------------------
 void AssistorServer::onAssistorThreadExecute(AssistorThread& assistorThread, int assistorIndex)
 {
-    iseApp().getIseBusiness().assistorThreadExecute(assistorThread, assistorIndex);
+    iseApp().iseBusiness().assistorThreadExecute(assistorThread, assistorIndex);
 }
 
 //-----------------------------------------------------------------------------
