@@ -193,8 +193,8 @@ IseOptions::IseOptions()
         setUdpRequestQueueCapacity(i, DEF_UDP_REQ_QUEUE_CAPACITY);
         setUdpWorkerThreadCount(i, DEF_UDP_WORKER_THREADS_MIN, DEF_UDP_WORKER_THREADS_MAX);
     }
-    setUdpRequestMaxWaitTime(DEF_UDP_REQ_EFF_WAIT_TIME);
-    setUdpWorkerThreadTimeout(DEF_UDP_WORKER_THD_TIMEOUT);
+    setUdpRequestMaxWaitTime(DEF_UDP_REQ_MAX_WAIT_TIME);
+    setUdpWorkerThreadTimeout(DEF_UDP_WORKER_THREAD_TIMEOUT);
     setUdpRequestQueueAlertLine(DEF_UDP_QUEUE_ALERT_LINE);
     setUdpAdjustThreadInterval(DEF_UDP_ADJUST_THREAD_INTERVAL);
 
@@ -278,7 +278,7 @@ void IseOptions::setUdpRequestQueueCapacity(int groupIndex, int capacity)
 //-----------------------------------------------------------------------------
 void IseOptions::setUdpRequestMaxWaitTime(int seconds)
 {
-    if (seconds <= 0) seconds = DEF_UDP_REQ_EFF_WAIT_TIME;
+    if (seconds <= 0) seconds = DEF_UDP_REQ_MAX_WAIT_TIME;
     udpRequestMaxWaitTime_ = seconds;
 }
 

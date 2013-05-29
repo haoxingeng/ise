@@ -185,8 +185,8 @@ public:
         DEF_UDP_REQ_QUEUE_CAPACITY      = 5000,          // 请求队列的缺省容量(即能放下多少数据包)
         DEF_UDP_WORKER_THREADS_MIN      = 1,             // 每个组别中工作者线程的缺省最少个数
         DEF_UDP_WORKER_THREADS_MAX      = 8,             // 每个组别中工作者线程的缺省最多个数
-        DEF_UDP_REQ_EFF_WAIT_TIME       = 10,            // 请求在队列中的有效等待时间缺省值(秒)
-        DEF_UDP_WORKER_THD_TIMEOUT      = 60,            // 工作者线程的工作超时时间缺省值(秒)
+        DEF_UDP_REQ_MAX_WAIT_TIME       = 10,            // 请求在队列中的最长等待时间缺省值(秒)
+        DEF_UDP_WORKER_THREAD_TIMEOUT   = 60,            // 工作者线程的工作超时时间缺省值(秒)
         DEF_UDP_QUEUE_ALERT_LINE        = 500,           // 队列中数据包数量警戒线缺省值，若超过警戒线则尝试增加线程
         DEF_UDP_ADJUST_THREAD_INTERVAL  = 5,             // 后台调整 "工作者线程数量" 的时间间隔缺省值(秒)
     };
@@ -269,7 +269,7 @@ public:
     void setUdpWorkerThreadCount(int groupIndex, int minThreads, int maxThreads);
     // 设置UDP工作者线程的工作超时时间(秒)，若为0表示不进行超时检测
     void setUdpWorkerThreadTimeout(int seconds);
-    // 设置后台调整工作者线程数量的时间间隔(秒)
+    // 设置后台调整UDP工作者线程数量的时间间隔(秒)
     void setUdpAdjustThreadInterval(int seconds);
 
     // 设置TCP服务器的总数

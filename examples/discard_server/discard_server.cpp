@@ -61,7 +61,7 @@ void AppBusiness::onTcpConnected(const TcpConnectionPtr& connection)
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    connection->recv(BYTE_PACKET_SPLITTER);
+    connection->recv(ANY_PACKET_SPLITTER);
 }
 
 //-----------------------------------------------------------------------------
@@ -79,5 +79,5 @@ void AppBusiness::onTcpRecvComplete(const TcpConnectionPtr& connection, void *pa
     logger().writeFmt("[%s] Discarded %u bytes.",
         connection->getConnectionName().c_str(), packetSize);
 
-    connection->recv(BYTE_PACKET_SPLITTER);
+    connection->recv(ANY_PACKET_SPLITTER);
 }
