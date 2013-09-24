@@ -408,16 +408,25 @@ void TcpEventLoop::runLoop(Thread *thread)
     bool isTerminated = false;
     while (!isTerminated || !tcpConnMap_.empty())
     {
-        if (thread->isTerminated())
+        try
         {
-            clearConnections();
-            isTerminated = true;
-        }
+	        if (thread->isTerminated())
+	        {
+                clearConnections();
+                isTerminated = true;
+	        }
 
-        doLoopWork(thread);
-        checkTimeout();
-        executeDelegatedFunctors();
-        executeFinalizer();
+            doLoopWork(thread);
+            checkTimeout();
+            executeDelegatedFunctors();
+            executeFinalizer();
+        }
+        catch (Exception& e)
+        {
+            logger().writeException(e);
+        }
+        catch (...)
+        {}
     }
 }
 
@@ -1289,6 +1298,7 @@ void WinTcpConnection::tryRecv()
 void WinTcpConnection::onIocpCallback(const TcpConnectionPtr& thisObj, const IocpTaskData& taskData)
 {
     WinTcpConnection *thisPtr = static_cast<WinTcpConnection*>(thisObj.get());
+    if (thisPtr->isErrorOccurred_) return;
 
     if (taskData.getErrorCode() == 0)
     {
