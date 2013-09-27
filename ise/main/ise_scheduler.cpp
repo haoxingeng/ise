@@ -53,7 +53,7 @@ ScheduleTask::ScheduleTask(UINT taskId, SCHEDULE_TASK_TYPE taskType,
 void ScheduleTask::process()
 {
     int curYear, curMonth, curDay, curHour, curMinute, curSecond, curWeekDay, curYearDay;
-    DateTime::currentDateTime().decodeDateTime(&curYear, &curMonth, &curDay,
+    DateTime::now().decodeDateTime(&curYear, &curMonth, &curDay,
         &curHour, &curMinute, &curSecond, &curWeekDay, &curYearDay);
 
     int lastYear = -1, lastMonth = -1, lastDay = -1, lastHour = -1, lastWeekDay = -1;

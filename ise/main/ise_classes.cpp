@@ -252,9 +252,18 @@ void Buffer::verifyPosition()
 //-----------------------------------------------------------------------------
 // 描述: 返回当前时间 (从1970-01-01 00:00:00 算起的秒数, UTC时间)
 //-----------------------------------------------------------------------------
-DateTime DateTime::currentDateTime()
+DateTime DateTime::now()
 {
     return DateTime(time(NULL));
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 将 Timestamp 转换成 DateTime
+//-----------------------------------------------------------------------------
+DateTime& DateTime::operator = (const Timestamp& rhs)
+{
+    time_ = rhs.epochTime();
+    return *this;
 }
 
 //-----------------------------------------------------------------------------
@@ -345,7 +354,7 @@ void DateTime::decodeDateTime(int *year, int *month, int *day,
 // 格式:
 //   YYYY-MM-DD
 //-----------------------------------------------------------------------------
-string DateTime::dateString(const string& dateSep) const
+string DateTime::toDateString(const string& dateSep) const
 {
     string result;
     int year, month, day;
@@ -366,7 +375,7 @@ string DateTime::dateString(const string& dateSep) const
 // 格式:
 //   YYYY-MM-DD HH:MM:SS
 //-----------------------------------------------------------------------------
-string DateTime::dateTimeString(const string& dateSep,
+string DateTime::toDateTimeString(const string& dateSep,
     const string& dateTimeSep, const string& timeSep) const
 {
     string result;
@@ -377,6 +386,105 @@ string DateTime::dateTimeString(const string& dateSep,
         year, dateSep.c_str(), month, dateSep.c_str(), day,
         dateTimeSep.c_str(),
         hour, timeSep.c_str(), minute, timeSep.c_str(), second);
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class Timestamp
+
+const int MICROSECS_PER_SECOND = 1000 * 1000;
+
+//-----------------------------------------------------------------------------
+
+Timestamp::Timestamp()
+{
+    update();
+}
+
+Timestamp::Timestamp(TimeVal value)
+{
+    value_ = value;
+}
+
+Timestamp::Timestamp(const Timestamp& src)
+{
+    value_ = src.value_;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 返回当前时间戳
+//-----------------------------------------------------------------------------
+Timestamp Timestamp::now()
+{
+    Timestamp result;
+
+#ifdef ISE_WINDOWS
+    FILETIME ft;
+    ::GetSystemTimeAsFileTime(&ft);
+
+    ULARGE_INTEGER epoch; // UNIX epoch (1970-01-01 00:00:00) expressed in Windows NT FILETIME
+    epoch.LowPart  = 0xD53E8000;
+    epoch.HighPart = 0x019DB1DE;
+
+    ULARGE_INTEGER ts;
+    ts.LowPart  = ft.dwLowDateTime;
+    ts.HighPart = ft.dwHighDateTime;
+    ts.QuadPart -= epoch.QuadPart;
+    result.value_ = ts.QuadPart/10;
+#endif
+#ifdef ISE_LINUX
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    result.value_ = TimeVal(tv.tv_sec) * MICROSECS_PER_SECOND + tv.tv_usec;
+#endif
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 设置为当前时间
+//-----------------------------------------------------------------------------
+void Timestamp::update()
+{
+    value_ = Timestamp::now().value_;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 将 time_t 赋给时间戳
+//-----------------------------------------------------------------------------
+void Timestamp::setEpochTime(time_t value)
+{
+    value_ = value * MICROSECS_PER_SECOND;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 以 time_t 形式返回 (since 1970-01-01 00:00:00, in seconds)
+//-----------------------------------------------------------------------------
+time_t Timestamp::epochTime() const
+{
+    return (time_t)(value_ / MICROSECS_PER_SECOND);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 以微秒精度返回 epoch 时间 (since 1970-01-01 00:00:00)
+//-----------------------------------------------------------------------------
+Timestamp::TimeVal Timestamp::epochMicroseconds() const
+{
+    return value_;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 转换成字符串
+//-----------------------------------------------------------------------------
+string Timestamp::toString(const string& dateSep, const string& dateTimeSep,
+    const string& timeSep, const string& microSecSep) const
+{
+    time_t seconds = static_cast<time_t>(value_ / MICROSECS_PER_SECOND);
+    int microseconds = static_cast<int>(value_ % MICROSECS_PER_SECOND);
+
+    string result = DateTime(seconds).toDateTimeString(dateSep, dateTimeSep, timeSep);
+    result += formatString("%s%06d", microSecSep.c_str(), microseconds);
 
     return result;
 }
@@ -3594,7 +3702,7 @@ void Logger::writeStr(const char *str)
 #endif
 
     text = formatString("[%s](%05d|%05u) %s%s",
-        DateTime::currentDateTime().dateTimeString().c_str(),
+        DateTime::now().toDateTimeString().c_str(),
         processId, threadId, str, S_CRLF);
 
     writeToFile(text);
@@ -3636,7 +3744,7 @@ string Logger::getLogFileName()
     {
         string fileExt = extractFileExt(result);
         result = result.substr(0, result.length() - fileExt.length()) + ".";
-        result += DateTime::currentDateTime().dateString("");
+        result += DateTime::now().toDateString("");
         result += fileExt;
     }
 

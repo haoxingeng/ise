@@ -10,7 +10,7 @@ void ServerModule_Daytime::onTcpConnected(const TcpConnectionPtr& connection)
         connection->getPeerAddr().getDisplayStr().c_str(),
         connection->getServerConnCount());
 
-    string msg = DateTime::currentDateTime().dateTimeString() + "\n";
+    string msg = DateTime::now().toDateTimeString() + "\n";
     connection->send(msg.c_str(), msg.length());
 }
 

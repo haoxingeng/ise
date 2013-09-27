@@ -68,6 +68,7 @@ namespace ise
 
 class Buffer;
 class DateTime;
+class Timestamp;
 class AutoFinalizer;
 class AutoInvoker;
 class AutoInvokable;
@@ -145,12 +146,11 @@ public:
     explicit DateTime(time_t src) { time_ = src; }
     explicit DateTime(const string& src) { *this = src; }
 
-    static DateTime currentDateTime();
+    static DateTime now();
 
-    DateTime& operator = (const DateTime& rhs)
-        { time_ = rhs.time_; return *this; }
-    DateTime& operator = (const time_t rhs)
-        { time_ = rhs; return *this; }
+    DateTime& operator = (const DateTime& rhs) { time_ = rhs.time_; return *this; }
+    DateTime& operator = (const time_t rhs) { time_ = rhs; return *this; }
+    DateTime& operator = (const Timestamp& rhs);
     DateTime& operator = (const string& dateTimeStr);
 
     DateTime operator + (const DateTime& rhs) const { return DateTime(time_ + rhs.time_); }
@@ -165,7 +165,7 @@ public:
     bool operator >= (const DateTime& rhs) const { return time_ >= rhs.time_; }
     bool operator <= (const DateTime& rhs) const { return time_ <= rhs.time_; }
 
-    operator time_t() const { return time_; }
+    time_t epochTime() const { return time_; }
 
     void encodeDateTime(int year, int month, int day,
         int hour = 0, int minute = 0, int second = 0);
@@ -173,12 +173,57 @@ public:
         int *hour, int *minute, int *second,
         int *weekDay = NULL, int *yearDay = NULL) const;
 
-    string dateString(const string& dateSep = "-") const;
-    string dateTimeString(const string& dateSep = "-",
+    string toDateString(const string& dateSep = "-") const;
+    string toDateTimeString(const string& dateSep = "-",
         const string& dateTimeSep = " ", const string& timeSep = ":") const;
 
 private:
     time_t time_;     // (从1970-01-01 00:00:00 算起的秒数，UTC时间)
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// class Timestamp - 时间戳类 (微秒精度)
+
+class Timestamp
+{
+public:
+    typedef INT64 TimeVal;   // UTC time value in microsecond resolution
+    typedef INT64 TimeDiff;  // difference between two timestamps in microseconds
+
+public:
+    Timestamp();
+    explicit Timestamp(TimeVal value);
+    Timestamp(const Timestamp& src);
+
+    static Timestamp now();
+
+    Timestamp& operator = (const Timestamp& rhs) { value_ = rhs.value_; return *this; }
+    Timestamp& operator = (TimeVal rhs) { value_ = rhs; return *this; }
+    Timestamp& operator = (const DateTime& rhs) { setEpochTime(rhs.epochTime()); return *this; }
+
+    bool operator == (const Timestamp& rhs) const { return value_ == rhs.value_; }
+    bool operator != (const Timestamp& rhs) const { return value_ != rhs.value_; }
+    bool operator > (const Timestamp& rhs) const  { return value_ > rhs.value_; }
+    bool operator < (const Timestamp& rhs) const  { return value_ < rhs.value_; }
+    bool operator >= (const Timestamp& rhs) const { return value_ >= rhs.value_; }
+    bool operator <= (const Timestamp& rhs) const { return value_ <= rhs.value_; }
+
+    Timestamp  operator +  (TimeDiff d) const { return Timestamp(value_ + d); }
+    Timestamp  operator -  (TimeDiff d) const { return Timestamp(value_ - d); }
+    TimeDiff   operator -  (const Timestamp& rhs) const { return value_ - rhs.value_; }
+    Timestamp& operator += (TimeDiff d) { value_ += d; return *this; }
+    Timestamp& operator -= (TimeDiff d) { value_ -= d; return *this; }
+
+    void update();
+    void setEpochTime(time_t value);
+    time_t epochTime() const;
+    TimeVal epochMicroseconds() const;
+
+    string toString(const string& dateSep = "-", const string& dateTimeSep = " ",
+        const string& timeSep = ":", const string& microSecSep = ".") const;
+
+private:
+    TimeVal value_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
