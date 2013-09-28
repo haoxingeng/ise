@@ -90,6 +90,7 @@
 #include "ise/main/ise_sys_utils.h"
 #include "ise/main/ise_socket.h"
 #include "ise/main/ise_exceptions.h"
+#include "ise/main/ise_timer.h"
 
 #ifdef ISE_WINDOWS
 #include <windows.h>
@@ -261,6 +262,11 @@ public:
     void delegateToLoop(const Functor& functor);
     void addFinalizer(const Functor& finalizer);
 
+    TimerId executeAt(Timestamp time, const TimerCallback& callback);
+    TimerId executeAfter(double delay, const TimerCallback& callback);
+    TimerId executeEvery(double interval, const TimerCallback& callback);
+    void cancelTimer(TimerId timerId);
+
     void addConnection(TcpConnection *connection);
     void removeConnection(TcpConnection *connection);
     void clearConnections();
@@ -277,6 +283,7 @@ protected:
     void executeFinalizer();
 
 private:
+    TimerId addTimer(Timestamp expiration, double interval, const TimerCallback& callback);
     void checkTimeout();
 
 private:
@@ -286,6 +293,7 @@ private:
     FunctorList delegatedFunctors_;
     FunctorList finalizers_;
     UINT64 lastCheckTimeoutTicks_;
+    TimerQueue timerQueue_;
 
     friend class TcpEventLoopThread;
 };

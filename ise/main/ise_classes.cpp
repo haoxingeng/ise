@@ -393,10 +393,6 @@ string DateTime::toDateTimeString(const string& dateSep,
 ///////////////////////////////////////////////////////////////////////////////
 // class Timestamp
 
-const int MICROSECS_PER_SECOND = 1000 * 1000;
-
-//-----------------------------------------------------------------------------
-
 Timestamp::Timestamp()
 {
     update();

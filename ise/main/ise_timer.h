@@ -21,93 +21,82 @@
 \****************************************************************************/
 
 ///////////////////////////////////////////////////////////////////////////////
-// ise_scheduler.h
+// ise_timer.h
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ISE_SCHEDULER_H_
-#define _ISE_SCHEDULER_H_
+#ifndef _ISE_TIMER_H_
+#define _ISE_TIMER_H_
 
 #include "ise/main/ise_options.h"
-#include "ise/main/ise_global_defs.h"
 #include "ise/main/ise_classes.h"
-#include "ise/main/ise_thread.h"
+#include "ise/main/ise_exceptions.h"
 
 namespace ise
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// 提前声明
+// types
 
-class ScheduleTask;
-class ScheduleTaskMgr;
-
-///////////////////////////////////////////////////////////////////////////////
-// 类型定义
-
-enum SCHEDULE_TASK_TYPE
-{
-    STT_EVERY_HOUR,
-    STT_EVERY_DAY,
-    STT_EVERY_WEEK,
-    STT_EVERY_MONTH,
-    STT_EVERY_YEAR,
-};
-
-typedef boost::function<void (UINT taskId, const Context& context)> SchTaskTriggerCallback;
+typedef boost::function<void(void)> TimerCallback;
+typedef INT64 TimerId;
 
 ///////////////////////////////////////////////////////////////////////////////
-// class ScheduleTask
+// class Timer
 
-class ScheduleTask : boost::noncopyable
+class Timer : boost::noncopyable
 {
 public:
-    ScheduleTask(UINT taskId, SCHEDULE_TASK_TYPE taskType,
-        UINT afterSeconds, const SchTaskTriggerCallback& onTrigger,
-        const Context& context);
-    ~ScheduleTask() {}
+    Timer(Timestamp expiration, double interval, const TimerCallback& callback);
 
-    void process();
+    Timestamp expiration() const { return expiration_; }
+    double interval() const { return interval_; }
+    bool repeat() const { return repeat_; }
+    TimerId timerId() const { return timerId_; }
+    void invokeCallback();
 
-    UINT getTaskId() const { return taskId_; }
-    SCHEDULE_TASK_TYPE getTaskType() const { return taskType_; }
-    UINT getAfterSeconds() const { return afterSeconds_; }
+    void restart(Timestamp now);
 
 private:
-    UINT taskId_;                         // 任务ID
-    SCHEDULE_TASK_TYPE taskType_;     // 任务类型
-    UINT afterSeconds_;                   // 按任务类型到达指定时间点后延后多少秒触发事件
-    time_t lastTriggerTime_;              // 此任务上次触发事件的时间
-    Context context_;                     // 自定义上下文
-    SchTaskTriggerCallback onTrigger_;    // 触发事件回调
+    Timestamp expiration_;
+    const double interval_;  // second
+    const bool repeat_;
+    TimerId timerId_;
+    const TimerCallback callback_;
+
+    static SeqNumberAlloc s_timerIdAlloc;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class ScheduleTaskMgr
+// class TimerQueue
 
-class ScheduleTaskMgr : boost::noncopyable
+class TimerQueue : boost::noncopyable
 {
 public:
-    ScheduleTaskMgr();
-    ~ScheduleTaskMgr() {}
+    TimerQueue();
+    ~TimerQueue();
 
-    void execute(Thread& executorThread);
-
-    UINT addTask(SCHEDULE_TASK_TYPE taskType, UINT afterSeconds,
-        const SchTaskTriggerCallback& onTrigger,
-        const Context& context = EMPTY_CONTEXT);
-    bool removeTask(UINT taskId);
-    void clear();
+    void addTimer(Timer *timer);
+    void cancelTimer(TimerId timerId);
+    bool getNearestExpiration(Timestamp& expiration);
+    void processExpiredTimers(Timestamp now);
 
 private:
-    typedef ObjectList<ScheduleTask> IseScheduleTaskList;
+    void clearTimers();
 
-    IseScheduleTaskList taskList_;
-    SeqNumberAlloc taskIdAlloc_;
-    Mutex mutex_;
+private:
+    typedef std::pair<Timestamp, Timer*> TimerItem;
+    typedef std::set<TimerItem> TimerList;
+    typedef std::map<TimerId, Timer*> TimerIdMap;
+    typedef std::set<TimerId> TimerIds;
+
+    TimerList timerList_;
+    TimerIdMap timerIdMap_;
+    bool callingExpiredTimers_;
+    TimerIds cancelingTimers_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
 } // namespace ise
 
-#endif // _ISE_SCHEDULER_H_
+#endif // _ISE_TIMER_H_

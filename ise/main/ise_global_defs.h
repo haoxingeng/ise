@@ -133,6 +133,15 @@ const unsigned int FA_ARCHIVE       = 0x00000020;
 const unsigned int FA_SYM_LINK      = 0x00000040;    // Linux Only
 const unsigned int FA_ANY_FILE      = 0x0000007F;
 
+// 时间相关
+const int MILLISECS_PER_SECOND = 1000;
+const int MICROSECS_PER_SECOND = MILLISECS_PER_SECOND * 1000;
+const int SECONDS_PER_MINUTE   = 60;
+const int MINUTES_PER_HOUR     = 60;
+const int HOURS_PER_DAY        = 24;
+const int SECONDS_PER_HOUR     = 3600;
+const int SECONDS_PER_DAY      = 86400;
+
 // 范围值
 #define MINCHAR     0x80
 #define MAXCHAR     0x7f
@@ -143,6 +152,10 @@ const unsigned int FA_ANY_FILE      = 0x0000007F;
 #define MAXBYTE     0xff
 #define MAXWORD     0xffff
 #define MAXDWORD    0xffffffff
+
+#ifdef ISE_LINUX
+#define MAXUINT_PTR UINTPTR_MAX
+#endif
 
 // Strings 相关常量定义
 #define DEFAULT_DELIMITER            ','

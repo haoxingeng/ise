@@ -343,6 +343,10 @@
 				RelativePath="..\..\..\ise\main\ise_thread.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_timer.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -435,6 +439,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\ise\main\ise_thread.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_timer.h"
 				>
 			</File>
 		</Filter>

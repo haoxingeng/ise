@@ -352,6 +352,40 @@ void TcpEventLoop::addFinalizer(const Functor& finalizer)
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 添加定时器 (指定时间执行)
+//-----------------------------------------------------------------------------
+TimerId TcpEventLoop::executeAt(Timestamp time, const TimerCallback& callback)
+{
+    return addTimer(time, 0, callback);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 添加定时器 (在 delay 秒后执行)
+//-----------------------------------------------------------------------------
+TimerId TcpEventLoop::executeAfter(double delay, const TimerCallback& callback)
+{
+    Timestamp time(Timestamp::now() + delay * MICROSECS_PER_SECOND);
+    return addTimer(time, 0, callback);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 添加定时器 (每 interval 秒循环执行)
+//-----------------------------------------------------------------------------
+TimerId TcpEventLoop::executeEvery(double interval, const TimerCallback& callback)
+{
+    Timestamp time(Timestamp::now() + interval * MICROSECS_PER_SECOND);
+    return addTimer(time, interval, callback);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 取消定时器
+//-----------------------------------------------------------------------------
+void TcpEventLoop::cancelTimer(TimerId timerId)
+{
+    executeInLoop(boost::bind(&TimerQueue::cancelTimer, &timerQueue_, timerId));
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 将指定连接注册到此 eventLoop 中
 //-----------------------------------------------------------------------------
 void TcpEventLoop::addConnection(TcpConnection *connection)
@@ -458,6 +492,16 @@ void TcpEventLoop::executeFinalizer()
 
     for (size_t i = 0; i < finalizers.size(); ++i)
         finalizers[i]();
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 添加定时器 (线程安全)
+//-----------------------------------------------------------------------------
+TimerId TcpEventLoop::addTimer(Timestamp expiration, double interval, const TimerCallback& callback)
+{
+    Timer *timer = new Timer(expiration, interval, callback);
+    executeInLoop(boost::bind(&TimerQueue::addTimer, &timerQueue_, timer));
+    return timer->timerId();
 }
 
 //-----------------------------------------------------------------------------
