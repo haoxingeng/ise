@@ -393,21 +393,6 @@ string DateTime::toDateTimeString(const string& dateSep,
 ///////////////////////////////////////////////////////////////////////////////
 // class Timestamp
 
-Timestamp::Timestamp()
-{
-    update();
-}
-
-Timestamp::Timestamp(TimeVal value)
-{
-    value_ = value;
-}
-
-Timestamp::Timestamp(const Timestamp& src)
-{
-    value_ = src.value_;
-}
-
 //-----------------------------------------------------------------------------
 // 描述: 返回当前时间戳
 //-----------------------------------------------------------------------------

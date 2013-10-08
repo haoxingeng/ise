@@ -282,6 +282,9 @@ protected:
     void executeDelegatedFunctors();
     void executeFinalizer();
 
+    int calcLoopWaitTimeout();
+    void processExpiredTimers();
+
 private:
     TimerId addTimer(Timestamp expiration, double interval, const TimerCallback& callback);
     void checkTimeout();
@@ -296,6 +299,8 @@ private:
     TimerQueue timerQueue_;
 
     friend class TcpEventLoopThread;
+    friend class IocpObject;
+    friend class EpollObject;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -682,7 +687,7 @@ private:
 class IocpObject : boost::noncopyable
 {
 public:
-    IocpObject();
+    IocpObject(TcpEventLoop *eventLoop);
     virtual ~IocpObject();
 
     bool associateHandle(SOCKET socketHandle);
@@ -712,6 +717,7 @@ private:
     static SeqNumberAlloc taskSeqAlloc_;
     static IocpPendingCounter pendingCounter_;
 
+    TcpEventLoop *eventLoop_;
     HANDLE iocpHandle_;
 
     friend class AutoFinalizer;
@@ -805,7 +811,7 @@ public:
     typedef boost::function<void (TcpConnection *connection, EVENT_TYPE eventType)> NotifyEventCallback;
 
 public:
-    EpollObject();
+    EpollObject(TcpEventLoop *eventLoop);
     ~EpollObject();
 
     void poll();
@@ -829,6 +835,7 @@ private:
     void processEvents(int eventCount);
 
 private:
+    TcpEventLoop *eventLoop_;        // 所属 EventLoop
     int epollFd_;                    // EPoll 的文件描述符
     EventList events_;               // 存放 epoll_wait() 返回的事件
     EventPipe pipeFds_;              // 用于唤醒 epoll_wait() 的管道

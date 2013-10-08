@@ -495,12 +495,44 @@ void TcpEventLoop::executeFinalizer()
 }
 
 //-----------------------------------------------------------------------------
+// 描述: 在事件循环进入等待前，计算等待超时时间 (毫秒)
+//-----------------------------------------------------------------------------
+int TcpEventLoop::calcLoopWaitTimeout()
+{
+    int result = TIMEOUT_INFINITE;
+    Timestamp expiration;
+
+    if (timerQueue_.getNearestExpiration(expiration))
+    {
+        Timestamp now(Timestamp::now());
+        if (expiration <= now)
+            result = 0;
+        else
+            result = ise::max((int)((expiration - now) / MICROSECS_PER_MILLISEC), 1);
+    }
+
+    return result;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 事件循环等待完毕后，处理定时器事件
+//-----------------------------------------------------------------------------
+void TcpEventLoop::processExpiredTimers()
+{
+    timerQueue_.processExpiredTimers(Timestamp::now());
+}
+
+//-----------------------------------------------------------------------------
 // 描述: 添加定时器 (线程安全)
 //-----------------------------------------------------------------------------
 TimerId TcpEventLoop::addTimer(Timestamp expiration, double interval, const TimerCallback& callback)
 {
     Timer *timer = new Timer(expiration, interval, callback);
-    executeInLoop(boost::bind(&TimerQueue::addTimer, &timerQueue_, timer));
+
+    // 此处必须调用 delegateToLoop，而不可以是 executeInLoop，因为前者能保证 wakeupLoop，
+    // 从而马上重新计算事件循环的等待超时时间。
+    delegateToLoop(boost::bind(&TimerQueue::addTimer, &timerQueue_, timer));
+
     return timer->timerId();
 }
 
@@ -1616,7 +1648,8 @@ IocpPendingCounter IocpObject::pendingCounter_;
 
 //-----------------------------------------------------------------------------
 
-IocpObject::IocpObject() :
+IocpObject::IocpObject(TcpEventLoop *eventLoop) :
+    eventLoop_(eventLoop),
     iocpHandle_(0)
 {
     initialize();
@@ -1670,8 +1703,6 @@ void IocpObject::work()
     ERROR_SUCCESS (0), with *lpOverlapped non-NULL and lpNumberOfBytes equal zero.
     */
 
-    const int IOCP_WAIT_TIMEOUT = 1000*1;  // ms
-
     while (true)
     {
         IocpOverlappedData *overlappedPtr = NULL;
@@ -1698,8 +1729,19 @@ void IocpObject::work()
             }
         } finalizer(*this, overlappedPtr);
 
-        if (::GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &nTemp,
-            (LPOVERLAPPED*)&overlappedPtr, IOCP_WAIT_TIMEOUT))
+        // 计算等待超时时间 (毫秒)
+        int timeout = eventLoop_->calcLoopWaitTimeout();
+
+        // 等待事件
+        BOOL ret = ::GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &nTemp,
+            (LPOVERLAPPED*)&overlappedPtr, timeout);
+
+        // 处理定时器事件
+        if (timeout != TIMEOUT_INFINITE)
+            eventLoop_->processExpiredTimers();
+
+        // 处理IO事件
+        if (ret)
         {
             if (overlappedPtr != NULL && bytesTransferred == 0)
             {
@@ -1874,7 +1916,7 @@ void IocpObject::invokeCallback(const IocpTaskData& taskData)
 
 WinTcpEventLoop::WinTcpEventLoop()
 {
-    iocpObject_ = new IocpObject();
+    iocpObject_ = new IocpObject(this);
 }
 
 WinTcpEventLoop::~WinTcpEventLoop()
@@ -2137,7 +2179,8 @@ void LinuxTcpConnection::afterPostRecvTask(const TcpConnectionPtr& thisObj)
 ///////////////////////////////////////////////////////////////////////////////
 // class EpollObject
 
-EpollObject::EpollObject()
+EpollObject::EpollObject(TcpEventLoop *eventLoop) :
+    eventLoop_(eventLoop)
 {
     events_.resize(INITIAL_EVENT_SIZE);
     createEpoll();
@@ -2155,9 +2198,13 @@ EpollObject::~EpollObject()
 //-----------------------------------------------------------------------------
 void EpollObject::poll()
 {
-    const int EPOLL_WAIT_TIMEOUT = 1000*1;  // ms
+    int timeout = eventLoop_->calcLoopWaitTimeout();
 
-    int eventCount = ::epoll_wait(epollFd_, &events_[0], (int)events_.size(), EPOLL_WAIT_TIMEOUT);
+    int eventCount = ::epoll_wait(epollFd_, &events_[0], (int)events_.size(), timeout);
+
+    if (timeout != TIMEOUT_INFINITE)
+        eventLoop_->processExpiredTimers();
+
     if (eventCount > 0)
     {
         processEvents(eventCount);
@@ -2350,7 +2397,7 @@ enum EPOLL_EVENTS
 
 LinuxTcpEventLoop::LinuxTcpEventLoop()
 {
-    epollObject_ = new EpollObject();
+    epollObject_ = new EpollObject(this);
     epollObject_->setNotifyEventCallback(boost::bind(&LinuxTcpEventLoop::onEpollNotifyEvent, this, _1, _2));
 }
 

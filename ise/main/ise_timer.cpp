@@ -42,8 +42,8 @@ Timer::Timer(Timestamp expiration, double interval, const TimerCallback& callbac
     expiration_(expiration),
     interval_(interval),
     repeat_(interval > 0.0),
-    callback_(callback),
-    timerId_(s_timerIdAlloc.allocId())
+    timerId_(s_timerIdAlloc.allocId()),
+    callback_(callback)
 {
     // nothing
 }
@@ -139,7 +139,7 @@ bool TimerQueue::getNearestExpiration(Timestamp& expiration)
 void TimerQueue::processExpiredTimers(Timestamp now)
 {
     std::vector<Timer*> expiredTimers;
-    TimerItem timerItem(now, reinterpret_cast<Timer*>(MAXUINT_PTR));
+    TimerItem timerItem(now, reinterpret_cast<Timer*>(std::numeric_limits<uintptr_t>::max()));
 
     TimerList::iterator bound = timerList_.upper_bound(timerItem);
     for (TimerList::iterator iter = timerList_.begin(); iter != bound;)

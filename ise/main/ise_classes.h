@@ -191,9 +191,9 @@ public:
     typedef INT64 TimeDiff;  // difference between two timestamps in microseconds
 
 public:
-    Timestamp();
-    explicit Timestamp(TimeVal value);
-    Timestamp(const Timestamp& src);
+    Timestamp() { value_ = 0; }
+    explicit Timestamp(TimeVal value) { value_ = value; }
+    Timestamp(const Timestamp& src) { value_ = src.value_; }
 
     static Timestamp now();
 
