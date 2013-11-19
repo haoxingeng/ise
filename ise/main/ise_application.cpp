@@ -442,6 +442,7 @@ IseMainServer::IseMainServer() :
     tcpServer_(NULL),
     assistorServer_(NULL),
     scheduleTaskMgr_(NULL),
+    timerManager_(NULL),
     tcpConnector_(NULL),
     sysThreadMgr_(NULL)
 {
@@ -459,6 +460,9 @@ IseMainServer::~IseMainServer()
 //-----------------------------------------------------------------------------
 void IseMainServer::initialize()
 {
+    // 定时器管理器
+    timerManager_ = new TimerManager();
+
     // 初始化 UDP 服务器
     if (iseApp().iseOptions().getServerType() & ST_UDP)
     {
@@ -535,6 +539,12 @@ void IseMainServer::finalize()
         delete sysThreadMgr_;
         sysThreadMgr_ = NULL;
     }
+
+    if (timerManager_)
+    {
+        delete timerManager_;
+        timerManager_ = NULL;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -576,6 +586,14 @@ ScheduleTaskMgr& IseMainServer::getScheduleTaskMgr()
 {
     ISE_ASSERT(scheduleTaskMgr_ != NULL);
     return *scheduleTaskMgr_;
+}
+
+//-----------------------------------------------------------------------------
+
+TimerManager& IseMainServer::getTimerManager()
+{
+    ISE_ASSERT(timerManager_ != NULL);
+    return *timerManager_;
 }
 
 //-----------------------------------------------------------------------------

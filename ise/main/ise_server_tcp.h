@@ -91,6 +91,7 @@
 #include "ise/main/ise_socket.h"
 #include "ise/main/ise_exceptions.h"
 #include "ise/main/ise_timer.h"
+#include "ise/main/ise_event_loop.h"
 
 #ifdef ISE_WINDOWS
 #include <windows.h>
@@ -107,7 +108,6 @@ namespace ise
 // 提前声明
 
 class IoBuffer;
-class TcpEventLoopThread;
 class TcpEventLoop;
 class TcpEventLoopList;
 class TcpConnection;
@@ -118,16 +118,11 @@ class TcpConnector;
 #ifdef ISE_WINDOWS
 class WinTcpConnection;
 class WinTcpEventLoop;
-class IocpTaskData;
-class IocpBufferAllocator;
-class IocpPendingCounter;
-class IocpObject;
 #endif
 
 #ifdef ISE_LINUX
 class LinuxTcpConnection;
 class LinuxTcpEventLoop;
-class EpollObject;
 #endif
 
 class MainTcpServer;
@@ -220,116 +215,49 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpEventLoopThread - 事件循环执行线程
+// class TcpEventLoop - 事件循环类
 
-class TcpEventLoopThread : public Thread
+class TcpEventLoop : public OsEventLoop
 {
 public:
-    TcpEventLoopThread(TcpEventLoop& eventLoop);
-protected:
-    virtual void execute();
-    virtual void afterExecute();
-private:
-    TcpEventLoop& eventLoop_;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class TcpEventLoop - 事件循环基类
-
-class TcpEventLoop : boost::noncopyable
-{
-public:
-    typedef std::vector<Functor> Functors;
     typedef std::map<string, TcpConnectionPtr> TcpConnectionMap;  // <connectionName, TcpConnectionPtr>
-
-    struct FunctorList
-    {
-        Functors items;
-        Mutex mutex;
-    };
 
 public:
     TcpEventLoop();
     virtual ~TcpEventLoop();
-
-    void start();
-    void stop(bool force, bool waitFor);
-
-    bool isRunning();
-    bool isInLoopThread();
-    void assertInLoopThread();
-    void executeInLoop(const Functor& functor);
-    void delegateToLoop(const Functor& functor);
-    void addFinalizer(const Functor& finalizer);
-
-    TimerId executeAt(Timestamp time, const TimerCallback& callback);
-    TimerId executeAfter(double delay, const TimerCallback& callback);
-    TimerId executeEvery(double interval, const TimerCallback& callback);
-    void cancelTimer(TimerId timerId);
 
     void addConnection(TcpConnection *connection);
     void removeConnection(TcpConnection *connection);
     void clearConnections();
 
 protected:
-    virtual void doLoopWork(Thread *thread) = 0;
-    virtual void wakeupLoop() {}
+    virtual void runLoop(Thread *thread);
     virtual void registerConnection(TcpConnection *connection) = 0;
     virtual void unregisterConnection(TcpConnection *connection) = 0;
 
-protected:
-    void runLoop(Thread *thread);
-    void executeDelegatedFunctors();
-    void executeFinalizer();
-
-    int calcLoopWaitTimeout();
-    void processExpiredTimers();
-
 private:
-    TimerId addTimer(Timestamp expiration, double interval, const TimerCallback& callback);
     void checkTimeout();
 
 private:
-    TcpEventLoopThread *thread_;
-    THREAD_ID loopThreadId_;
     TcpConnectionMap tcpConnMap_;
-    FunctorList delegatedFunctors_;
-    FunctorList finalizers_;
-    UINT64 lastCheckTimeoutTicks_;
-    TimerQueue timerQueue_;
-
-    friend class TcpEventLoopThread;
-    friend class IocpObject;
-    friend class EpollObject;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // class TcpEventLoopList - 事件循环列表
 
-class TcpEventLoopList : boost::noncopyable
+class TcpEventLoopList : public EventLoopList
 {
 public:
-    enum { MAX_LOOP_COUNT = 64 };
-
-public:
-    TcpEventLoopList(int loopCount);
+    explicit TcpEventLoopList(int loopCount);
     virtual ~TcpEventLoopList();
-
-    void start();
-    void stop();
 
     bool registerToEventLoop(BaseTcpConnection *connection, int eventLoopIndex = -1);
 
-    int getCount() { return items_.getCount(); }
-    TcpEventLoop* getItem(int index) { return items_[index]; }
+    TcpEventLoop* getItem(int index) { return (TcpEventLoop*)EventLoopList::getItem(index); }
     TcpEventLoop* operator[] (int index) { return getItem(index); }
 
-private:
-    void setCount(int count);
-
-private:
-    ObjectList<TcpEventLoop> items_;
-    Mutex mutex_;
+protected:
+    virtual EventLoop* createEventLoop();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -471,6 +399,7 @@ private:
     mutable AtomicInt connCount_;
 
     friend class TcpConnection;
+    friend class MainTcpServer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -540,17 +469,6 @@ private:
 #ifdef ISE_WINDOWS
 
 ///////////////////////////////////////////////////////////////////////////////
-// 类型定义
-
-enum IOCP_TASK_TYPE
-{
-    ITT_SEND = 1,
-    ITT_RECV = 2,
-};
-
-typedef boost::function<void (const IocpTaskData& taskData)> IocpCallback;
-
-///////////////////////////////////////////////////////////////////////////////
 // class WinTcpConnection
 
 class WinTcpConnection : public TcpConnection
@@ -584,164 +502,16 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IocpTaskData
-
-class IocpTaskData
-{
-public:
-    IocpTaskData();
-
-    HANDLE getIocpHandle() const { return iocpHandle_; }
-    HANDLE getFileHandle() const { return fileHandle_; }
-    IOCP_TASK_TYPE getTaskType() const { return taskType_; }
-    UINT getTaskSeqNum() const { return taskSeqNum_; }
-    PVOID getCaller() const { return caller_; }
-    const Context& getContext() const { return context_; }
-    char* getEntireDataBuf() const { return (char*)entireDataBuf_; }
-    int getEntireDataSize() const { return entireDataSize_; }
-    char* getDataBuf() const { return (char*)wsaBuffer_.buf; }
-    int getDataSize() const { return wsaBuffer_.len; }
-    int getBytesTrans() const { return bytesTrans_; }
-    int getErrorCode() const { return errorCode_; }
-    const IocpCallback& getCallback() const { return callback_; }
-
-private:
-    HANDLE iocpHandle_;
-    HANDLE fileHandle_;
-    IOCP_TASK_TYPE taskType_;
-    UINT taskSeqNum_;
-    PVOID caller_;
-    Context context_;
-    PVOID entireDataBuf_;
-    int entireDataSize_;
-    WSABUF wsaBuffer_;
-    int bytesTrans_;
-    int errorCode_;
-    IocpCallback callback_;
-
-    friend class IocpObject;
-};
-
-#pragma pack(1)
-struct IocpOverlappedData
-{
-    OVERLAPPED overlapped;
-    IocpTaskData taskData;
-};
-#pragma pack()
-
-///////////////////////////////////////////////////////////////////////////////
-// class IocpBufferAllocator
-
-class IocpBufferAllocator : boost::noncopyable
-{
-public:
-    IocpBufferAllocator(int bufferSize);
-    ~IocpBufferAllocator();
-
-    PVOID allocBuffer();
-    void returnBuffer(PVOID buffer);
-
-    int getUsedCount() const { return usedCount_; }
-
-private:
-    void clear();
-
-private:
-    int bufferSize_;
-    PointerList items_;
-    int usedCount_;
-    Mutex mutex_;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class IocpPendingCounter
-
-class IocpPendingCounter : boost::noncopyable
-{
-public:
-    IocpPendingCounter() {}
-    virtual ~IocpPendingCounter() {}
-
-    void inc(PVOID caller, IOCP_TASK_TYPE taskType);
-    void dec(PVOID caller, IOCP_TASK_TYPE taskType);
-    int get(PVOID caller);
-    int get(IOCP_TASK_TYPE taskType);
-
-private:
-    struct CountData
-    {
-        int sendCount;
-        int recvCount;
-    };
-
-    typedef std::map<PVOID, CountData> Items;   // <caller, CountData>
-
-    Items items_;
-    Mutex mutex_;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// class IocpObject
-
-class IocpObject : boost::noncopyable
-{
-public:
-    IocpObject(TcpEventLoop *eventLoop);
-    virtual ~IocpObject();
-
-    bool associateHandle(SOCKET socketHandle);
-    bool isComplete(PVOID caller);
-
-    void work();
-    void wakeup();
-
-    void send(SOCKET socketHandle, PVOID buffer, int size, int offset,
-        const IocpCallback& callback, PVOID caller, const Context& context);
-    void recv(SOCKET socketHandle, PVOID buffer, int size, int offset,
-        const IocpCallback& callback, PVOID caller, const Context& context);
-
-private:
-    void initialize();
-    void finalize();
-    void throwGeneralError();
-    IocpOverlappedData* createOverlappedData(IOCP_TASK_TYPE taskType,
-        HANDLE fileHandle, PVOID buffer, int size, int offset,
-        const IocpCallback& callback, PVOID caller, const Context& context);
-    void destroyOverlappedData(IocpOverlappedData *ovDataPtr);
-    void postError(int errorCode, IocpOverlappedData *ovDataPtr);
-    void invokeCallback(const IocpTaskData& taskData);
-
-private:
-    static IocpBufferAllocator bufferAlloc_;
-    static SeqNumberAlloc taskSeqAlloc_;
-    static IocpPendingCounter pendingCounter_;
-
-    TcpEventLoop *eventLoop_;
-    HANDLE iocpHandle_;
-
-    friend class AutoFinalizer;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // class WinTcpEventLoop
 
 class WinTcpEventLoop : public TcpEventLoop
 {
 public:
-    WinTcpEventLoop();
-    virtual ~WinTcpEventLoop();
-
     IocpObject* getIocpObject() { return iocpObject_; }
 
 protected:
-    virtual void doLoopWork(Thread *thread);
-    virtual void wakeupLoop();
     virtual void registerConnection(TcpConnection *connection);
     virtual void unregisterConnection(TcpConnection *connection);
-
-private:
-    IocpObject *iocpObject_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -790,59 +560,6 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class EpollObject - Linux EPoll 功能封装
-
-class EpollObject
-{
-public:
-    enum { INITIAL_EVENT_SIZE = 32 };
-
-    enum EVENT_TYPE
-    {
-        ET_NONE        = 0,
-        ET_ERROR       = 1,
-        ET_ALLOW_SEND  = 2,
-        ET_ALLOW_RECV  = 3,
-    };
-
-    typedef std::vector<struct epoll_event> EventList;
-    typedef int EventPipe[2];
-
-    typedef boost::function<void (TcpConnection *connection, EVENT_TYPE eventType)> NotifyEventCallback;
-
-public:
-    EpollObject(TcpEventLoop *eventLoop);
-    ~EpollObject();
-
-    void poll();
-    void wakeup();
-
-    void addConnection(TcpConnection *connection, bool enableSend, bool enableRecv);
-    void updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv);
-    void removeConnection(TcpConnection *connection);
-
-    void setNotifyEventCallback(const NotifyEventCallback& callback);
-
-private:
-    void createEpoll();
-    void destroyEpoll();
-    void createPipe();
-    void destroyPipe();
-
-    void epollControl(int operation, void *param, int handle, bool enableSend, bool enableRecv);
-
-    void processPipeEvent();
-    void processEvents(int eventCount);
-
-private:
-    TcpEventLoop *eventLoop_;        // 所属 EventLoop
-    int epollFd_;                    // EPoll 的文件描述符
-    EventList events_;               // 存放 epoll_wait() 返回的事件
-    EventPipe pipeFds_;              // 用于唤醒 epoll_wait() 的管道
-    NotifyEventCallback onNotifyEvent_;
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // class LinuxTcpEventLoop
 
 class LinuxTcpEventLoop : public TcpEventLoop
@@ -854,16 +571,11 @@ public:
     void updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv);
 
 protected:
-    virtual void doLoopWork(Thread *thread);
-    virtual void wakeupLoop();
     virtual void registerConnection(TcpConnection *connection);
     virtual void unregisterConnection(TcpConnection *connection);
 
 private:
-    void onEpollNotifyEvent(TcpConnection *connection, EpollObject::EVENT_TYPE eventType);
-
-private:
-    EpollObject *epollObject_;
+    void onEpollNotifyEvent(BaseTcpConnection *connection, EpollObject::EVENT_TYPE eventType);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -884,6 +596,7 @@ public:
 
     TcpServer& getTcpServer(int index);
     TcpEventLoopList& getTcpClientEventLoopList();
+    EventLoop* findEventLoop(THREAD_ID loopThreadId);
 
 private:
     void createTcpServerList();

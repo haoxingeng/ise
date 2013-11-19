@@ -27,6 +27,8 @@
 
 #include "ise/main/ise_timer.h"
 #include "ise/main/ise_err_msgs.h"
+#include "ise/main/ise_event_loop.h"
+#include "ise/main/ise_application.h"
 
 using namespace ise;
 
@@ -181,6 +183,79 @@ void TimerQueue::clearTimers()
         delete iter->second;
     timerList_.clear();
     timerIdMap_.clear();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// class TimerManager
+
+TimerManager::TimerManager() :
+    eventLoopList_(NULL)
+{
+    // nothing
+}
+
+TimerManager::~TimerManager()
+{
+    if (eventLoopList_)
+    {
+        eventLoopList_->stop();
+        delete eventLoopList_;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 添加定时器 (指定时间执行)
+//-----------------------------------------------------------------------------
+TimerId TimerManager::executeAt(Timestamp time, const TimerCallback& callback)
+{
+    return getTimerEventLoop().executeAt(time, callback);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 添加定时器 (在 delay 秒后执行)
+//-----------------------------------------------------------------------------
+TimerId TimerManager::executeAfter(double delay, const TimerCallback& callback)
+{
+    return getTimerEventLoop().executeAfter(delay, callback);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 添加定时器 (每 interval 秒循环执行)
+//-----------------------------------------------------------------------------
+TimerId TimerManager::executeEvery(double interval, const TimerCallback& callback)
+{
+    return getTimerEventLoop().executeEvery(interval, callback);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 取消定时器
+//-----------------------------------------------------------------------------
+void TimerManager::cancelTimer(TimerId timerId)
+{
+    getTimerEventLoop().cancelTimer(timerId);
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 取得用于放置定时器的事件循环
+//-----------------------------------------------------------------------------
+EventLoop& TimerManager::getTimerEventLoop()
+{
+    EventLoop *result = NULL;
+
+    if (iseApp().iseOptions().getServerType() & ST_TCP)
+        result = iseApp().mainServer().getMainTcpServer().findEventLoop(getCurThreadId());
+
+    if (!result)
+    {
+        if (eventLoopList_ == NULL)
+        {
+            eventLoopList_ = new EventLoopList(1);
+            eventLoopList_->start();
+        }
+        result = eventLoopList_->getItem(0);
+    }
+
+    return *result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -296,6 +296,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\ise\main\ise_epoll.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_event_loop.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\ise\main\ise_exceptions.cpp"
 				>
 			</File>
@@ -305,6 +313,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\ise\main\ise_inspector.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_iocp.cpp"
 				>
 			</File>
 			<File
@@ -374,7 +386,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\ise\main\ise_epoll.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\ise\main\ise_err_msgs.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_event_loop.h"
 				>
 			</File>
 			<File
@@ -391,6 +411,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\ise\main\ise_inspector.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\ise\main\ise_iocp.h"
 				>
 			</File>
 			<File

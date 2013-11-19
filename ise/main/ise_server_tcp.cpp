@@ -211,36 +211,9 @@ void IoBuffer::makeSpace(int moreBytes)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class TcpEventLoopThread
-
-TcpEventLoopThread::TcpEventLoopThread(TcpEventLoop& eventLoop) :
-    eventLoop_(eventLoop)
-{
-    setAutoDelete(false);
-}
-
-//-----------------------------------------------------------------------------
-
-void TcpEventLoopThread::execute()
-{
-    eventLoop_.loopThreadId_ = getThreadId();
-    eventLoop_.runLoop(this);
-}
-
-//-----------------------------------------------------------------------------
-
-void TcpEventLoopThread::afterExecute()
-{
-    eventLoop_.loopThreadId_ = 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // class TcpEventLoop
 
-TcpEventLoop::TcpEventLoop() :
-    thread_(NULL),
-    loopThreadId_(0),
-    lastCheckTimeoutTicks_(0)
+TcpEventLoop::TcpEventLoop()
 {
     // nothing
 }
@@ -248,141 +221,6 @@ TcpEventLoop::TcpEventLoop() :
 TcpEventLoop::~TcpEventLoop()
 {
     tcpConnMap_.clear();
-    stop(false, true);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 启动工作线程
-//-----------------------------------------------------------------------------
-void TcpEventLoop::start()
-{
-    if (!thread_)
-    {
-        thread_ = new TcpEventLoopThread(*this);
-        thread_->run();
-    }
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 停止工作线程
-//-----------------------------------------------------------------------------
-void TcpEventLoop::stop(bool force, bool waitFor)
-{
-    if (thread_ && thread_->isRunning())
-    {
-        if (force)
-        {
-            thread_->kill();
-            thread_ = NULL;
-            waitFor = false;
-        }
-        else
-        {
-            thread_->terminate();
-            wakeupLoop();
-        }
-
-        if (waitFor)
-        {
-            thread_->waitFor();
-            delete thread_;
-            thread_ = NULL;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 判断工作线程当前是否正在运行
-//-----------------------------------------------------------------------------
-bool TcpEventLoop::isRunning()
-{
-    return (thread_ != NULL && thread_->isRunning());
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 判断当前调用此方法的线程和此 eventLoop 所属线程是不是同一个线程
-//-----------------------------------------------------------------------------
-bool TcpEventLoop::isInLoopThread()
-{
-    return loopThreadId_ == getCurThreadId();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 确保当前调用在事件循环线程内
-//-----------------------------------------------------------------------------
-void TcpEventLoop::assertInLoopThread()
-{
-    ISE_ASSERT(isInLoopThread());
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 在事件循环线程中立即执行指定的仿函数
-// 备注: 线程安全
-//-----------------------------------------------------------------------------
-void TcpEventLoop::executeInLoop(const Functor& functor)
-{
-    if (isInLoopThread())
-        functor();
-    else
-        delegateToLoop(functor);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 将指定的仿函数委托给事件循环线程执行。线程在完成当前一轮事件循环后再
-//       执行被委托的仿函数。
-// 备注: 线程安全
-//-----------------------------------------------------------------------------
-void TcpEventLoop::delegateToLoop(const Functor& functor)
-{
-    {
-        AutoLocker locker(delegatedFunctors_.mutex);
-        delegatedFunctors_.items.push_back(functor);
-    }
-
-    wakeupLoop();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 添加一个清理器 (finalizer) 到事件循环中，在每次循环的最后会执行它们
-//-----------------------------------------------------------------------------
-void TcpEventLoop::addFinalizer(const Functor& finalizer)
-{
-    AutoLocker locker(finalizers_.mutex);
-    finalizers_.items.push_back(finalizer);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 添加定时器 (指定时间执行)
-//-----------------------------------------------------------------------------
-TimerId TcpEventLoop::executeAt(Timestamp time, const TimerCallback& callback)
-{
-    return addTimer(time, 0, callback);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 添加定时器 (在 delay 秒后执行)
-//-----------------------------------------------------------------------------
-TimerId TcpEventLoop::executeAfter(double delay, const TimerCallback& callback)
-{
-    Timestamp time(Timestamp::now() + delay * MICROSECS_PER_SECOND);
-    return addTimer(time, 0, callback);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 添加定时器 (每 interval 秒循环执行)
-//-----------------------------------------------------------------------------
-TimerId TcpEventLoop::executeEvery(double interval, const TimerCallback& callback)
-{
-    Timestamp time(Timestamp::now() + interval * MICROSECS_PER_SECOND);
-    return addTimer(time, interval, callback);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 取消定时器
-//-----------------------------------------------------------------------------
-void TcpEventLoop::cancelTimer(TimerId timerId)
-{
-    executeInLoop(boost::bind(&TimerQueue::cancelTimer, &timerQueue_, timerId));
 }
 
 //-----------------------------------------------------------------------------
@@ -448,6 +286,7 @@ void TcpEventLoop::runLoop(Thread *thread)
 	        {
                 clearConnections();
                 isTerminated = true;
+                wakeupLoop();
 	        }
 
             doLoopWork(thread);
@@ -462,78 +301,6 @@ void TcpEventLoop::runLoop(Thread *thread)
         catch (...)
         {}
     }
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 执行被委托的仿函数
-//-----------------------------------------------------------------------------
-void TcpEventLoop::executeDelegatedFunctors()
-{
-    Functors functors;
-    {
-        AutoLocker locker(delegatedFunctors_.mutex);
-        functors.swap(delegatedFunctors_.items);
-    }
-
-    for (size_t i = 0; i < functors.size(); ++i)
-        functors[i]();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 执行所有清理器
-//-----------------------------------------------------------------------------
-void TcpEventLoop::executeFinalizer()
-{
-    Functors finalizers;
-    {
-        AutoLocker locker(finalizers_.mutex);
-        finalizers.swap(finalizers_.items);
-    }
-
-    for (size_t i = 0; i < finalizers.size(); ++i)
-        finalizers[i]();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 在事件循环进入等待前，计算等待超时时间 (毫秒)
-//-----------------------------------------------------------------------------
-int TcpEventLoop::calcLoopWaitTimeout()
-{
-    int result = TIMEOUT_INFINITE;
-    Timestamp expiration;
-
-    if (timerQueue_.getNearestExpiration(expiration))
-    {
-        Timestamp now(Timestamp::now());
-        if (expiration <= now)
-            result = 0;
-        else
-            result = ise::max((int)((expiration - now) / MICROSECS_PER_MILLISEC), 1);
-    }
-
-    return result;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 事件循环等待完毕后，处理定时器事件
-//-----------------------------------------------------------------------------
-void TcpEventLoop::processExpiredTimers()
-{
-    timerQueue_.processExpiredTimers(Timestamp::now());
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 添加定时器 (线程安全)
-//-----------------------------------------------------------------------------
-TimerId TcpEventLoop::addTimer(Timestamp expiration, double interval, const TimerCallback& callback)
-{
-    Timer *timer = new Timer(expiration, interval, callback);
-
-    // 此处必须调用 delegateToLoop，而不可以是 executeInLoop，因为前者能保证 wakeupLoop，
-    // 从而马上重新计算事件循环的等待超时时间。
-    delegateToLoop(boost::bind(&TimerQueue::addTimer, &timerQueue_, timer));
-
-    return timer->timerId();
 }
 
 //-----------------------------------------------------------------------------
@@ -560,54 +327,14 @@ void TcpEventLoop::checkTimeout()
 // class TcpEventLoopList
 
 TcpEventLoopList::TcpEventLoopList(int loopCount) :
-    items_(false, true)
+    EventLoopList(loopCount)
 {
-    setCount(loopCount);
+    // nothing
 }
 
 TcpEventLoopList::~TcpEventLoopList()
 {
     // nothing
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 启动全部 eventLoop 的工作线程
-//-----------------------------------------------------------------------------
-void TcpEventLoopList::start()
-{
-    for (int i = 0; i < items_.getCount(); i++)
-        items_[i]->start();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 全部 eventLoop 停止工作
-//-----------------------------------------------------------------------------
-void TcpEventLoopList::stop()
-{
-    const int MAX_WAIT_FOR_SECS = 10;   // (秒)
-    const double SLEEP_INTERVAL = 0.5;  // (秒)
-
-    // 通知停止
-    for (int i = 0; i < items_.getCount(); i++)
-        items_[i]->stop(false, false);
-
-    // 等待停止
-    double waitSecs = 0;
-    while (waitSecs < MAX_WAIT_FOR_SECS)
-    {
-        int runningCount = 0;
-        for (int i = 0; i < items_.getCount(); i++)
-            if (items_[i]->isRunning()) runningCount++;
-
-        if (runningCount == 0) break;
-
-        sleepSeconds(SLEEP_INTERVAL, true);
-        waitSecs += SLEEP_INTERVAL;
-    }
-
-    // 强行停止
-    for (int i = 0; i < items_.getCount(); i++)
-        items_[i]->stop(true, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -647,21 +374,15 @@ bool TcpEventLoopList::registerToEventLoop(BaseTcpConnection *connection, int ev
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 设置 eventLoop 的个数
-//-----------------------------------------------------------------------------
-void TcpEventLoopList::setCount(int count)
-{
-    count = ensureRange(count, 1, (int)MAX_LOOP_COUNT);
 
-    for (int i = 0; i < count; i++)
-    {
+EventLoop* TcpEventLoopList::createEventLoop()
+{
 #ifdef ISE_WINDOWS
-        items_.add(new WinTcpEventLoop());
+    return new WinTcpEventLoop();
 #endif
 #ifdef ISE_LINUX
-        items_.add(new LinuxTcpEventLoop());
+    return new LinuxTcpEventLoop();
 #endif
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1485,461 +1206,7 @@ void WinTcpConnection::onRecvCallback(const IocpTaskData& taskData)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class IocpTaskData
-
-IocpTaskData::IocpTaskData() :
-    iocpHandle_(INVALID_HANDLE_VALUE),
-    fileHandle_(INVALID_HANDLE_VALUE),
-    taskType_((IOCP_TASK_TYPE)0),
-    taskSeqNum_(0),
-    caller_(0),
-    entireDataBuf_(0),
-    entireDataSize_(0),
-    bytesTrans_(0),
-    errorCode_(0)
-{
-    wsaBuffer_.buf = NULL;
-    wsaBuffer_.len = 0;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// class IocpBufferAllocator
-
-IocpBufferAllocator::IocpBufferAllocator(int bufferSize) :
-    bufferSize_(bufferSize),
-    usedCount_(0)
-{
-    // nothing
-}
-
-//-----------------------------------------------------------------------------
-
-IocpBufferAllocator::~IocpBufferAllocator()
-{
-    clear();
-}
-
-//-----------------------------------------------------------------------------
-
-PVOID IocpBufferAllocator::allocBuffer()
-{
-    AutoLocker locker(mutex_);
-    PVOID result;
-
-    if (!items_.isEmpty())
-    {
-        result = items_.last();
-        items_.del(items_.getCount() - 1);
-    }
-    else
-    {
-        result = new char[bufferSize_];
-        if (result == NULL)
-            iseThrowMemoryException();
-    }
-
-    usedCount_++;
-    return result;
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpBufferAllocator::returnBuffer(PVOID buffer)
-{
-    AutoLocker locker(mutex_);
-
-    if (buffer != NULL && items_.indexOf(buffer) == -1)
-    {
-        items_.add(buffer);
-        usedCount_--;
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpBufferAllocator::clear()
-{
-    AutoLocker locker(mutex_);
-
-    for (int i = 0; i < items_.getCount(); i++)
-        delete[] (char*)items_[i];
-    items_.clear();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// class IocpPendingCounter
-
-void IocpPendingCounter::inc(PVOID caller, IOCP_TASK_TYPE taskType)
-{
-    AutoLocker locker(mutex_);
-
-    Items::iterator iter = items_.find(caller);
-    if (iter == items_.end())
-    {
-        CountData Data = {0, 0};
-        iter = items_.insert(std::make_pair(caller, Data)).first;
-    }
-
-    if (taskType == ITT_SEND)
-        iter->second.sendCount++;
-    else if (taskType == ITT_RECV)
-        iter->second.recvCount++;
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpPendingCounter::dec(PVOID caller, IOCP_TASK_TYPE taskType)
-{
-    AutoLocker locker(mutex_);
-
-    Items::iterator iter = items_.find(caller);
-    if (iter != items_.end())
-    {
-        if (taskType == ITT_SEND)
-            iter->second.sendCount--;
-        else if (taskType == ITT_RECV)
-            iter->second.recvCount--;
-
-        if (iter->second.sendCount <= 0 && iter->second.recvCount <= 0)
-            items_.erase(iter);
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-int IocpPendingCounter::get(PVOID caller)
-{
-    AutoLocker locker(mutex_);
-
-    Items::iterator iter = items_.find(caller);
-    if (iter == items_.end())
-        return 0;
-    else
-        return ise::max(0, iter->second.sendCount + iter->second.recvCount);
-}
-
-//-----------------------------------------------------------------------------
-
-int IocpPendingCounter::get(IOCP_TASK_TYPE taskType)
-{
-    AutoLocker locker(mutex_);
-
-    int result = 0;
-    if (taskType == ITT_SEND)
-    {
-        for (Items::iterator iter = items_.begin(); iter != items_.end(); ++iter)
-            result += iter->second.sendCount;
-    }
-    else if (taskType == ITT_RECV)
-    {
-        for (Items::iterator iter = items_.begin(); iter != items_.end(); ++iter)
-            result += iter->second.recvCount;
-    }
-
-    return result;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// class IocpObject
-
-IocpBufferAllocator IocpObject::bufferAlloc_(sizeof(IocpOverlappedData));
-SeqNumberAlloc IocpObject::taskSeqAlloc_(0);
-IocpPendingCounter IocpObject::pendingCounter_;
-
-//-----------------------------------------------------------------------------
-
-IocpObject::IocpObject(TcpEventLoop *eventLoop) :
-    eventLoop_(eventLoop),
-    iocpHandle_(0)
-{
-    initialize();
-}
-
-//-----------------------------------------------------------------------------
-
-IocpObject::~IocpObject()
-{
-    finalize();
-}
-
-//-----------------------------------------------------------------------------
-
-bool IocpObject::associateHandle(SOCKET socketHandle)
-{
-    HANDLE h = ::CreateIoCompletionPort((HANDLE)socketHandle, iocpHandle_, 0, 0);
-    return (h != 0);
-}
-
-//-----------------------------------------------------------------------------
-
-bool IocpObject::isComplete(PVOID caller)
-{
-    return (pendingCounter_.get(caller) <= 0);
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::work()
-{
-    /*
-    FROM MSDN:
-
-    If the function dequeues a completion packet for a successful I/O operation from the completion port,
-    the return value is nonzero. The function stores information in the variables pointed to by the
-    lpNumberOfBytes, lpCompletionKey, and lpOverlapped parameters.
-
-    If *lpOverlapped is NULL and the function does not dequeue a completion packet from the completion port,
-    the return value is zero. The function does not store information in the variables pointed to by the
-    lpNumberOfBytes and lpCompletionKey parameters. To get extended error information, call GetLastError.
-    If the function did not dequeue a completion packet because the wait timed out, GetLastError returns
-    WAIT_TIMEOUT.
-
-    If *lpOverlapped is not NULL and the function dequeues a completion packet for a failed I/O operation
-    from the completion port, the return value is zero. The function stores information in the variables
-    pointed to by lpNumberOfBytes, lpCompletionKey, and lpOverlapped. To get extended error information,
-    call GetLastError.
-
-    If a socket handle associated with a completion port is closed, GetQueuedCompletionStatus returns
-    ERROR_SUCCESS (0), with *lpOverlapped non-NULL and lpNumberOfBytes equal zero.
-    */
-
-    while (true)
-    {
-        IocpOverlappedData *overlappedPtr = NULL;
-        DWORD bytesTransferred = 0, nTemp = 0;
-        int errorCode = 0;
-
-        struct AutoFinalizer
-        {
-        private:
-            IocpObject& iocpObject_;
-            IocpOverlappedData*& ovPtr_;
-        public:
-            AutoFinalizer(IocpObject& iocpObject, IocpOverlappedData*& ovPtr) :
-                iocpObject_(iocpObject), ovPtr_(ovPtr) {}
-            ~AutoFinalizer()
-            {
-                if (ovPtr_)
-                {
-                    iocpObject_.pendingCounter_.dec(
-                        ovPtr_->taskData.getCaller(),
-                        ovPtr_->taskData.getTaskType());
-                    iocpObject_.destroyOverlappedData(ovPtr_);
-                }
-            }
-        } finalizer(*this, overlappedPtr);
-
-        // 计算等待超时时间 (毫秒)
-        int timeout = eventLoop_->calcLoopWaitTimeout();
-
-        // 等待事件
-        BOOL ret = ::GetQueuedCompletionStatus(iocpHandle_, &bytesTransferred, &nTemp,
-            (LPOVERLAPPED*)&overlappedPtr, timeout);
-
-        // 处理定时器事件
-        if (timeout != TIMEOUT_INFINITE)
-            eventLoop_->processExpiredTimers();
-
-        // 处理IO事件
-        if (ret)
-        {
-            if (overlappedPtr != NULL && bytesTransferred == 0)
-            {
-                errorCode = overlappedPtr->taskData.getErrorCode();
-                if (errorCode == 0)
-                    errorCode = GetLastError();
-                if (errorCode == 0)
-                    errorCode = SOCKET_ERROR;
-            }
-        }
-        else
-        {
-            if (overlappedPtr != NULL)
-                errorCode = GetLastError();
-            else
-            {
-                if (GetLastError() != WAIT_TIMEOUT)
-                    throwGeneralError();
-            }
-        }
-
-        if (overlappedPtr != NULL)
-        {
-            IocpTaskData *taskPtr = &overlappedPtr->taskData;
-            taskPtr->bytesTrans_ = bytesTransferred;
-            if (taskPtr->errorCode_ == 0)
-                taskPtr->errorCode_ = errorCode;
-
-            invokeCallback(*taskPtr);
-        }
-        else
-            break;
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::wakeup()
-{
-    ::PostQueuedCompletionStatus(iocpHandle_, 0, 0, NULL);
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::send(SOCKET socketHandle, PVOID buffer, int size, int offset,
-    const IocpCallback& callback, PVOID caller, const Context& context)
-{
-    IocpOverlappedData *ovDataPtr;
-    IocpTaskData *taskPtr;
-    DWORD numberOfBytesSent;
-
-    pendingCounter_.inc(caller, ITT_SEND);
-
-    ovDataPtr = createOverlappedData(ITT_SEND, (HANDLE)socketHandle, buffer, size,
-        offset, callback, caller, context);
-    taskPtr = &(ovDataPtr->taskData);
-
-    if (::WSASend(socketHandle, &taskPtr->wsaBuffer_, 1, &numberOfBytesSent, 0,
-        (LPWSAOVERLAPPED)ovDataPtr, NULL) == SOCKET_ERROR)
-    {
-        if (GetLastError() != ERROR_IO_PENDING)
-            postError(GetLastError(), ovDataPtr);
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::recv(SOCKET socketHandle, PVOID buffer, int size, int offset,
-    const IocpCallback& callback, PVOID caller, const Context& context)
-{
-    IocpOverlappedData *ovDataPtr;
-    IocpTaskData *taskPtr;
-    DWORD nNumberOfBytesRecvd, flags = 0;
-
-    pendingCounter_.inc(caller, ITT_RECV);
-
-    ovDataPtr = createOverlappedData(ITT_RECV, (HANDLE)socketHandle, buffer, size,
-        offset, callback, caller, context);
-    taskPtr = &(ovDataPtr->taskData);
-
-    if (::WSARecv(socketHandle, &taskPtr->wsaBuffer_, 1, &nNumberOfBytesRecvd, &flags,
-        (LPWSAOVERLAPPED)ovDataPtr, NULL) == SOCKET_ERROR)
-    {
-        if (GetLastError() != ERROR_IO_PENDING)
-            postError(GetLastError(), ovDataPtr);
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::initialize()
-{
-    iocpHandle_ = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 1);
-    if (iocpHandle_ == 0)
-        throwGeneralError();
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::finalize()
-{
-    CloseHandle(iocpHandle_);
-    iocpHandle_ = 0;
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::throwGeneralError()
-{
-    iseThrowException(formatString(SEM_IOCP_ERROR, GetLastError()).c_str());
-}
-
-//-----------------------------------------------------------------------------
-
-IocpOverlappedData* IocpObject::createOverlappedData(IOCP_TASK_TYPE taskType,
-    HANDLE fileHandle, PVOID buffer, int size, int offset,
-    const IocpCallback& callback, PVOID caller, const Context& context)
-{
-    ISE_ASSERT(buffer != NULL);
-    ISE_ASSERT(size >= 0);
-    ISE_ASSERT(offset >= 0);
-    ISE_ASSERT(offset < size);
-
-    IocpOverlappedData *result = (IocpOverlappedData*)bufferAlloc_.allocBuffer();
-    memset(result, 0, sizeof(*result));
-
-    result->taskData.iocpHandle_ = iocpHandle_;
-    result->taskData.fileHandle_ = fileHandle;
-    result->taskData.taskType_ = taskType;
-    result->taskData.taskSeqNum_ = taskSeqAlloc_.allocId();
-    result->taskData.caller_ = caller;
-    result->taskData.context_ = context;
-    result->taskData.entireDataBuf_ = buffer;
-    result->taskData.entireDataSize_ = size;
-    result->taskData.wsaBuffer_.buf = (char*)buffer + offset;
-    result->taskData.wsaBuffer_.len = size - offset;
-    result->taskData.callback_ = callback;
-
-    return result;
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::destroyOverlappedData(IocpOverlappedData *ovDataPtr)
-{
-    // 很重要。ovDataPtr->taskData 中的对象需要析构。
-    // 比如 taskData.callback_ 中持有 TcpConnection 的 shared_ptr。
-    ovDataPtr->~IocpOverlappedData();
-
-    bufferAlloc_.returnBuffer(ovDataPtr);
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::postError(int errorCode, IocpOverlappedData *ovDataPtr)
-{
-    ovDataPtr->taskData.errorCode_ = errorCode;
-    ::PostQueuedCompletionStatus(iocpHandle_, 0, 0, LPOVERLAPPED(ovDataPtr));
-}
-
-//-----------------------------------------------------------------------------
-
-void IocpObject::invokeCallback(const IocpTaskData& taskData)
-{
-    const IocpCallback& callback = taskData.getCallback();
-    if (callback)
-        callback(taskData);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // class WinTcpEventLoop
-
-WinTcpEventLoop::WinTcpEventLoop()
-{
-    iocpObject_ = new IocpObject(this);
-}
-
-WinTcpEventLoop::~WinTcpEventLoop()
-{
-    stop(false, true);
-    delete iocpObject_;
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 执行单次事件循环中的工作
-//-----------------------------------------------------------------------------
-void WinTcpEventLoop::doLoopWork(Thread *thread)
-{
-    iocpObject_->work();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 唤醒事件循环中的阻塞操作
-//-----------------------------------------------------------------------------
-void WinTcpEventLoop::wakeupLoop()
-{
-    iocpObject_->wakeup();
-}
 
 //-----------------------------------------------------------------------------
 // 描述: 将新连接注册到事件循环中
@@ -2177,234 +1444,16 @@ void LinuxTcpConnection::afterPostRecvTask(const TcpConnectionPtr& thisObj)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class EpollObject
-
-EpollObject::EpollObject(TcpEventLoop *eventLoop) :
-    eventLoop_(eventLoop)
-{
-    events_.resize(INITIAL_EVENT_SIZE);
-    createEpoll();
-    createPipe();
-}
-
-EpollObject::~EpollObject()
-{
-    destroyPipe();
-    destroyEpoll();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 执行一次 EPoll 轮循
-//-----------------------------------------------------------------------------
-void EpollObject::poll()
-{
-    int timeout = eventLoop_->calcLoopWaitTimeout();
-
-    int eventCount = ::epoll_wait(epollFd_, &events_[0], (int)events_.size(), timeout);
-
-    if (timeout != TIMEOUT_INFINITE)
-        eventLoop_->processExpiredTimers();
-
-    if (eventCount > 0)
-    {
-        processEvents(eventCount);
-
-        if (eventCount == (int)events_.size())
-            events_.resize(eventCount * 2);
-    }
-    else if (eventCount < 0)
-    {
-        logger().writeStr(SEM_EPOLL_WAIT_ERROR);
-    }
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 唤醒正在阻塞的 Poll() 函数
-//-----------------------------------------------------------------------------
-void EpollObject::wakeup()
-{
-    BYTE val = 0;
-    ::write(pipeFds_[1], &val, sizeof(BYTE));
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 向 EPoll 中添加一个连接
-//-----------------------------------------------------------------------------
-void EpollObject::addConnection(TcpConnection *connection, bool enableSend, bool enableRecv)
-{
-    epollControl(
-        EPOLL_CTL_ADD, connection, connection->getSocket().getHandle(),
-        enableSend, enableRecv);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 更新 EPoll 中的一个连接
-//-----------------------------------------------------------------------------
-void EpollObject::updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv)
-{
-    epollControl(
-        EPOLL_CTL_MOD, connection, connection->getSocket().getHandle(),
-        enableSend, enableRecv);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 从 EPoll 中删除一个连接
-//-----------------------------------------------------------------------------
-void EpollObject::removeConnection(TcpConnection *connection)
-{
-    epollControl(
-        EPOLL_CTL_DEL, connection, connection->getSocket().getHandle(),
-        false, false);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 设置回调
-//-----------------------------------------------------------------------------
-void EpollObject::setNotifyEventCallback(const NotifyEventCallback& callback)
-{
-    onNotifyEvent_ = callback;
-}
-
-//-----------------------------------------------------------------------------
-
-void EpollObject::createEpoll()
-{
-    epollFd_ = ::epoll_create(1024);
-    if (epollFd_ < 0)
-        logger().writeStr(SEM_CREATE_EPOLL_ERROR);
-}
-
-//-----------------------------------------------------------------------------
-
-void EpollObject::destroyEpoll()
-{
-    if (epollFd_ > 0)
-        ::close(epollFd_);
-}
-
-//-----------------------------------------------------------------------------
-
-void EpollObject::createPipe()
-{
-    // pipeFds_[0] for reading, pipeFds_[1] for writing.
-    memset(pipeFds_, 0, sizeof(pipeFds_));
-    if (::pipe(pipeFds_) == 0)
-        epollControl(EPOLL_CTL_ADD, NULL, pipeFds_[0], false, true);
-    else
-        logger().writeStr(SEM_CREATE_PIPE_ERROR);
-}
-
-//-----------------------------------------------------------------------------
-
-void EpollObject::destroyPipe()
-{
-    epollControl(EPOLL_CTL_DEL, NULL, pipeFds_[0], false, false);
-
-    if (pipeFds_[0]) close(pipeFds_[0]);
-    if (pipeFds_[1]) close(pipeFds_[1]);
-
-    memset(pipeFds_, 0, sizeof(pipeFds_));
-}
-
-//-----------------------------------------------------------------------------
-
-void EpollObject::epollControl(int operation, void *param, int handle,
-    bool enableSend, bool enableRecv)
-{
-    // 注: 采用 Level Triggered (LT, 也称 "电平触发") 模式
-
-    struct epoll_event event;
-    memset(&event, 0, sizeof(event));
-    event.data.ptr = param;
-    if (enableSend)
-        event.events |= EPOLLOUT;
-    if (enableRecv)
-        event.events |= (EPOLLIN | EPOLLPRI);
-
-    if (::epoll_ctl(epollFd_, operation, handle, &event) < 0)
-    {
-        logger().writeFmt(SEM_EPOLL_CTRL_ERROR, operation);
-    }
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 处理管道事件
-//-----------------------------------------------------------------------------
-void EpollObject::processPipeEvent()
-{
-    BYTE val;
-    ::read(pipeFds_[0], &val, sizeof(BYTE));
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 处理 EPoll 轮循后的事件
-//-----------------------------------------------------------------------------
-void EpollObject::processEvents(int eventCount)
-{
-/*
-// from epoll.h
-enum EPOLL_EVENTS
-{
-    EPOLLIN      = 0x001,
-    EPOLLPRI     = 0x002,
-    EPOLLOUT     = 0x004,
-    EPOLLRDNORM  = 0x040,
-    EPOLLRDBAND  = 0x080,
-    EPOLLWRNORM  = 0x100,
-    EPOLLWRBAND  = 0x200,
-    EPOLLMSG     = 0x400,
-    EPOLLERR     = 0x008,
-    EPOLLHUP     = 0x010,
-    EPOLLRDHUP   = 0x2000,
-    EPOLLONESHOT = (1 << 30),
-    EPOLLET      = (1 << 31)
-};
-*/
-
-#ifndef EPOLLRDHUP
-#define EPOLLRDHUP 0x2000
-#endif
-
-    for (int i = 0; i < eventCount; i++)
-    {
-        epoll_event& ev = events_[i];
-        if (ev.data.ptr == NULL)  // for pipe
-        {
-            processPipeEvent();
-        }
-        else
-        {
-            TcpConnection *connection = (TcpConnection*)ev.data.ptr;
-            EVENT_TYPE eventType = ET_NONE;
-
-            //logger().writeFmt("processEvents: %u", ev.events);  // debug
-
-            if ((ev.events & EPOLLERR) || ((ev.events & EPOLLHUP) && !(ev.events & EPOLLIN)))
-                eventType = ET_ERROR;
-            else if (ev.events & (EPOLLIN | EPOLLPRI | EPOLLRDHUP))
-                eventType = ET_ALLOW_RECV;
-            else if (ev.events & EPOLLOUT)
-                eventType = ET_ALLOW_SEND;
-
-            if (eventType != ET_NONE && onNotifyEvent_)
-                onNotifyEvent_(connection, eventType);
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // class LinuxTcpEventLoop
 
 LinuxTcpEventLoop::LinuxTcpEventLoop()
 {
-    epollObject_ = new EpollObject(this);
     epollObject_->setNotifyEventCallback(boost::bind(&LinuxTcpEventLoop::onEpollNotifyEvent, this, _1, _2));
 }
 
 LinuxTcpEventLoop::~LinuxTcpEventLoop()
 {
-    stop(false, true);
-    delete epollObject_;
+    // nothing
 }
 
 //-----------------------------------------------------------------------------
@@ -2413,22 +1462,6 @@ LinuxTcpEventLoop::~LinuxTcpEventLoop()
 void LinuxTcpEventLoop::updateConnection(TcpConnection *connection, bool enableSend, bool enableRecv)
 {
     epollObject_->updateConnection(connection, enableSend, enableRecv);
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 执行单次事件循环中的工作
-//-----------------------------------------------------------------------------
-void LinuxTcpEventLoop::doLoopWork(Thread *thread)
-{
-    epollObject_->poll();
-}
-
-//-----------------------------------------------------------------------------
-// 描述: 唤醒事件循环中的阻塞操作
-//-----------------------------------------------------------------------------
-void LinuxTcpEventLoop::wakeupLoop()
-{
-    epollObject_->wakeup();
 }
 
 //-----------------------------------------------------------------------------
@@ -2450,7 +1483,8 @@ void LinuxTcpEventLoop::unregisterConnection(TcpConnection *connection)
 //-----------------------------------------------------------------------------
 // 描述: EPoll 事件回调
 //-----------------------------------------------------------------------------
-void LinuxTcpEventLoop::onEpollNotifyEvent(TcpConnection *connection, EpollObject::EVENT_TYPE eventType)
+void LinuxTcpEventLoop::onEpollNotifyEvent(BaseTcpConnection *connection,
+    EpollObject::EVENT_TYPE eventType)
 {
     LinuxTcpConnection *conn = static_cast<LinuxTcpConnection*>(connection);
 
@@ -2538,6 +1572,30 @@ TcpEventLoopList& MainTcpServer::getTcpClientEventLoopList()
     }
 
     return *tcpClientEventLoopList_;
+}
+
+//-----------------------------------------------------------------------------
+// 描述: 在全局范围内，根据事件循环线程ID查找对应的事件循环，找不到返回NULL
+//-----------------------------------------------------------------------------
+EventLoop* MainTcpServer::findEventLoop(THREAD_ID loopThreadId)
+{
+    EventLoop *result = NULL;
+
+    for (int svrIdx = 0; svrIdx < (int)tcpServerList_.size(); ++svrIdx)
+    {
+        TcpEventLoopList& eventLoopList = tcpServerList_[svrIdx]->eventLoopList_;
+        EventLoop *eventLoop = eventLoopList.findEventLoop(loopThreadId);
+        if (eventLoop != NULL)
+        {
+            result = eventLoop;
+            break;
+        }
+    }
+
+    if (!result)
+        result = tcpClientEventLoopList_->findEventLoop(loopThreadId);
+
+    return result;
 }
 
 //-----------------------------------------------------------------------------

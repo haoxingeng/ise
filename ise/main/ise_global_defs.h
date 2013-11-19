@@ -108,6 +108,9 @@ typedef std::set<int> IntegerSet;
 typedef boost::any Context;
 typedef boost::function<void(void)> Functor;
 
+typedef boost::function<void(void)> TimerCallback;
+typedef INT64 TimerId;
+
 ///////////////////////////////////////////////////////////////////////////////
 // 常量定义
 
