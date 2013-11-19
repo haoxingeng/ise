@@ -37,7 +37,6 @@
 #include "ise/main/ise_server_tcp.h"
 #include "ise/main/ise_server_assistor.h"
 #include "ise/main/ise_sys_threads.h"
-#include "ise/main/ise_scheduler.h"
 #include "ise/main/ise_timer.h"
 
 #ifdef ISE_WINDOWS
@@ -369,7 +368,6 @@ public:
     MainUdpServer& getMainUdpServer();
     MainTcpServer& getMainTcpServer();
     AssistorServer& getAssistorServer();
-    ScheduleTaskMgr& getScheduleTaskMgr();
     TimerManager& getTimerManager();
     TcpConnector& getTcpConnector();
 private:
@@ -378,7 +376,6 @@ private:
     MainUdpServer *udpServer_;            // UDP服务器
     MainTcpServer *tcpServer_;            // TCP服务器
     AssistorServer *assistorServer_;      // 辅助服务器
-    ScheduleTaskMgr *scheduleTaskMgr_;    // 定时任务管理器
     TimerManager *timerManager_;          // 定时器管理器
     TcpConnector *tcpConnector_;          // TCP连接器
     SysThreadMgr *sysThreadMgr_;          // 系统线程管理器
@@ -413,7 +410,6 @@ public:
     IseMainServer& mainServer() { return *mainServer_; }
     BaseUdpServer& udpServer() { return mainServer_->getMainUdpServer().getUdpServer(); }
     BaseTcpServer& tcpServer(int index) { return mainServer_->getMainTcpServer().getTcpServer(index); }
-    ScheduleTaskMgr& scheduleTaskMgr() { return mainServer_->getScheduleTaskMgr(); }
     TimerManager& timerManager() { return mainServer_->getTimerManager(); }
     TcpConnector& tcpConnector() { return mainServer_->getTcpConnector(); }
 

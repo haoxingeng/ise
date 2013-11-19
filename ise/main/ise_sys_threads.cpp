@@ -70,14 +70,6 @@ void SysDaemonThread::execute()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// class SysSchedulerThread
-
-void SysSchedulerThread::execute()
-{
-    iseApp().scheduleTaskMgr().execute(*this);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // class SysThreadMgr
 
 void SysThreadMgr::initialize()
@@ -86,10 +78,6 @@ void SysThreadMgr::initialize()
     Thread *thread;
 
     thread = new SysDaemonThread(*this);
-    threadList_.add(thread);
-    thread->run();
-
-    thread = new SysSchedulerThread(*this);
     threadList_.add(thread);
     thread->run();
 }

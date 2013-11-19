@@ -441,7 +441,6 @@ IseMainServer::IseMainServer() :
     udpServer_(NULL),
     tcpServer_(NULL),
     assistorServer_(NULL),
-    scheduleTaskMgr_(NULL),
     timerManager_(NULL),
     tcpConnector_(NULL),
     sysThreadMgr_(NULL)
@@ -483,9 +482,6 @@ void IseMainServer::initialize()
     assistorServer_ = new AssistorServer();
     assistorServer_->open();
 
-    // 定时任务管理器
-    scheduleTaskMgr_ = new ScheduleTaskMgr();
-
     // TCP连接器
     tcpConnector_ = new TcpConnector();
 
@@ -519,12 +515,6 @@ void IseMainServer::finalize()
         tcpServer_->close();
         delete tcpServer_;
         tcpServer_ = NULL;
-    }
-
-    if (scheduleTaskMgr_)
-    {
-        delete scheduleTaskMgr_;
-        scheduleTaskMgr_ = NULL;
     }
 
     if (tcpConnector_)
@@ -578,14 +568,6 @@ AssistorServer& IseMainServer::getAssistorServer()
 {
     ISE_ASSERT(assistorServer_ != NULL);
     return *assistorServer_;
-}
-
-//-----------------------------------------------------------------------------
-
-ScheduleTaskMgr& IseMainServer::getScheduleTaskMgr()
-{
-    ISE_ASSERT(scheduleTaskMgr_ != NULL);
-    return *scheduleTaskMgr_;
 }
 
 //-----------------------------------------------------------------------------

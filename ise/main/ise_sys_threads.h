@@ -67,17 +67,6 @@ protected:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class SysSchedulerThread
-
-class SysSchedulerThread : public SysThread
-{
-public:
-    SysSchedulerThread(SysThreadMgr& threadMgr) : SysThread(threadMgr) {}
-protected:
-    virtual void execute();
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // class SysThreadMgr
 
 class SysThreadMgr : boost::noncopyable

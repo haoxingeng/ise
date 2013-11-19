@@ -320,10 +320,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\ise\main\ise_scheduler.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\..\ise\main\ise_server_assistor.cpp"
 				>
 			</File>
@@ -419,10 +415,6 @@
 			</File>
 			<File
 				RelativePath="..\..\..\ise\main\ise_options.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\ise\main\ise_scheduler.h"
 				>
 			</File>
 			<File

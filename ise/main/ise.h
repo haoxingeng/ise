@@ -40,7 +40,6 @@
 #include "ise/main/ise_sys_utils.h"
 #include "ise/main/ise_application.h"
 #include "ise/main/ise_svr_mod.h"
-#include "ise/main/ise_scheduler.h"
 #include "ise/main/ise_database.h"
 #include "ise/main/ise_http.h"
 #include "ise/main/ise_inspector.h"
