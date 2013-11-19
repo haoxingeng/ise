@@ -162,7 +162,7 @@ TimerId EventLoop::executeAt(Timestamp time, const TimerCallback& callback)
 //-----------------------------------------------------------------------------
 TimerId EventLoop::executeAfter(double delay, const TimerCallback& callback)
 {
-    Timestamp time(Timestamp::now() + delay * MICROSECS_PER_SECOND);
+    Timestamp time(Timestamp::now() + delay * MILLISECS_PER_SECOND);
     return addTimer(time, 0, callback);
 }
 
@@ -171,7 +171,7 @@ TimerId EventLoop::executeAfter(double delay, const TimerCallback& callback)
 //-----------------------------------------------------------------------------
 TimerId EventLoop::executeEvery(double interval, const TimerCallback& callback)
 {
-    Timestamp time(Timestamp::now() + interval * MICROSECS_PER_SECOND);
+    Timestamp time(Timestamp::now() + interval * MILLISECS_PER_SECOND);
     return addTimer(time, interval, callback);
 }
 
@@ -256,7 +256,7 @@ int EventLoop::calcLoopWaitTimeout()
         if (expiration <= now)
             result = 0;
         else
-            result = ise::max((int)((expiration - now) / MICROSECS_PER_MILLISEC), 1);
+            result = ise::max((int)(expiration - now), 1);
     }
 
     return result;

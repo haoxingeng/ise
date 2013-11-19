@@ -182,13 +182,13 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// class Timestamp - 时间戳类 (微秒精度)
+// class Timestamp - 时间戳类 (毫秒精度)
 
 class Timestamp
 {
 public:
-    typedef INT64 TimeVal;   // UTC time value in microsecond resolution
-    typedef INT64 TimeDiff;  // difference between two timestamps in microseconds
+    typedef INT64 TimeVal;   // UTC time value in millisecond resolution
+    typedef INT64 TimeDiff;  // difference between two timestamps in milliseconds
 
 public:
     Timestamp() { value_ = 0; }
@@ -217,7 +217,7 @@ public:
     void update();
     void setEpochTime(time_t value);
     time_t epochTime() const;
-    TimeVal epochMicroseconds() const;
+    TimeVal epochMilliseconds() const;
 
     string toString(const string& dateSep = "-", const string& dateTimeSep = " ",
         const string& timeSep = ":", const string& microSecSep = ".") const;

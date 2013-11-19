@@ -412,12 +412,12 @@ Timestamp Timestamp::now()
     ts.LowPart  = ft.dwLowDateTime;
     ts.HighPart = ft.dwHighDateTime;
     ts.QuadPart -= epoch.QuadPart;
-    result.value_ = ts.QuadPart/10;
+    result.value_ = ts.QuadPart/10000;
 #endif
 #ifdef ISE_LINUX
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    result.value_ = TimeVal(tv.tv_sec) * MICROSECS_PER_SECOND + tv.tv_usec;
+    result.value_ = TimeVal(tv.tv_sec) * MILLISECS_PER_SECOND + tv.tv_usec;
 #endif
 
     return result;
@@ -436,7 +436,7 @@ void Timestamp::update()
 //-----------------------------------------------------------------------------
 void Timestamp::setEpochTime(time_t value)
 {
-    value_ = value * MICROSECS_PER_SECOND;
+    value_ = value * MILLISECS_PER_SECOND;
 }
 
 //-----------------------------------------------------------------------------
@@ -444,13 +444,13 @@ void Timestamp::setEpochTime(time_t value)
 //-----------------------------------------------------------------------------
 time_t Timestamp::epochTime() const
 {
-    return (time_t)(value_ / MICROSECS_PER_SECOND);
+    return (time_t)(value_ / MILLISECS_PER_SECOND);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 以微秒精度返回 epoch 时间 (since 1970-01-01 00:00:00)
+// 描述: 以毫秒精度返回 epoch 时间 (since 1970-01-01 00:00:00)
 //-----------------------------------------------------------------------------
-Timestamp::TimeVal Timestamp::epochMicroseconds() const
+Timestamp::TimeVal Timestamp::epochMilliseconds() const
 {
     return value_;
 }
@@ -461,11 +461,11 @@ Timestamp::TimeVal Timestamp::epochMicroseconds() const
 string Timestamp::toString(const string& dateSep, const string& dateTimeSep,
     const string& timeSep, const string& microSecSep) const
 {
-    time_t seconds = static_cast<time_t>(value_ / MICROSECS_PER_SECOND);
-    int microseconds = static_cast<int>(value_ % MICROSECS_PER_SECOND);
+    time_t seconds = static_cast<time_t>(value_ / MILLISECS_PER_SECOND);
+    int milliseconds = static_cast<int>(value_ % MILLISECS_PER_SECOND);
 
     string result = DateTime(seconds).toDateTimeString(dateSep, dateTimeSep, timeSep);
-    result += formatString("%s%06d", microSecSep.c_str(), microseconds);
+    result += formatString("%s%03d", microSecSep.c_str(), milliseconds);
 
     return result;
 }

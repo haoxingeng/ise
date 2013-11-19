@@ -72,7 +72,7 @@ void Timer::invokeCallback()
 void Timer::restart(Timestamp now)
 {
     if (repeat_)
-        expiration_ = now + interval_ * MICROSECS_PER_SECOND;
+        expiration_ = now + interval_ * MILLISECS_PER_SECOND;
     else
         expiration_ = Timestamp(0);
 }

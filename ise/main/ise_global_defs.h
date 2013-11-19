@@ -138,8 +138,6 @@ const unsigned int FA_ANY_FILE      = 0x0000007F;
 
 // 时间相关
 const int MILLISECS_PER_SECOND   = 1000;
-const int MICROSECS_PER_SECOND   = 1000 * 1000;
-const int MICROSECS_PER_MILLISEC = 1000;
 const int SECONDS_PER_MINUTE     = 60;
 const int MINUTES_PER_HOUR       = 60;
 const int HOURS_PER_DAY          = 24;
