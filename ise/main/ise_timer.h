@@ -46,10 +46,10 @@ class EventLoopList;
 class Timer : boost::noncopyable
 {
 public:
-    Timer(Timestamp expiration, double interval, const TimerCallback& callback);
+    Timer(Timestamp expiration, INT64 interval, const TimerCallback& callback);
 
     Timestamp expiration() const { return expiration_; }
-    double interval() const { return interval_; }
+    INT64 interval() const { return interval_; }
     bool repeat() const { return repeat_; }
     TimerId timerId() const { return timerId_; }
     void invokeCallback();
@@ -58,7 +58,7 @@ public:
 
 private:
     Timestamp expiration_;
-    const double interval_;  // second
+    const INT64 interval_;  // millisecond
     const bool repeat_;
     TimerId timerId_;
     const TimerCallback callback_;
@@ -105,8 +105,8 @@ public:
     ~TimerManager();
 public:
     TimerId executeAt(Timestamp time, const TimerCallback& callback);
-    TimerId executeAfter(double delay, const TimerCallback& callback);
-    TimerId executeEvery(double interval, const TimerCallback& callback);
+    TimerId executeAfter(INT64 delay, const TimerCallback& callback);
+    TimerId executeEvery(INT64 interval, const TimerCallback& callback);
     void cancelTimer(TimerId timerId);
 private:
     EventLoop& getTimerEventLoop();

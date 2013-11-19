@@ -11,7 +11,8 @@ IseBusiness* createIseBusinessObject()
 
 void AppBusiness::initialize()
 {
-    // nothing
+    everyTimerId_ = 0;
+    everyTimerExpiredCount_ = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -32,14 +33,16 @@ void AppBusiness::afterInit()
     logger().writeStr(msg);
 
     // after 3 seconds
-    iseApp().timerManager().executeAt(Timestamp::now() + MICROSECS_PER_SECOND * 3,
+    iseApp().timerManager().executeAt(Timestamp::now() + 3 * MILLISECS_PER_SECOND,
         boost::bind(&AppBusiness::onTimerAt, this));
 
     // after 5 seconds
-    iseApp().timerManager().executeAfter(5, boost::bind(&AppBusiness::onTimerAfter, this));
+    iseApp().timerManager().executeAfter(5 * MILLISECS_PER_SECOND,
+        boost::bind(&AppBusiness::onTimerAfter, this));
 
     // every 1 second
-    iseApp().timerManager().executeEvery(1, boost::bind(&AppBusiness::onTimerEvery, this));
+    everyTimerId_ = iseApp().timerManager().executeEvery(1 * MILLISECS_PER_SECOND,
+        boost::bind(&AppBusiness::onTimerEvery, this));
 }
 
 //-----------------------------------------------------------------------------
@@ -62,19 +65,23 @@ void AppBusiness::initIseOptions(IseOptions& options)
 
 void AppBusiness::onTimerAt()
 {
-    logger().writeStr("onTimerAt");
+    logger().writeStr("onTimerAt called.");
 }
 
 //-----------------------------------------------------------------------------
 
 void AppBusiness::onTimerAfter()
 {
-    logger().writeStr("onTimerAfter");
+    logger().writeStr("onTimerAfter called.");
 }
 
 //-----------------------------------------------------------------------------
 
 void AppBusiness::onTimerEvery()
 {
-    logger().writeStr("onTimerEvery");
+    logger().writeFmt("onTimerEvery called. (%d)", everyTimerExpiredCount_);
+
+    everyTimerExpiredCount_++;
+    if (everyTimerExpiredCount_ >= 10)
+        iseApp().timerManager().cancelTimer(everyTimerId_);
 }

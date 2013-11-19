@@ -158,20 +158,20 @@ TimerId EventLoop::executeAt(Timestamp time, const TimerCallback& callback)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 添加定时器 (在 delay 秒后执行)
+// 描述: 添加定时器 (在 delay 毫秒后执行)
 //-----------------------------------------------------------------------------
-TimerId EventLoop::executeAfter(double delay, const TimerCallback& callback)
+TimerId EventLoop::executeAfter(INT64 delay, const TimerCallback& callback)
 {
-    Timestamp time(Timestamp::now() + delay * MILLISECS_PER_SECOND);
+    Timestamp time(Timestamp::now() + delay);
     return addTimer(time, 0, callback);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 添加定时器 (每 interval 秒循环执行)
+// 描述: 添加定时器 (每 interval 毫秒循环执行)
 //-----------------------------------------------------------------------------
-TimerId EventLoop::executeEvery(double interval, const TimerCallback& callback)
+TimerId EventLoop::executeEvery(INT64 interval, const TimerCallback& callback)
 {
-    Timestamp time(Timestamp::now() + interval * MILLISECS_PER_SECOND);
+    Timestamp time(Timestamp::now() + interval);
     return addTimer(time, interval, callback);
 }
 
@@ -273,7 +273,7 @@ void EventLoop::processExpiredTimers()
 //-----------------------------------------------------------------------------
 // 描述: 添加定时器 (线程安全)
 //-----------------------------------------------------------------------------
-TimerId EventLoop::addTimer(Timestamp expiration, double interval, const TimerCallback& callback)
+TimerId EventLoop::addTimer(Timestamp expiration, INT64 interval, const TimerCallback& callback)
 {
     Timer *timer = new Timer(expiration, interval, callback);
 

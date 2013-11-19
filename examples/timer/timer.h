@@ -26,6 +26,10 @@ private:
     void onTimerAt();
     void onTimerAfter();
     void onTimerEvery();
+
+private:
+    TimerId everyTimerId_;
+    int everyTimerExpiredCount_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -40,7 +40,7 @@ namespace ise
 
 SeqNumberAlloc Timer::s_timerIdAlloc(1);
 
-Timer::Timer(Timestamp expiration, double interval, const TimerCallback& callback) :
+Timer::Timer(Timestamp expiration, INT64 interval, const TimerCallback& callback) :
     expiration_(expiration),
     interval_(interval),
     repeat_(interval > 0.0),
@@ -72,7 +72,7 @@ void Timer::invokeCallback()
 void Timer::restart(Timestamp now)
 {
     if (repeat_)
-        expiration_ = now + interval_ * MILLISECS_PER_SECOND;
+        expiration_ = now + interval_;
     else
         expiration_ = Timestamp(0);
 }
@@ -212,17 +212,17 @@ TimerId TimerManager::executeAt(Timestamp time, const TimerCallback& callback)
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 添加定时器 (在 delay 秒后执行)
+// 描述: 添加定时器 (在 delay 毫秒后执行)
 //-----------------------------------------------------------------------------
-TimerId TimerManager::executeAfter(double delay, const TimerCallback& callback)
+TimerId TimerManager::executeAfter(INT64 delay, const TimerCallback& callback)
 {
     return getTimerEventLoop().executeAfter(delay, callback);
 }
 
 //-----------------------------------------------------------------------------
-// 描述: 添加定时器 (每 interval 秒循环执行)
+// 描述: 添加定时器 (每 interval 毫秒循环执行)
 //-----------------------------------------------------------------------------
-TimerId TimerManager::executeEvery(double interval, const TimerCallback& callback)
+TimerId TimerManager::executeEvery(INT64 interval, const TimerCallback& callback)
 {
     return getTimerEventLoop().executeEvery(interval, callback);
 }

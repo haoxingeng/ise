@@ -81,8 +81,8 @@ public:
     void addFinalizer(const Functor& finalizer);
 
     TimerId executeAt(Timestamp time, const TimerCallback& callback);
-    TimerId executeAfter(double delay, const TimerCallback& callback);
-    TimerId executeEvery(double interval, const TimerCallback& callback);
+    TimerId executeAfter(INT64 delay, const TimerCallback& callback);
+    TimerId executeEvery(INT64 interval, const TimerCallback& callback);
     void cancelTimer(TimerId timerId);
 
     THREAD_ID getLoopThreadId() const { return loopThreadId_; };
@@ -100,7 +100,7 @@ protected:
     void processExpiredTimers();
 
 private:
-    TimerId addTimer(Timestamp expiration, double interval, const TimerCallback& callback);
+    TimerId addTimer(Timestamp expiration, INT64 interval, const TimerCallback& callback);
 
 protected:
     EventLoopThread *thread_;
