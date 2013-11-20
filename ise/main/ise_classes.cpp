@@ -417,7 +417,7 @@ Timestamp Timestamp::now()
 #ifdef ISE_LINUX
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    result.value_ = TimeVal(tv.tv_sec) * MILLISECS_PER_SECOND + tv.tv_usec;
+    result.value_ = TimeVal(tv.tv_sec) * 1000 + tv.tv_usec / 1000;
 #endif
 
     return result;
