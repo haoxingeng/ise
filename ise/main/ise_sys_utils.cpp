@@ -1329,7 +1329,7 @@ void randomize()
 //-----------------------------------------------------------------------------
 int getRandom(int min, int max)
 {
-    ISE_ASSERT((max - min) < MAXLONG);
+    ISE_ASSERT((max - min) < MAXINT);
     return min + (int)(((double)rand() / ((double)RAND_MAX + 0.1)) * (max - min + 1));
 }
 

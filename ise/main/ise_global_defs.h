@@ -25,8 +25,8 @@
 // 功能描述: 全局定义
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef _ISE_GLOBAL_H_
-#define _ISE_GLOBAL_H_
+#ifndef _ISE_GLOBAL_DEFS_H_
+#define _ISE_GLOBAL_DEFS_H_
 
 #include "ise/main/ise_options.h"
 
@@ -145,12 +145,9 @@ const int SECONDS_PER_HOUR       = 3600;
 const int SECONDS_PER_DAY        = 86400;
 
 // 范围值
-#define MINCHAR     0x80
 #define MAXCHAR     0x7f
-#define MINSHORT    0x8000
 #define MAXSHORT    0x7fff
-#define MINLONG     0x80000000
-#define MAXLONG     0x7fffffff
+#define MAXINT      0x7fffffff
 #define MAXBYTE     0xff
 #define MAXWORD     0xffff
 #define MAXDWORD    0xffffffff

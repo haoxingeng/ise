@@ -173,7 +173,7 @@ bool Buffer::loadFromStream(Stream& stream)
     try
     {
         INT64 size64 = stream.getSize() - stream.getPosition();
-        ISE_ASSERT(size64 <= MAXLONG);
+        ISE_ASSERT(size64 <= MAXINT);
         int size = (int)size64;
 
         setPosition(0);
@@ -417,7 +417,7 @@ Timestamp Timestamp::now()
 #ifdef ISE_LINUX
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    result.value_ = TimeVal(tv.tv_sec) * 1000 + tv.tv_usec / 1000;
+    result.value_ = TimeVal(tv.tv_sec) * MILLISECS_PER_SECOND + tv.tv_usec;
 #endif
 
     return result;
@@ -840,6 +840,22 @@ UINT64 SeqNumberAlloc::allocId()
 ///////////////////////////////////////////////////////////////////////////////
 // class Stream
 
+void Stream::readBuffer(void *buffer, int count)
+{
+    if (count != 0 && read(buffer, count) != count)
+        iseThrowStreamException(SEM_STREAM_READ_ERROR);
+}
+
+//-----------------------------------------------------------------------------
+
+void Stream::writeBuffer(const void *buffer, int count)
+{
+    if (count != 0 && write(buffer, count) != count)
+        iseThrowStreamException(SEM_STREAM_WRITE_ERROR);
+}
+
+//-----------------------------------------------------------------------------
+
 INT64 Stream::getSize()
 {
     INT64 pos, result;
@@ -970,27 +986,11 @@ INT64 MemoryStream::seek(INT64 offset, SEEK_ORIGIN seekOrigin)
 }
 
 //-----------------------------------------------------------------------------
-
-void Stream::readBuffer(void *buffer, int count)
-{
-    if (count != 0 && read(buffer, count) != count)
-        iseThrowStreamException(SEM_STREAM_READ_ERROR);
-}
-
-//-----------------------------------------------------------------------------
-
-void Stream::writeBuffer(const void *buffer, int count)
-{
-    if (count != 0 && write(buffer, count) != count)
-        iseThrowStreamException(SEM_STREAM_WRITE_ERROR);
-}
-
-//-----------------------------------------------------------------------------
 // 描述: 设置内存流大小
 //-----------------------------------------------------------------------------
 void MemoryStream::setSize(INT64 size)
 {
-    ISE_ASSERT(size <= MAXLONG);
+    ISE_ASSERT(size <= MAXINT);
 
     int oldPos = position_;
 
@@ -1007,7 +1007,7 @@ bool MemoryStream::loadFromStream(Stream& stream)
     try
     {
         INT64 count = stream.getSize();
-        ISE_ASSERT(count <= MAXLONG);
+        ISE_ASSERT(count <= MAXINT);
 
         stream.setPosition(0);
         setSize(count);
